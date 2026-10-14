@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<title>GPT-6 Astra · 吴谦</title>
+<meta name="theme-color" content="#000000">
+<script>
+(function(){if(window.parent===window)return;var d=document.documentElement;d.classList.add('embed');
+var post=function(m){try{parent.postMessage(m,location.origin)}catch(e){}};window.__post=post;
+var map={'/':'home','/drive':'drive','/ai':'ai','/p/home':'home','/p/drive':'drive','/p/ai':'ai'};
+document.addEventListener('click',function(e){var a=e.target.closest&&e.target.closest('a[href]');if(!a)return;var t=map[a.getAttribute('href')];if(t){e.preventDefault();post({type:'go',tab:t})}},true);
+addEventListener('wheel',function(e){if(Math.abs(e.deltaX)>Math.abs(e.deltaY)*1.5&&Math.abs(e.deltaX)>3)post({type:'wheelx',dx:e.deltaX})},{passive:true});
+var touch=matchMedia('(hover:none)').matches,ti='textarea,input:not([type]),input[type=text],input[type=search],input[type=password]';
+document.addEventListener('focusin',function(e){if(touch&&e.target.matches&&e.target.matches(ti))post({type:'bar',show:false})});
+document.addEventListener('focusout',function(e){if(touch&&e.target.matches&&e.target.matches(ti))post({type:'bar',show:true})});
+})();
+</script>
+<style>html.embed .no-embed{display:none!important}html.embed body{padding-bottom:100px}</style>
+
+<style>
+:root{--fg:#f5f5f7;--mut:#8e8e93;--line:rgba(255,255,255,.09);--a1:#6ee7b7;--a2:#60a5fa;--pb:calc(env(safe-area-inset-bottom) + 12px)}
+html.embed{--pb:100px}
+html.embed.kb{--pb:10px}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#000;overflow:hidden}
+html.embed body{padding-bottom:0!important}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Microsoft YaHei",sans-serif;color:var(--fg);-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;height:100dvh}
+.bg{position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(60% 40% at 15% 10%,rgba(110,231,183,.13),transparent 70%),radial-gradient(55% 45% at 90% 25%,rgba(96,165,250,.13),transparent 70%),#000}
+header{flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:calc(env(safe-area-inset-top) + 14px) max(18px,env(safe-area-inset-right)) 12px max(18px,env(safe-area-inset-left))}
+header .t{display:flex;align-items:center;gap:10px;min-width:0}
+.logo{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(135deg,var(--a1),var(--a2));color:#001;font-weight:800;font-size:15px;flex:none}
+header b{font-size:17px;letter-spacing:-.01em;display:block}
+header small{display:block;color:var(--mut);font-size:12px;margin-top:1px}
+.pill{border:0;border-radius:999px;padding:8px 14px;font-size:13px;color:var(--fg);cursor:pointer;background:rgba(255,255,255,.08);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:inset 1px 1px 1px -.5px rgba(255,255,255,.4),inset -1px -1px 1px -.5px rgba(255,255,255,.12);font-family:inherit}
+#log{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:8px max(16px,env(safe-area-inset-right)) 16px max(16px,env(safe-area-inset-left));display:flex;flex-direction:column;gap:12px}
+.inner{width:100%;max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.msg{max-width:86%;padding:11px 15px;border-radius:20px;font-size:15.5px;line-height:1.6;word-break:break-word;white-space:pre-wrap}
+.msg.u{align-self:flex-end;background:linear-gradient(135deg,#25a07a,#2f6fd6);border-bottom-right-radius:6px}
+.msg.a{align-self:flex-start;background:rgba(255,255,255,.07);border-bottom-left-radius:6px;box-shadow:inset 0 0 0 .5px rgba(255,255,255,.08)}
+.msg.e{align-self:center;color:#ffb4a8;font-size:13px;background:none;padding:2px 8px}
+.msg.a code{background:rgba(255,255,255,.1);border-radius:5px;padding:1px 5px;font:13.5px ui-monospace,Menlo,monospace}
+.msg.a pre{background:rgba(0,0,0,.45);border-radius:12px;padding:12px;overflow-x:auto;margin:6px 0;white-space:pre;-webkit-overflow-scrolling:touch}
+.msg.a pre code{background:none;padding:0}
+.msg.a.typing::after{content:'▍';animation:blink 1s steps(1) infinite;color:var(--a1)}
+.msg.a.wait{color:var(--mut)}
+.msg.a.wait::after{content:'';display:inline-block;width:1.4em;text-align:left;animation:dots 1.2s steps(4) infinite}
+@keyframes blink{50%{opacity:0}}
+@keyframes dots{0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}}
+.hello{margin:auto 0;text-align:center;padding:20px 6px}
+.hello h1{font-size:clamp(28px,8vw,40px);letter-spacing:-.02em;background:linear-gradient(100deg,#fff,#b8f5dd 50%,#a9cdfd);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hello p{color:var(--mut);margin:8px 0 22px;font-size:14.5px}
+.sug{display:flex;flex-wrap:wrap;gap:9px;justify-content:center}
+.sug button{font-family:inherit;border:0;color:var(--fg);font-size:14px;padding:10px 15px;border-radius:16px;background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.12);cursor:pointer}
+.note{color:var(--mut);font-size:11.5px;text-align:center;margin-top:18px}
+form{flex:none;padding:8px max(14px,env(safe-area-inset-right)) var(--pb) max(14px,env(safe-area-inset-left));transition:padding .25s}
+.box{max-width:760px;margin:0 auto;display:flex;align-items:flex-end;gap:8px;padding:6px 6px 6px 16px;border-radius:26px;background:rgba(255,255,255,.07);-webkit-backdrop-filter:blur(18px) saturate(170%);backdrop-filter:blur(18px) saturate(170%);box-shadow:inset 1.5px 1.5px 1px -1px rgba(255,255,255,.45),inset -1px -1px 1px -.5px rgba(255,255,255,.15),0 8px 26px -10px rgba(0,0,0,.6)}
+textarea{flex:1;resize:none;border:0;outline:0;background:none;color:var(--fg);font:16px/1.45 inherit;font-family:inherit;max-height:140px;padding:8px 0;min-height:24px}
+textarea::placeholder{color:#6e6e73}
+#mb{display:inline-flex;align-items:center;gap:4px;border:0;background:none;color:var(--mut);font:inherit;font-size:12.5px;margin-top:1px;cursor:pointer;padding:0}
+#mb b{font-size:12.5px;color:var(--a1);display:inline;font-weight:600}
+#mb svg{width:12px;height:12px}
+#sheet{position:fixed;inset:0;z-index:20;display:none;background:rgba(0,0,0,.35)}
+#sheet.on{display:block}
+#sheet .pan{position:absolute;left:max(12px,env(safe-area-inset-left));top:calc(env(safe-area-inset-top) + 64px);width:min(360px,calc(100vw - 24px));padding:8px;border-radius:24px;background:rgba(30,30,34,.84);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);box-shadow:inset 1.5px 1.5px 1px -1px rgba(255,255,255,.5),inset -1px -1px 1px -.5px rgba(255,255,255,.18),0 20px 50px -10px rgba(0,0,0,.7);transform-origin:20% 0;animation:pop .32s cubic-bezier(.3,1.4,.5,1)}
+@keyframes pop{from{opacity:0;transform:scale(.85) translateY(-8px)}}
+#sheet button{display:flex;width:100%;align-items:center;gap:10px;text-align:left;border:0;background:none;color:var(--fg);font:inherit;padding:11px 12px;border-radius:16px;cursor:pointer}
+#sheet button:hover,#sheet button.on{background:rgba(255,255,255,.09)}
+#sheet button .tx{flex:1;min-width:0}#sheet button b{font-size:15px;display:block}#sheet button small{color:var(--mut);font-size:12px}
+#sheet button i{font-style:normal;font-size:11px;padding:3px 7px;border-radius:999px;background:rgba(110,231,183,.16);color:var(--a1);white-space:nowrap}
+#sheet button .ck{width:18px;color:var(--a1);font-size:15px}
+.by{align-self:flex-start;font-size:11.5px;color:var(--mut);margin:-6px 0 0 6px}
+#send{flex:none;width:40px;height:40px;border-radius:50%;border:0;background:var(--fg);color:#000;display:grid;place-items:center;cursor:pointer;transition:opacity .2s,transform .2s}
+#send:disabled{opacity:.35}
+#send svg{width:20px;height:20px}
+#send.stop{background:rgba(255,255,255,.85)}
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<header>
+  <div class="t"><div class="logo">A</div><div><b id="mn">GPT-6 Astra</b><button id="mb" type="button">切换模型 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button></div></div>
+  <button class="pill" id="new">新对话</button>
+</header>
+<div id="sheet"><div class="pan" id="pan"></div></div>
+<div id="log"><div class="inner" id="inner"></div></div>
+<form id="f" autocomplete="off">
+  <div class="box"><textarea id="in" rows="1" placeholder="给 GPT-6 Astra 发消息" maxlength="4000" enterkeyhint="send"></textarea>
+  <button id="send" type="submit" aria-label="发送" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg></button></div>
+</form>
+<script>
+(()=>{
+const $=s=>document.querySelector(s),log=$('#log'),inner=$('#inner'),inp=$('#in'),send=$('#send'),f=$('#f');
+const SUG=['介绍一下吴谦和这个网站','帮我写一段 Python 爬虫','用简单的话解释量子计算','给我讲个冷笑话'];
+let sid,hist,busy=false,ctrl=null;
+let MODELS=[{id:'astra',name:'GPT-6 Astra',tag:'默认',desc:'均衡好用，不限次数'}],model=localStorage.getItem('aiModel')||'astra';
+const cur=()=>MODELS.find(m=>m.id===model)||MODELS[0];
+function showModel(){const m=cur();$('#mn').textContent=m.name;inp.placeholder='给 '+m.name+' 发消息';const h=inner.querySelector('.hello p');if(h)h.textContent='我是 '+m.name+'，'+m.desc+'。'}
+function sheet(){$('#pan').innerHTML=MODELS.map(m=>`<button data-id="${m.id}" class="${m.id===model?'on':''}"><span class="ck">${m.id===model?'✓':''}</span><span class="tx"><b>${esc(m.name)}</b><small>${esc(m.desc)}</small></span><i>${esc(m.tag)}</i></button>`).join('');$('#sheet').classList.add('on')}
+fetch('/api/models').then(r=>r.json()).then(j=>{if(j.models&&j.models.length){MODELS=j.models;if(!MODELS.some(m=>m.id===model))model='astra';showModel()}}).catch(()=>{});
+const newId=()=>crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(36).slice(2);
+const esc=s=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const md=t=>esc(t).split(/```/).map((x,i)=>i%2?'<pre><code>'+x.replace(/^[\w+-]*\n/,'')+'</code></pre>':x.replace(/`([^`\n]+)`/g,'<code>$1</code>').replace(/\*\*([^*\n]+)\*\*/g,'<b>$1</b>').replace(/^#{1,6} (.*)$/gm,'<b>$1</b>').replace(/^\s*[-*] /gm,'• ')).join('');
+const near=()=>log.scrollHeight-log.scrollTop-log.clientHeight<90;
+const down=()=>{log.scrollTop=log.scrollHeight};
+function add(c,t,html){const d=document.createElement('div');d.className='msg '+c;if(html)d.innerHTML=t;else d.textContent=t;inner.appendChild(d);down();return d}
+function save(){try{sessionStorage.setItem('astra',JSON.stringify({sid,hist}))}catch(e){}}
+function hello(){inner.innerHTML=`<div class="hello"><h1>有什么可以帮你？</h1><p>我是 GPT-6 Astra，问我任何问题。</p><div class="sug">${SUG.map(s=>`<button type="button">${s}</button>`).join('')}</div><div class="note">对话内容会被站长记录，请勿发送隐私信息。</div></div>`;
+  inner.querySelectorAll('.sug button').forEach(b=>b.onclick=()=>{inp.value=b.textContent;ask()})}
+function reset(){sid=newId();hist=[];save();hello()}
+try{const s=JSON.parse(sessionStorage.getItem('astra')||'null');if(s&&s.sid){sid=s.sid;hist=s.hist||[]}}catch(e){}
+if(!sid)reset();else if(!hist.length)hello();else{inner.innerHTML='';hist.forEach(m=>m.role==='user'?add('u',m.content):add('a',md(m.content),true))}
+$('#mb').onclick=sheet;
+$('#sheet').onclick=e=>{const b=e.target.closest('button[data-id]');if(b){model=b.dataset.id;localStorage.setItem('aiModel',model);showModel()}$('#sheet').classList.remove('on')};
+$('#new').onclick=()=>{if(ctrl)ctrl.abort();reset();inp.focus()};
+const grow=()=>{inp.style.height='auto';inp.style.height=Math.min(140,inp.scrollHeight)+'px';send.disabled=!busy&&!inp.value.trim()};
+inp.addEventListener('input',grow);
+inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing&&matchMedia('(hover:hover)').matches){e.preventDefault();ask()}});
+f.onsubmit=e=>{e.preventDefault();if(busy&&ctrl){ctrl.abort();return}ask()};
+const STOP='<svg viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="7" width="10" height="10" rx="2"/></svg>',SEND=send.innerHTML;
+async function ask(){const t=inp.value.trim();if(!t||busy)return;
+  if(inner.querySelector('.hello'))inner.innerHTML='';
+  inp.value='';grow();add('u',t);hist.push({role:'user',content:t});save();
+  busy=true;send.disabled=false;send.innerHTML=STOP;send.classList.add('stop');
+  const w=add('a wait','正在思考');let full='',queue='',done=false,timer=0,started=false;
+  const paint=()=>{const st=near();w.innerHTML=md(full);if(st)down()};
+  const pump=()=>{if(queue){if(!started){started=true;w.className='msg a typing'}const n=Math.max(1,Math.ceil(queue.length/14));full+=queue.slice(0,n);queue=queue.slice(n);paint()}
+    if(queue||!done)timer=requestAnimationFrame(pump);else w.classList.remove('typing')};
+  timer=requestAnimationFrame(pump);ctrl=new AbortController();
+  try{const r=await fetch('/api/chat',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({sid,model,messages:hist.slice(-16)}),signal:ctrl.signal});
+    if(!r.ok||!r.body){let j={};try{j=await r.json()}catch(_){}throw new Error(j.error||'出错了，请稍后再试')}
+    const rd=r.body.getReader(),dec=new TextDecoder();let buf='',err='',note='',by='';
+    for(;;){const{done:d,value}=await rd.read();if(d)break;buf+=dec.decode(value,{stream:true});let i;
+      while((i=buf.indexOf('\n\n'))>=0){const ev=buf.slice(0,i);buf=buf.slice(i+2);const line=ev.split('\n').find(l=>l.startsWith('data:'));if(!line)continue;
+        const j=JSON.parse(line.slice(5));if(j.t)queue+=j.t;if(j.error)err=j.error;if(j.notice)note=j.notice;if(j.done)by=j.model}}
+    if(err&&!full&&!queue)throw new Error(err);
+    done=true;await new Promise(res=>{const c=()=>queue?setTimeout(c,30):res();c()});
+    hist.push({role:'assistant',content:full||'…'});save();
+    if(by&&(note||model!=='astra')){const t=document.createElement('div');t.className='by';t.textContent=note||(by+' 回答');inner.appendChild(t)}
+  }catch(e){done=true;
+    if(e.name==='AbortError'){full+=queue;queue='';if(full){paint();w.classList.remove('typing');hist.push({role:'assistant',content:full});save()}else{cancelAnimationFrame(timer);w.remove();hist.pop();save()}}
+    else{cancelAnimationFrame(timer);w.remove();add('e',e.message);hist.pop();save()}}
+  finally{busy=false;ctrl=null;send.innerHTML=SEND;send.classList.remove('stop');grow()}}
+showModel();grow();
+/* keyboard open on phones: let the input sit right above the keyboard */
+const TOUCH=matchMedia('(hover:none)').matches;
+inp.addEventListener('focus',()=>{if(TOUCH)document.documentElement.classList.add('kb');setTimeout(down,300)});
+inp.addEventListener('blur',()=>document.documentElement.classList.remove('kb'));
+addEventListener('message',e=>{if(e.data&&e.data.type==='tab-shown'&&matchMedia('(hover:hover)').matches)inp.focus()});
+})();
+</script>
+</body>
+</html>
