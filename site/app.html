@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>吴谦 · Zachery Wu</title>
+<meta name="description" content="吴谦（Zachery Wu）的个人网站：主页、公共网盘和 AI 助手。">
+<meta name="theme-color" content="#000000">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23000'/%3E%3Cpath d='M18 20h28L18 44h28' stroke='%2376b900' stroke-width='6' fill='none'/%3E%3C/svg%3E">
+<style>
+:root{--fg:#f5f5f7;--mut:#8e8e93;--tint:#6ee7b7;--bar-h:64px;--bar-w:min(372px,calc(100vw - 32px))}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:#000;overflow:hidden;overscroll-behavior:none}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Microsoft YaHei",sans-serif;color:var(--fg);-webkit-font-smoothing:antialiased}
+#viewport{position:fixed;inset:0;overflow:hidden}
+#track{position:absolute;inset:0}
+.pane{position:absolute;inset:0;background:#000;overflow:hidden;opacity:0;visibility:hidden;transition:opacity .22s ease,visibility 0s linear .22s}
+.pane.on{opacity:1;visibility:visible;transition:opacity .22s ease,visibility 0s}
+.pane iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;background:#000}
+.pane .ph{position:absolute;inset:0;display:grid;place-items:center;color:var(--mut);font-size:14px}
+/* ---------- iOS 26 style liquid glass tab bar ---------- */
+#bar{position:fixed;z-index:50;left:50%;bottom:max(14px,calc(env(safe-area-inset-bottom) + 6px));width:var(--bar-w);height:var(--bar-h);transform:translateX(-50%);border-radius:999px;touch-action:none;user-select:none;-webkit-user-select:none;transition:opacity .5s,transform .45s cubic-bezier(.3,1.4,.5,1)}
+/* same liquid glass as the top navigation pill (.lg/.lg-rim on the home page) */
+.lg{--lg-bg:rgba(255,255,255,.035);background:var(--lg-bg);-webkit-backdrop-filter:blur(7px) saturate(170%) brightness(1.06);backdrop-filter:blur(7px) saturate(170%) brightness(1.06);box-shadow:inset 1.5px 1.5px 1px -1px rgba(255,255,255,.45),inset -1px -1px 1px -.5px rgba(255,255,255,.18),inset 0 0 12px rgba(255,255,255,.04),inset 0 -14px 24px -18px rgba(255,255,255,.07),0 8px 28px -8px rgba(0,0,0,.5)}
+.lg.lens{-webkit-backdrop-filter:var(--lens) blur(.6px) saturate(165%) brightness(1.08);backdrop-filter:var(--lens) blur(.6px) saturate(165%) brightness(1.08);--lg-bg:rgba(255,255,255,.015)}
+.lg-rim::after{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;background:linear-gradient(135deg,rgba(255,255,255,.5),rgba(255,255,255,.08) 22%,rgba(255,255,255,0) 48%,rgba(255,255,255,.03) 70%,rgba(255,255,255,.28));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;z-index:2}
+#bar.hide{opacity:0;transform:translateX(-50%) translateY(30px) scale(.9);pointer-events:none}
+#bar.press{transform:translateX(-50%) scale(1.035)}
+.row{position:absolute;inset:6px;display:flex}
+.it{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:rgba(245,245,247,.86);font-size:10.5px;font-weight:600;letter-spacing:.02em;cursor:pointer;border:0;background:none;font-family:inherit;padding:0}
+.it svg{width:25px;height:25px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.it:focus-visible{outline:2px solid var(--tint);outline-offset:-4px;border-radius:999px}
+#lens{position:absolute;top:6px;left:0;height:calc(var(--bar-h) - 12px);border-radius:999px;pointer-events:none;overflow:hidden;will-change:transform;transform-origin:50% 50%;
+  --a:0;background:rgba(255,255,255,calc(.13 - .09 * var(--a)));
+  -webkit-backdrop-filter:blur(calc(3px * var(--a))) saturate(160%);backdrop-filter:blur(calc(3px * var(--a))) saturate(160%);
+  box-shadow:inset 0 0 0 .5px rgba(255,255,255,calc(.10 + .25 * var(--a))),
+    inset 2px 2px 2px -1px rgba(255,255,255,calc(.18 + .6 * var(--a))),
+    inset -2px -2px 3px -1px rgba(255,255,255,calc(.06 + .35 * var(--a))),
+    inset 0 0 10px rgba(255,255,255,calc(.03 + .08 * var(--a))),
+    inset 3px 0 6px -4px rgba(110,231,255,calc(.5 * var(--a))),
+    inset -3px 0 6px -4px rgba(255,120,200,calc(.45 * var(--a))),
+    0 calc(8px * var(--a)) calc(22px * var(--a)) rgba(0,0,0,calc(.45 * var(--a)))}
+#lens::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:var(--a);
+  background:radial-gradient(120% 90% at 30% 0%,rgba(255,255,255,.22),rgba(255,255,255,0) 55%),radial-gradient(90% 80% at 75% 110%,rgba(255,255,255,.10),transparent 60%)}
+#mag{position:absolute;top:0;left:0;height:calc(var(--bar-h) - 12px);display:flex;will-change:transform}
+#mag .it{color:var(--tint)}
+#mag .it svg{stroke-width:2.1}
+@media (prefers-reduced-transparency:reduce){#bar{--lg-bg:rgba(28,28,32,.94)}}
+@media (min-width:900px){:root{--bar-h:60px;--bar-w:340px}}
+</style>
+</head>
+<body>
+<div id="viewport"><div id="track">
+  <section class="pane" data-tab="home" aria-label="主页"></section>
+  <section class="pane" data-tab="drive" aria-label="网盘"></section>
+  <section class="pane" data-tab="ai" aria-label="AI"></section>
+</div></div>
+
+<svg id="lgdefs" width="0" height="0" style="position:absolute;width:0;height:0" aria-hidden="true"><defs></defs></svg>
+<nav id="bar" class="lg lg-rim hide" aria-label="切换页面">
+  <div class="row" id="row" role="tablist">
+    <button class="it" role="tab" data-i="0"><svg viewBox="0 0 24 24"><path d="M3.5 10.6 12 3.8l8.5 6.8V20a.9.9 0 0 1-.9.9h-4.8v-6.1H9.2v6.1H4.4a.9.9 0 0 1-.9-.9z"/></svg>主页</button>
+    <button class="it" role="tab" data-i="1"><svg viewBox="0 0 24 24"><path d="M7 18.5h10.5a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.6 9.1 4.75 4.75 0 0 0 7 18.5z"/><path d="M12 15.5v-6m-2.6 2.5L12 9.4l2.6 2.6"/></svg>网盘</button>
+    <button class="it" role="tab" data-i="2"><svg viewBox="0 0 24 24"><path d="M11 3.5c.5 3.9 2.6 6 6.5 6.5-3.9.5-6 2.6-6.5 6.5-.5-3.9-2.6-6-6.5-6.5 3.9-.5 6-2.6 6.5-6.5z"/><path d="M18.2 14.6c.25 1.8 1.2 2.75 3 3-1.8.25-2.75 1.2-3 3-.25-1.8-1.2-2.75-3-3 1.8-.25 2.75-1.2 3-3z"/></svg>AI</button>
+  </div>
+  <div id="lens" aria-hidden="true"><div id="mag"></div></div>
+</nav>
+
+<script>
+(()=>{
+const TABS=[{k:'home',path:'/',src:'/p/home',title:'吴谦 · Zachery Wu'},{k:'drive',path:'/drive',src:'/p/drive',title:'公共网盘 · 吴谦'},{k:'ai',path:'/ai',src:'/p/ai',title:'GPT-6 Astra · 吴谦'}];
+const N=TABS.length,$=s=>document.querySelector(s);
+const track=$('#track'),bar=$('#bar'),lens=$('#lens'),mag=$('#mag'),row=$('#row'),panes=[...document.querySelectorAll('.pane')];
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+mag.innerHTML=row.innerHTML;mag.querySelectorAll('.it').forEach(b=>{b.removeAttribute('role');b.tabIndex=-1});
+
+let idx=Math.max(0,TABS.findIndex(t=>t.path===location.pathname.replace(/\/+$/,'')||(t.path==='/'&&location.pathname==='/')));
+if(idx<0)idx=0;
+/* physics, measured in "tabs" (0..N-1). Three springs:
+   p   – lens position chasing goal (finger while dragging, a tab otherwise)
+   d   – jelly deformation chasing velocity (low damping → wobbles after a stop)
+   act – "lifted" state (lens grows & turns to clear glass while held/moving), slightly bouncy */
+let p=idx,v=0,goal=idx,target=idx,d=0,dv=0,act=0,av=0,dragging=false,raf=0,lastT=0,shown=-1,moving=false;
+function show(i){if(shown===i)return;shown=i;load(i);panes.forEach((pn,k)=>{pn.classList.toggle('on',k===i);pn.inert=k!==i;pn.setAttribute('aria-hidden',k!==i)})}
+show(idx);
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+
+/* ---------- iframes (lazy) ---------- */
+function load(i){const pn=panes[i];if(pn.querySelector('iframe'))return;const f=document.createElement('iframe');f.src=TABS[i].src;f.title=TABS[i].title;f.setAttribute('allow','clipboard-write; fullscreen; autoplay');f.addEventListener('load',()=>hook(f,i));pn.appendChild(f)}
+load(idx);setTimeout(()=>{for(let i=0;i<N;i++)load(i)},idx===0?2600:600);
+
+/* ---------- render ---------- */
+function geom(){const bw=bar.clientWidth,iw=(bw-12)/N;return{bw,iw}}
+function render(){
+  const {bw,iw}=geom();
+  const cp=clamp(p,0,N-1);                                   // hard stop at both ends
+  const x=6+cp*iw;
+  const atEdge=(cp===0&&v<0)||(cp===N-1&&v>0);
+  const dd=atEdge?d*.25:d, st=Math.abs(dd);
+  const sx=(1+st)*(1+.18*act), sy=(1-st*.5)*(1+.32*act);
+  // stretch towards the direction of travel: shift the origin to the trailing side
+  lens.style.transformOrigin=(dd>0?'35%':dd<0?'65%':'50%')+' 50%';
+  lens.style.width=iw+'px';
+  lens.style.transform=`translate3d(${x}px,0,0) scale(${sx.toFixed(4)},${sy.toFixed(4)})`;
+  lens.style.setProperty('--a',clamp(act,0,1).toFixed(3));
+  { const ox=dd>0?.35:dd<0?.65:.5, l0=x-6+iw*ox*(1-sx), r0=l0+iw*sx, lifted=act>.02||moving;
+    const m=lifted?`linear-gradient(90deg,#000 ${Math.max(0,l0+3)}px,transparent ${l0+9}px,transparent ${r0-9}px,#000 ${r0-3}px)`:'none';
+    row.style.webkitMaskImage=m;row.style.maskImage=m; }   // plain icons under the lens are hidden; the magnified copy shows instead
+  mag.style.width=(bw-12)+'px';mag.style.transform=`translate3d(${-(x-6)}px,0,0)`;
+  const cur=Math.round(cp);row.querySelectorAll('.it').forEach((b,i)=>b.setAttribute('aria-selected',i===cur));
+  if(!dragging&&shown!==target&&Math.abs(target-p)<.15)show(target);   // the page changes only once the glass has arrived
+}
+function step(h){
+  // position
+  const k=reduce?900:(dragging?600:300), c=2*Math.sqrt(k)*(reduce?1:(dragging?.82:.74));
+  v+=(k*(goal-p)-c*v)*h; p+=v*h;
+  if(p<0){p=0;if(v<0)v=0} if(p>N-1){p=N-1;if(v>0)v=0}   // never travel past the first/last tab
+  // jelly: target deformation from velocity, underdamped so it wobbles back like liquid
+  const dt=clamp(v*.055,-.42,.42), kd=reduce?900:260, cd=2*Math.sqrt(kd)*(reduce?1:.32);
+  dv+=(kd*(dt-d)-cd*dv)*h; d+=dv*h;
+  // lift
+  const want=(dragging||Math.abs(goal-p)>.06||Math.abs(v)>.5)?1:0, ka=reduce?900:(want?420:200), ca=2*Math.sqrt(ka)*(want?.55:.9);
+  av+=(ka*(want-act)-ca*av)*h; act+=av*h; if(act<0){act=0;if(av<0)av=0}
+}
+function tick(t){
+  const dt=Math.min(.1,(t-(lastT||t))/1000||.016);lastT=t;
+  for(let rem=dt;rem>0;rem-=.004)step(Math.min(.004,rem));   // sub-stepped: same feel at 60/120 Hz
+  moving=dragging||Math.abs(goal-p)>.001||Math.abs(v)>.01||Math.abs(d)>.002||Math.abs(dv)>.01||act>.002||Math.abs(av)>.01;
+  if(!moving){p=goal;d=dv=act=av=v=0}
+  render();
+  if(!dragging&&!moving&&target!==idx)settle();
+  if(moving)raf=requestAnimationFrame(tick);else{raf=0;lastT=0;if(target!==idx||shown!==target)settle()}
+}
+const kick=()=>{if(!raf){lastT=0;raf=requestAnimationFrame(tick)}};
+function go(i){target=clamp(Math.round(i),0,N-1);goal=target;load(target);kick()}
+function settle(){idx=target;show(target);const t=TABS[idx];if(location.pathname!==t.path)history.replaceState(null,'',t.path+location.hash);document.title=t.title;
+  try{const w=panes[idx].querySelector('iframe')?.contentWindow;w&&w.postMessage({type:'tab-shown'},'*')}catch(e){}}
+
+/* ---------- tab bar: tap & drag the glass ---------- */
+let dg=null;
+const posAt=x=>{const {iw}=geom(),r=bar.getBoundingClientRect();return (x-r.left-6)/iw-.5};
+bar.addEventListener('pointerdown',e=>{const pos=posAt(e.clientX);
+  dg={id:e.pointerId,x0:e.clientX,off:0,moved:false,onLens:Math.abs(pos-p)<.6,hist:[[performance.now(),pos]]};
+  bar.setPointerCapture(e.pointerId);bar.classList.add('press');
+  if(dg.onLens){dragging=true;dg.off=p-pos;kick()}});      // press on the lens lifts it right away
+bar.addEventListener('pointermove',e=>{if(!dg||e.pointerId!==dg.id)return;
+  if(Math.abs(e.clientX-dg.x0)>5)dg.moved=true;if(!dg.moved)return;
+  if(!dragging){dragging=true;dg.off=0;kick()}
+  const pos=posAt(e.clientX);goal=clamp(pos+dg.off*.6,0,N-1);dg.off*=.9;   // follow the finger, ease out the grab offset
+  const now=performance.now();dg.hist.push([now,pos]);while(dg.hist.length>5)dg.hist.shift()});
+const endBar=e=>{if(!dg||e.pointerId!==dg.id)return;bar.classList.remove('press');dragging=false;
+  if(!dg.moved){go(clamp(Math.floor(posAt(e.clientX)+.5),0,N-1))}
+  else{const h=dg.hist,a=h[0],b=h[h.length-1],vel=(b[1]-a[1])/Math.max(.016,(b[0]-a[0])/1000);   // flick velocity in tabs/s
+    go(goal+clamp(vel*.12,-.6,.6))}
+  dg=null;kick()};
+bar.addEventListener('pointerup',endBar);bar.addEventListener('pointercancel',endBar);
+row.addEventListener('keydown',e=>{if(e.key==='ArrowRight')go(Math.round(target)+1);if(e.key==='ArrowLeft')go(Math.round(target)-1)});
+row.querySelectorAll('.it').forEach(b=>b.addEventListener('click',e=>{if(e.detail===0)go(+b.dataset.i)}));  // keyboard activation
+
+function hook(f,i){let d;try{d=f.contentDocument}catch(e){return}if(!d)return;
+  d.addEventListener('keydown',e=>{if(e.altKey&&e.key==='ArrowRight')go(idx+1);if(e.altKey&&e.key==='ArrowLeft')go(idx-1)})}
+addEventListener('message',e=>{if(e.origin!==location.origin)return;const m=e.data||{};
+  if(m.type==='go'){const i=TABS.findIndex(t=>t.k===m.tab);if(i>=0)go(i)}
+  if(m.type==='bar')bar.classList.toggle('hide',!m.show);
+  if(m.type==='booted'&&bar.dataset.wait)showBar();
+});
+window.__st=()=>({p,v,goal,target,d,act,dragging,moving});
+function showBar(){delete bar.dataset.wait;bar.classList.remove('hide')}
+if(idx===0){bar.dataset.wait=1;setTimeout(showBar,2900)}else setTimeout(showBar,150);
+addEventListener('resize',render);
+render();
+})();
+
+/* ---------- liquid glass lens (Chromium only; Safari/Firefox keep frosted fallback) ---------- */
+(()=>{
+  const ua=navigator.userAgent;
+  const chromium=/Chrome\/|Chromium\/|Edg\//.test(ua)&&!/CriOS|EdgiOS|FxiOS/.test(ua)&&!/Firefox\//.test(ua);
+  if(!chromium||!CSS.supports('backdrop-filter','url(#x)'))return;
+  const NS='http://www.w3.org/2000/svg',defs=document.querySelector('#lgdefs defs');
+  let n=0;
+  function mapURL(w,h,r,bezel){
+    const c=document.createElement('canvas');c.width=w;c.height=h;
+    const g=c.getContext('2d'),img=g.createImageData(w,h),d=img.data;
+    const hw=w/2,hh=h/2,ix=hw-r,iy=hh-r;
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+      const px=x+.5-hw,py=y+.5-hh,ax=Math.abs(px),ay=Math.abs(py);
+      const qx=ax-ix,qy=ay-iy;
+      const ox=Math.max(qx,0),oy=Math.max(qy,0);
+      const sdf=Math.hypot(ox,oy)+Math.min(Math.max(qx,qy),0)-r;
+      let nx=0,ny=0;
+      if(qx>0&&qy>0){const l=Math.hypot(qx,qy)||1;nx=qx/l;ny=qy/l}else if(qx>qy)nx=1;else ny=1;
+      nx*=Math.sign(px)||1;ny*=Math.sign(py)||1;
+      const dist=-sdf;let m=0;
+      if(dist<bezel){const t=1-Math.max(dist,0)/bezel;m=t*t*(3-2*t)}
+      const i=(y*w+x)*4;
+      d[i]=128-nx*m*127;d[i+1]=128-ny*m*127;d[i+2]=128;d[i+3]=255;
+    }
+    g.putImageData(img,0,0);return c.toDataURL();
+  }
+  function build(el){
+    const b=el.getBoundingClientRect(),w=Math.round(el.offsetWidth),h=Math.round(el.offsetHeight);
+    if(w<8||h<8)return;
+    const key=w+'x'+h;if(el.dataset.lk===key)return;el.dataset.lk=key;
+    const cs=getComputedStyle(el),r=Math.min(parseFloat(cs.borderTopLeftRadius)||0,w/2,h/2);
+    const bezel=Math.min(Math.max(h*.32,14),28,Math.min(w,h)/2);
+    const scale=Math.min(bezel*1.6,42);
+    const id=el.dataset.lid||('lgl'+(n++));el.dataset.lid=id;
+    let f=document.getElementById(id);if(f)f.remove();
+    f=document.createElementNS(NS,'filter');
+    f.setAttribute('id',id);
+    for(const [k,v] of Object.entries({x:0,y:0,width:w,height:h,filterUnits:'userSpaceOnUse',primitiveUnits:'userSpaceOnUse','color-interpolation-filters':'sRGB'}))f.setAttribute(k,v);
+    f.innerHTML=`<feImage href="${mapURL(w,h,r,bezel)}" x="0" y="0" width="${w}" height="${h}" result="m" preserveAspectRatio="none"/>`+
+      `<feDisplacementMap in="SourceGraphic" in2="m" scale="${scale}" xChannelSelector="R" yChannelSelector="G" result="dr"/>`+
+      `<feColorMatrix in="dr" type="matrix" values="1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0" result="r"/>`+
+      `<feDisplacementMap in="SourceGraphic" in2="m" scale="${scale*.975}" xChannelSelector="R" yChannelSelector="G" result="dg"/>`+
+      `<feColorMatrix in="dg" type="matrix" values="0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0" result="g"/>`+
+      `<feDisplacementMap in="SourceGraphic" in2="m" scale="${scale*.95}" xChannelSelector="R" yChannelSelector="G" result="db"/>`+
+      `<feColorMatrix in="db" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 1 0" result="b"/>`+
+      `<feBlend in="r" in2="g" mode="screen" result="rg"/><feBlend in="rg" in2="b" mode="screen"/>`;
+    defs.appendChild(f);
+    el.style.setProperty('--lens',`url(#${id})`);el.classList.add('lens');
+  }
+  const els=[...document.querySelectorAll('.lg')];
+  const run=()=>els.forEach(build);
+  const ro=new ResizeObserver(()=>{clearTimeout(run.t);run.t=setTimeout(run,120)});
+  els.forEach(e=>ro.observe(e));
+  requestAnimationFrame(run);
+})();
+</script>
+</body>
+</html>
