@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <title>GPT-6 Astra · 吴谦</title>
+<link rel="canonical" href="https://wqzachery.dpdns.org/ai">
 <meta name="theme-color" content="#000000">
 <script>
 (function(){if(window.parent===window)return;var d=document.documentElement;d.classList.add('embed');
@@ -27,10 +28,11 @@ html,body{height:100%;background:#000;overflow:hidden}
 html.embed body{padding-bottom:0!important}
 body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Microsoft YaHei",sans-serif;color:var(--fg);-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;height:100dvh}
 .bg{position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(60% 40% at 15% 10%,rgba(110,231,183,.13),transparent 70%),radial-gradient(55% 45% at 90% 25%,rgba(96,165,250,.13),transparent 70%),#000}
-header{flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:calc(env(safe-area-inset-top) + 14px) max(18px,env(safe-area-inset-right)) 12px max(18px,env(safe-area-inset-left))}
+header{flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;height:52px;box-sizing:border-box;width:calc(100% - 28px);max-width:640px;margin:calc(env(safe-area-inset-top) + 10px) auto 6px;padding:0 7px 0 10px;border-radius:999px;position:relative;z-index:5;background:rgba(255,255,255,.05);-webkit-backdrop-filter:blur(14px) saturate(170%) brightness(1.04);backdrop-filter:blur(14px) saturate(170%) brightness(1.04);box-shadow:inset 1.5px 1.5px 1px -1px rgba(255,255,255,.45),inset -1px -1px 1px -.5px rgba(255,255,255,.18),inset 0 0 12px rgba(255,255,255,.04),0 8px 24px rgba(0,0,0,.25)}
+@media(max-width:480px){header{height:50px}}
 header .t{display:flex;align-items:center;gap:10px;min-width:0}
-.logo{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(135deg,var(--a1),var(--a2));color:#001;font-weight:800;font-size:15px;flex:none}
-header b{font-size:17px;letter-spacing:-.01em;display:block}
+.logo{width:32px;height:32px;border-radius:999px;display:grid;place-items:center;background:linear-gradient(135deg,var(--a1),var(--a2));color:#001;font-weight:800;font-size:15px;flex:none}
+header b{font-size:15.5px;letter-spacing:-.01em;display:block}
 header small{display:block;color:var(--mut);font-size:12px;margin-top:1px}
 .pill{border:0;border-radius:999px;padding:8px 14px;font-size:13px;color:var(--fg);cursor:pointer;background:rgba(255,255,255,.08);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:inset 1px 1px 1px -.5px rgba(255,255,255,.4),inset -1px -1px 1px -.5px rgba(255,255,255,.12);font-family:inherit}
 #log{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:8px max(16px,env(safe-area-inset-right)) 16px max(16px,env(safe-area-inset-left));display:flex;flex-direction:column;gap:12px}
@@ -57,7 +59,19 @@ form{flex:none;padding:8px max(14px,env(safe-area-inset-right)) var(--pb) max(14
 .box{max-width:760px;margin:0 auto;display:flex;align-items:flex-end;gap:8px;padding:6px 6px 6px 16px;border-radius:26px;background:rgba(255,255,255,.07);-webkit-backdrop-filter:blur(18px) saturate(170%);backdrop-filter:blur(18px) saturate(170%);box-shadow:inset 1.5px 1.5px 1px -1px rgba(255,255,255,.45),inset -1px -1px 1px -.5px rgba(255,255,255,.15),0 8px 26px -10px rgba(0,0,0,.6)}
 textarea{flex:1;resize:none;border:0;outline:0;background:none;color:var(--fg);font:16px/1.45 inherit;font-family:inherit;max-height:140px;padding:8px 0;min-height:24px}
 textarea::placeholder{color:#6e6e73}
-#mb{display:inline-flex;align-items:center;gap:4px;border:0;background:none;color:var(--mut);font:inherit;font-size:12.5px;margin-top:1px;cursor:pointer;padding:0}
+.opts{max-width:760px;margin:0 auto 7px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.opts button{font:inherit;border:0;cursor:pointer;color:var(--mut);font-size:12.5px;font-weight:600;height:30px;padding:0 12px;border-radius:999px;background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.12);display:inline-flex;align-items:center;gap:5px;transition:background .2s,color .2s}
+.opts button svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.opts button[aria-pressed="true"]{color:#04150e;background:var(--a1)}
+.opts .seg{display:inline-flex;align-items:center;height:30px;padding:2px;border-radius:999px;background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.12)}
+.opts .seg span{color:var(--mut);font-size:12px;padding:0 6px 0 9px}
+.opts .seg button{height:26px;padding:0 11px;background:none;box-shadow:none}
+.opts .seg button[aria-checked="true"]{color:var(--fg);background:rgba(255,255,255,.16)}
+.opts button:focus-visible{outline:2px solid var(--a1);outline-offset:2px}
+.src{display:flex;flex-wrap:wrap;gap:6px;margin:-4px 0 6px}
+.src a{display:inline-flex;align-items:center;gap:5px;max-width:100%;font-size:12px;color:var(--fg);text-decoration:none;padding:5px 10px;border-radius:12px;background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.1)}
+.src a b{color:var(--a1);font-weight:700}.src a span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}
+#mb{display:inline-flex;align-items:center;gap:4px;border:0;background:none;color:var(--mut);font:inherit;font-size:12.5px;margin-top:-3px;cursor:pointer;padding:3px 0;min-height:24px}
 #mb b{font-size:12.5px;color:var(--a1);display:inline;font-weight:600}
 #mb svg{width:12px;height:12px}
 #sheet{position:fixed;inset:0;z-index:20;display:none;background:rgba(0,0,0,.35)}
@@ -85,6 +99,8 @@ textarea::placeholder{color:#6e6e73}
 <div id="sheet"><div class="pan" id="pan"></div></div>
 <div id="log"><div class="inner" id="inner"></div></div>
 <form id="f" autocomplete="off">
+  <div class="opts"><button type="button" id="web" aria-pressed="false" aria-label="联网搜索"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>联网搜索</button>
+  <div class="seg" role="radiogroup" aria-label="思考深度" id="eff"><span>思考</span><button type="button" role="radio" data-e="low">低</button><button type="button" role="radio" data-e="medium">中</button><button type="button" role="radio" data-e="high">高</button></div></div>
   <div class="box"><textarea id="in" rows="1" placeholder="给 GPT-6 Astra 发消息" maxlength="4000" enterkeyhint="send"></textarea>
   <button id="send" type="submit" aria-label="发送" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg></button></div>
 </form>
@@ -95,6 +111,10 @@ const SUG=['介绍一下吴谦和这个网站','帮我写一段 Python 爬虫','
 let sid,hist,busy=false,ctrl=null;
 let MODELS=[{id:'astra',name:'GPT-6 Astra',tag:'默认',desc:'均衡好用，不限次数'}],model=localStorage.getItem('aiModel')||'astra';
 const cur=()=>MODELS.find(m=>m.id===model)||MODELS[0];
+let web=localStorage.getItem('aiWeb')==='1',effort=localStorage.getItem('aiEffort')||'low';
+const opts=()=>{$('#web').setAttribute('aria-pressed',web);document.querySelectorAll('#eff button').forEach(b=>b.setAttribute('aria-checked',b.dataset.e===effort))};
+$('#web').onclick=()=>{web=!web;localStorage.setItem('aiWeb',web?'1':'0');opts()};
+$('#eff').onclick=e=>{const b=e.target.closest('button');if(!b)return;effort=b.dataset.e;localStorage.setItem('aiEffort',effort);opts()};opts();
 function showModel(){const m=cur();$('#mn').textContent=m.name;inp.placeholder='给 '+m.name+' 发消息';const h=inner.querySelector('.hello p');if(h)h.textContent='我是 '+m.name+'，'+m.desc+'。'}
 function sheet(){$('#pan').innerHTML=MODELS.map(m=>`<button data-id="${m.id}" class="${m.id===model?'on':''}"><span class="ck">${m.id===model?'✓':''}</span><span class="tx"><b>${esc(m.name)}</b><small>${esc(m.desc)}</small></span><i>${esc(m.tag)}</i></button>`).join('');$('#sheet').classList.add('on')}
 fetch('/api/models').then(r=>r.json()).then(j=>{if(j.models&&j.models.length){MODELS=j.models;if(!MODELS.some(m=>m.id===model))model='astra';showModel()}}).catch(()=>{});
@@ -122,20 +142,21 @@ async function ask(){const t=inp.value.trim();if(!t||busy)return;
   if(inner.querySelector('.hello'))inner.innerHTML='';
   inp.value='';grow();add('u',t);hist.push({role:'user',content:t});save();
   busy=true;send.disabled=false;send.innerHTML=STOP;send.classList.add('stop');
-  const w=add('a wait','正在思考');let full='',queue='',done=false,timer=0,started=false;
+  const w=add('a wait',web?'正在联网搜索':(effort==='high'?'正在深度思考':'正在思考'));let srcs=null;let full='',queue='',done=false,timer=0,started=false;
   const paint=()=>{const st=near();w.innerHTML=md(full);if(st)down()};
   const pump=()=>{if(queue){if(!started){started=true;w.className='msg a typing'}const n=Math.max(1,Math.ceil(queue.length/14));full+=queue.slice(0,n);queue=queue.slice(n);paint()}
     if(queue||!done)timer=requestAnimationFrame(pump);else w.classList.remove('typing')};
   timer=requestAnimationFrame(pump);ctrl=new AbortController();
-  try{const r=await fetch('/api/chat',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({sid,model,messages:hist.slice(-16)}),signal:ctrl.signal});
+  try{const r=await fetch('/api/chat',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({sid,model,effort,web,messages:hist.slice(-16)}),signal:ctrl.signal});
     if(!r.ok||!r.body){let j={};try{j=await r.json()}catch(_){}throw new Error(j.error||'出错了，请稍后再试')}
     const rd=r.body.getReader(),dec=new TextDecoder();let buf='',err='',note='',by='';
     for(;;){const{done:d,value}=await rd.read();if(d)break;buf+=dec.decode(value,{stream:true});let i;
       while((i=buf.indexOf('\n\n'))>=0){const ev=buf.slice(0,i);buf=buf.slice(i+2);const line=ev.split('\n').find(l=>l.startsWith('data:'));if(!line)continue;
-        const j=JSON.parse(line.slice(5));if(j.t)queue+=j.t;if(j.error)err=j.error;if(j.notice)note=j.notice;if(j.done)by=j.model}}
+        const j=JSON.parse(line.slice(5));if(j.t)queue+=j.t;if(j.error)err=j.error;if(j.notice)note=j.notice;if(j.done)by=j.model;if(j.status&&!started)w.textContent=j.status.replace(/…$/,'');if(j.sources){srcs=j.sources;if(!started)w.textContent='已找到 '+srcs.length+' 个来源，正在整理'}}}
     if(err&&!full&&!queue)throw new Error(err);
     done=true;await new Promise(res=>{const c=()=>queue?setTimeout(c,30):res();c()});
     hist.push({role:'assistant',content:full||'…'});save();
+    if(srcs&&srcs.length){const d=document.createElement('div');d.className='src';srcs.forEach((s,i)=>{const a=document.createElement('a');a.href=s.u;a.target='_blank';a.rel='noopener noreferrer';a.innerHTML='<b>'+(i+1)+'</b><span></span>';let h='';try{h=new URL(s.u).hostname.replace(/^www\./,'')}catch(_){}a.querySelector('span').textContent=s.t||h;a.title=h;d.appendChild(a)});inner.appendChild(d)}
     if(by&&(note||model!=='astra')){const t=document.createElement('div');t.className='by';t.textContent=note||(by+' 回答');inner.appendChild(t)}
   }catch(e){done=true;
     if(e.name==='AbortError'){full+=queue;queue='';if(full){paint();w.classList.remove('typing');hist.push({role:'assistant',content:full});save()}else{cancelAnimationFrame(timer);w.remove();hist.pop();save()}}
