@@ -8,7 +8,7 @@
 <script>
 (function(){if(window.parent===window)return;var d=document.documentElement;d.classList.add('embed');
 var post=function(m){try{parent.postMessage(m,location.origin)}catch(e){}};window.__post=post;
-var map={'/':'home','/drive':'drive','/ai':'ai','/p/home':'home','/p/drive':'drive','/p/ai':'ai'};
+var map={'/':'home','/drive':'drive','/ai':'ai','/chat':'chat','/p/home':'home','/p/drive':'drive','/p/ai':'ai','/p/chat':'chat'};
 document.addEventListener('click',function(e){var a=e.target.closest&&e.target.closest('a[href]');if(!a)return;var t=map[a.getAttribute('href')];if(t){e.preventDefault();post({type:'go',tab:t})}},true);
 addEventListener('wheel',function(e){if(Math.abs(e.deltaX)>Math.abs(e.deltaY)*1.5&&Math.abs(e.deltaX)>3)post({type:'wheelx',dx:e.deltaX})},{passive:true});
 var touch=matchMedia('(hover:none)').matches,ti='textarea,input:not([type]),input[type=text],input[type=search],input[type=password]';
