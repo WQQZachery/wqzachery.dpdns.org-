@@ -20,4 +20,5 @@ curl -s -X PUT "https://api.cloudflare.com/client/v4/accounts/$A/workers/scripts
  -F "admin.html=@$D/site/admin.html;type=text/plain" \
  -F "404.html=@$D/site/404.html;type=text/plain" \
  -F "app.html=@$D/site/app.html;type=text/plain" \
- -F "ai.html=@$D/site/ai.html;type=text/plain" | python3 -c "import sys,json;d=json.load(sys.stdin);print('success',d['success'],d.get('errors'))"
+ -F "ai.html=@$D/site/ai.html;type=text/plain" \
+ -F "og.png=@$D/site/og.png;type=application/octet-stream" | python3 -c "import sys,json;d=json.load(sys.stdin);print('success',d['success'],d.get('errors'))"
