@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>吴谦 · Zachery Wu</title>
-<meta name="description" content="吴谦（Zachery Wu）的个人网站：主页、公共网盘和 AI 助手。">
+<meta name="description" content="吴谦（Zachery Wu）的个人网站：主页、公共网盘、AI 助手和聊天室。">
 <link rel="canonical" href="https://wqzachery.dpdns.org/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="吴谦 · Zachery Wu">
@@ -18,7 +18,7 @@
 <link rel="alternate" type="text/plain" href="/llms.txt" title="llms.txt">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="吴谦 · Zachery Wu">
-<meta name="twitter:description" content="个人主页、公共网盘和 AI 助手。">
+<meta name="twitter:description" content="个人主页、公共网盘、AI 助手和聊天室。">
 <meta name="twitter:image" content="https://wqzachery.dpdns.org/og.png">
 <meta name="theme-color" content="#000000">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23000'/%3E%3Cpath d='M18 20h28L18 44h28' stroke='%2376b900' stroke-width='6' fill='none'/%3E%3C/svg%3E">
@@ -41,7 +41,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","M
 .lg-rim::after{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;background:linear-gradient(135deg,rgba(255,255,255,.5),rgba(255,255,255,.08) 22%,rgba(255,255,255,0) 48%,rgba(255,255,255,.03) 70%,rgba(255,255,255,.28));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;z-index:2}
 #bar.hide{opacity:0;transform:translateX(-50%) translateY(30px) scale(.9);pointer-events:none}
 #bar.lg{--lg-bg:rgba(24,24,28,.34);-webkit-backdrop-filter:blur(14px) saturate(185%) brightness(.92);backdrop-filter:blur(14px) saturate(185%) brightness(.92)}
-#bar.lg.lens{--lg-bg:rgba(24,24,28,.30);-webkit-backdrop-filter:var(--lens) blur(10px) saturate(185%) brightness(.92);backdrop-filter:var(--lens) blur(10px) saturate(185%) brightness(.92)}
+#bar.lg.lens{--lg-bg:rgba(24,24,28,.22);-webkit-backdrop-filter:blur(2px) var(--lens) saturate(185%) brightness(.95);backdrop-filter:blur(2px) var(--lens) saturate(185%) brightness(.95)}
+#lens.lens.refr{-webkit-backdrop-filter:var(--lens) blur(calc(2px * var(--a))) saturate(170%) brightness(1.08);backdrop-filter:var(--lens) blur(calc(2px * var(--a))) saturate(170%) brightness(1.08)}
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){#bar.lg{--lg-bg:rgba(28,28,32,.94)}}
 #edge{position:fixed;left:0;right:0;bottom:0;height:calc(110px + env(safe-area-inset-bottom));z-index:49;pointer-events:none;background:linear-gradient(to top,rgba(0,0,0,.62),rgba(0,0,0,.28) 45%,rgba(0,0,0,0));transition:opacity .35s}
 #bar.hide+#edge,#edge.hide{opacity:0}
@@ -67,16 +68,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","M
 #mag .it svg{stroke-width:1.9;fill:currentColor;fill-opacity:.22}
 #mag .it{text-shadow:none}
 @media (prefers-reduced-transparency:reduce){#bar{--lg-bg:rgba(28,28,32,.94)}}
-@media (min-width:900px){:root{--bar-h:60px;--bar-w:360px}}
+@media (min-width:900px){:root{--bar-h:60px;--bar-w:400px}}
+.it{position:relative}
+.bd{position:absolute;top:5px;left:calc(50% + 8px);min-width:8px;height:8px;border-radius:999px;background:#ff453a;box-shadow:0 0 0 1.5px rgba(0,0,0,.55),0 0 8px rgba(255,69,58,.7)}
+.bd[hidden]{display:none}
 @media (prefers-contrast:more){#bar.lg{--lg-bg:rgba(20,20,24,.9)}.it{color:#fff}}
 </style>
 </head>
 <body>
-<noscript><h1>吴谦 · Zachery Wu</h1><p>吴谦（Zachery Wu）的个人网站：<a href="/p/home">主页</a>、<a href="/p/drive">公共网盘</a>、<a href="/p/ai">AI 助手 GPT-6 Astra</a>。源码见 <a href="https://github.com/WQQZachery/wqzachery.dpdns.org-">GitHub</a>。</p></noscript>
+<noscript><h1>吴谦 · Zachery Wu</h1><p>吴谦（Zachery Wu）的个人网站：<a href="/p/home">主页</a>、<a href="/p/drive">公共网盘</a>、<a href="/p/ai">AI 助手 GPT-6 Astra</a>、<a href="/p/chat">聊天室</a>。源码见 <a href="https://github.com/WQQZachery/wqzachery.dpdns.org-">GitHub</a>。</p></noscript>
 <div id="viewport"><div id="track">
   <section class="pane" data-tab="home" aria-label="主页"></section>
   <section class="pane" data-tab="drive" aria-label="网盘"></section>
   <section class="pane" data-tab="ai" aria-label="AI"></section>
+  <section class="pane" data-tab="chat" aria-label="聊天"></section>
 </div></div>
 
 <svg id="lgdefs" width="0" height="0" style="position:absolute;width:0;height:0" aria-hidden="true"><defs></defs></svg>
@@ -85,6 +90,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","M
     <button class="it" role="tab" data-i="0"><svg viewBox="0 0 24 24"><path d="M3.5 10.6 12 3.8l8.5 6.8V20a.9.9 0 0 1-.9.9h-4.8v-6.1H9.2v6.1H4.4a.9.9 0 0 1-.9-.9z"/></svg>主页</button>
     <button class="it" role="tab" data-i="1"><svg viewBox="0 0 24 24"><path d="M7 18.5h10.5a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.6 9.1 4.75 4.75 0 0 0 7 18.5z"/><path d="M12 15.5v-6m-2.6 2.5L12 9.4l2.6 2.6"/></svg>网盘</button>
     <button class="it" role="tab" data-i="2"><svg viewBox="0 0 24 24"><path d="M11 3.5c.5 3.9 2.6 6 6.5 6.5-3.9.5-6 2.6-6.5 6.5-.5-3.9-2.6-6-6.5-6.5 3.9-.5 6-2.6 6.5-6.5z"/><path d="M18.2 14.6c.25 1.8 1.2 2.75 3 3-1.8.25-2.75 1.2-3 3-.25-1.8-1.2-2.75-3-3 1.8-.25 2.75-1.2 3-3z"/></svg>AI</button>
+    <button class="it" role="tab" data-i="3"><svg viewBox="0 0 24 24"><path d="M20 11.4a7.6 7.6 0 0 1-11.2 6.7L4 19.6l1.45-4.35A7.6 7.6 0 1 1 20 11.4z"/><path d="M8.6 11.5h.01M12 11.5h.01M15.4 11.5h.01" stroke-width="2.4"/></svg>聊天<span class="bd" hidden></span></button>
   </div>
   <div id="lens" aria-hidden="true"><div id="mag" inert></div></div>
 </nav>
@@ -92,7 +98,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","M
 
 <script>
 (()=>{
-const TABS=[{k:'home',path:'/',src:'/p/home',title:'吴谦 · Zachery Wu'},{k:'drive',path:'/drive',src:'/p/drive',title:'公共网盘 · 吴谦'},{k:'ai',path:'/ai',src:'/p/ai',title:'GPT-6 Astra · 吴谦'}];
+const TABS=[{k:'home',path:'/',src:'/p/home',title:'吴谦 · Zachery Wu'},{k:'drive',path:'/drive',src:'/p/drive',title:'公共网盘 · 吴谦'},{k:'ai',path:'/ai',src:'/p/ai',title:'GPT-6 Astra · 吴谦'},{k:'chat',path:'/chat',src:'/p/chat',title:'聊天室 · 吴谦'}];
 const N=TABS.length,$=s=>document.querySelector(s);
 const track=$('#track'),bar=$('#bar'),lens=$('#lens'),mag=$('#mag'),row=$('#row'),panes=[...document.querySelectorAll('.pane')];
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -131,7 +137,8 @@ function render(){
   lens.style.setProperty('--a',clamp(act,0,1).toFixed(3));
   { const l0=x-4+iw*(ox/100)*(1-sx), r0=l0+iw*sx, lifted=act>.02||moving;
     const m=lifted?`linear-gradient(90deg,#000 ${Math.max(0,l0+4)}px,transparent ${l0+6}px,transparent ${r0-6}px,#000 ${r0-4}px)`:'none';
-    row.style.webkitMaskImage=m;row.style.maskImage=m; }   // plain icons under the lens are hidden; the magnified copy shows instead
+    row.style.webkitMaskImage=m;row.style.maskImage=m;
+    if(lens.classList.contains('lens'))lens.classList.toggle('refr',act>.05); }   // refract only while lifted (at rest the icon under it would be warped)   // plain icons under the lens are hidden; the magnified copy shows instead
   mag.style.width=(bw-8)+'px';mag.style.transform=`translate3d(${-(x-4)}px,0,0)`;
   const cur=Math.round(cp);if(cur!==lastSel&&!dragging){lastSel=cur;row.querySelectorAll('.it').forEach((b,i)=>{b.setAttribute('aria-selected',i===cur);b.tabIndex=i===cur?0:-1})}
   if(!dragging&&shown!==target&&Math.abs(target-p)<.35)show(target);   // page swaps as the glass lands
@@ -161,7 +168,8 @@ function go(i){target=clamp(Math.round(i),0,N-1);goal=target;load(target);
   kick()}
 history.replaceState({tab:idx},'',location.href);
 addEventListener('popstate',e=>{const st=e.state;if(st&&typeof st.tab==='number'&&st.tab!==target){fromPop=true;go(st.tab);fromPop=false}});
-function settle(){idx=target;show(target);const t=TABS[idx];
+function settle(){const prevI=idx;idx=target;show(target);const t=TABS[idx];
+  if(prevI!==idx)try{const w=panes[prevI].querySelector('iframe')?.contentWindow;w&&w.postMessage({type:'tab-hidden'},'*')}catch(e){}
   fromPop=false;
   document.title=t.title;
   try{const w=panes[idx].querySelector('iframe')?.contentWindow;w&&w.postMessage({type:'tab-shown'},'*')}catch(e){}}
@@ -193,10 +201,11 @@ addEventListener('message',e=>{if(e.origin!==location.origin)return;const m=e.da
   if(m.type==='go'){const i=TABS.findIndex(t=>t.k===m.tab);if(i>=0)go(i)}
   if(m.type==='bar'){bar.classList.toggle('hide',!m.show);edge.classList.toggle('hide',!m.show)}
   if(m.type==='booted'&&bar.dataset.wait)showBar();
+  if(m.type==='badge'){const i=TABS.findIndex(t=>t.k===m.tab);if(i>=0)[row,mag].forEach(r=>{const b=r.querySelectorAll('.it')[i]?.querySelector('.bd');if(b)b.hidden=!(m.n>0)})}
 });
 window.__st=()=>({p,v,goal,target,d,act,dragging,moving});
 const edge=$('#edge');function showBar(){delete bar.dataset.wait;bar.classList.remove('hide');edge.classList.remove('hide')}
-if(idx===0){bar.dataset.wait=1;setTimeout(showBar,800)}else setTimeout(showBar,150);
+if(idx===0){bar.dataset.wait=1;setTimeout(showBar,2600)}else setTimeout(showBar,150);
 addEventListener('resize',render);
 render();
 })();
@@ -233,7 +242,7 @@ render();
     const key=w+'x'+h;if(el.dataset.lk===key)return;el.dataset.lk=key;
     const cs=getComputedStyle(el),r=Math.min(parseFloat(cs.borderTopLeftRadius)||0,w/2,h/2);
     const bezel=Math.min(Math.max(h*.32,14),28,Math.min(w,h)/2);
-    const scale=Math.min(bezel*1.6,42);
+    const scale=Math.min(bezel*(el.id==='bar'?1.9:1.6),46),sp=el.id==='bar'?[.9,.8]:el.id==='lens'?[.96,.92]:[.975,.95];
     const id=el.dataset.lid||('lgl'+(n++));el.dataset.lid=id;
     let f=document.getElementById(id);if(f)f.remove();
     f=document.createElementNS(NS,'filter');
@@ -242,15 +251,15 @@ render();
     f.innerHTML=`<feImage href="${mapURL(w,h,r,bezel)}" x="0" y="0" width="${w}" height="${h}" result="m" preserveAspectRatio="none"/>`+
       `<feDisplacementMap in="SourceGraphic" in2="m" scale="${scale}" xChannelSelector="R" yChannelSelector="G" result="dr"/>`+
       `<feColorMatrix in="dr" type="matrix" values="1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0" result="r"/>`+
-      `<feDisplacementMap in="SourceGraphic" in2="m" scale="${scale*.975}" xChannelSelector="R" yChannelSelector="G" result="dg"/>`+
+      `<feDisplacementMap in="SourceGraphic" in2="m" scale="${scale*sp[0]}" xChannelSelector="R" yChannelSelector="G" result="dg"/>`+
       `<feColorMatrix in="dg" type="matrix" values="0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0" result="g"/>`+
-      `<feDisplacementMap in="SourceGraphic" in2="m" scale="${scale*.95}" xChannelSelector="R" yChannelSelector="G" result="db"/>`+
+      `<feDisplacementMap in="SourceGraphic" in2="m" scale="${scale*sp[1]}" xChannelSelector="R" yChannelSelector="G" result="db"/>`+
       `<feColorMatrix in="db" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 1 0" result="b"/>`+
       `<feBlend in="r" in2="g" mode="screen" result="rg"/><feBlend in="rg" in2="b" mode="screen"/>`;
     defs.appendChild(f);
     el.style.setProperty('--lens',`url(#${id})`);el.classList.add('lens');
   }
-  const els=[...document.querySelectorAll('.lg')];
+  const els=[...document.querySelectorAll('.lg'),document.getElementById('lens')];
   const run=()=>els.forEach(build);
   const ro=new ResizeObserver(()=>{clearTimeout(run.t);run.t=setTimeout(run,120)});
   els.forEach(e=>ro.observe(e));
