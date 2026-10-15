@@ -5,6 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>吴谦 · Zachery Wu</title>
 <meta name="description" content="吴谦（Zachery Wu）的个人网站：主页、公共网盘和 AI 助手。">
+<link rel="canonical" href="https://wqzachery.dpdns.org/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="吴谦 · Zachery Wu">
+<meta property="og:title" content="吴谦 · Zachery Wu">
+<meta property="og:description" content="个人主页、公共网盘和 AI 助手，跑在 Cloudflare Workers 上，月成本 $0。">
+<meta property="og:url" content="https://wqzachery.dpdns.org/">
+<meta property="og:image" content="https://wqzachery.dpdns.org/og.png">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta property="og:locale" content="zh_CN">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "WebSite", "name": "吴谦 · Zachery Wu", "url": "https://wqzachery.dpdns.org/", "inLanguage": "zh-CN"}, {"@type": "Person", "name": "吴谦", "alternateName": "Zachery Wu", "url": "https://wqzachery.dpdns.org/", "sameAs": ["https://github.com/WQQZachery"]}]}</script>
+<link rel="alternate" type="text/plain" href="/llms.txt" title="llms.txt">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="吴谦 · Zachery Wu">
+<meta name="twitter:description" content="个人主页、公共网盘和 AI 助手。">
+<meta name="twitter:image" content="https://wqzachery.dpdns.org/og.png">
 <meta name="theme-color" content="#000000">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23000'/%3E%3Cpath d='M18 20h28L18 44h28' stroke='%2376b900' stroke-width='6' fill='none'/%3E%3C/svg%3E">
 <style>
@@ -57,6 +72,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","M
 </style>
 </head>
 <body>
+<noscript><h1>吴谦 · Zachery Wu</h1><p>吴谦（Zachery Wu）的个人网站：<a href="/p/home">主页</a>、<a href="/p/drive">公共网盘</a>、<a href="/p/ai">AI 助手 GPT-6 Astra</a>。源码见 <a href="https://github.com/WQQZachery/wqzachery.dpdns.org-">GitHub</a>。</p></noscript>
 <div id="viewport"><div id="track">
   <section class="pane" data-tab="home" aria-label="主页"></section>
   <section class="pane" data-tab="drive" aria-label="网盘"></section>
@@ -82,6 +98,7 @@ const track=$('#track'),bar=$('#bar'),lens=$('#lens'),mag=$('#mag'),row=$('#row'
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 mag.innerHTML=row.innerHTML;mag.querySelectorAll('.it').forEach(b=>{b.removeAttribute('role');b.tabIndex=-1});
 
+let fromPop=false;
 let idx=Math.max(0,TABS.findIndex(t=>t.path===location.pathname.replace(/\/+$/,'')||(t.path==='/'&&location.pathname==='/')));
 if(idx<0)idx=0;
 /* physics, measured in "tabs" (0..N-1). Three springs:
@@ -139,8 +156,14 @@ function tick(t){
   if(moving)raf=requestAnimationFrame(tick);else{raf=0;lastT=0;if(target!==idx||shown!==target)settle()}
 }
 const kick=()=>{if(!raf){lastT=0;raf=requestAnimationFrame(tick)}};
-function go(i){target=clamp(Math.round(i),0,N-1);goal=target;load(target);kick()}
-function settle(){idx=target;show(target);const t=TABS[idx];if(location.pathname!==t.path)history.replaceState(null,'',t.path+location.hash);document.title=t.title;
+function go(i){target=clamp(Math.round(i),0,N-1);goal=target;load(target);
+  if(!fromPop&&!(history.state&&history.state.tab===target)){history.pushState({tab:target},'',TABS[target].path);document.title=TABS[target].title}   // each tab switch is a back-able step
+  kick()}
+history.replaceState({tab:idx},'',location.href);
+addEventListener('popstate',e=>{const st=e.state;if(st&&typeof st.tab==='number'&&st.tab!==target){fromPop=true;go(st.tab);fromPop=false}});
+function settle(){idx=target;show(target);const t=TABS[idx];
+  fromPop=false;
+  document.title=t.title;
   try{const w=panes[idx].querySelector('iframe')?.contentWindow;w&&w.postMessage({type:'tab-shown'},'*')}catch(e){}}
 
 /* ---------- tab bar: tap & drag the glass ---------- */
@@ -173,7 +196,7 @@ addEventListener('message',e=>{if(e.origin!==location.origin)return;const m=e.da
 });
 window.__st=()=>({p,v,goal,target,d,act,dragging,moving});
 const edge=$('#edge');function showBar(){delete bar.dataset.wait;bar.classList.remove('hide');edge.classList.remove('hide')}
-if(idx===0){bar.dataset.wait=1;setTimeout(showBar,2900)}else setTimeout(showBar,150);
+if(idx===0){bar.dataset.wait=1;setTimeout(showBar,800)}else setTimeout(showBar,150);
 addEventListener('resize',render);
 render();
 })();
