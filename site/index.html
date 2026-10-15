@@ -8,7 +8,7 @@
 <script>
 (function(){if(window.parent===window)return;var d=document.documentElement;d.classList.add('embed');
 var post=function(m){try{parent.postMessage(m,location.origin)}catch(e){}};window.__post=post;
-var map={'/':'home','/drive':'drive','/ai':'ai','/p/home':'home','/p/drive':'drive','/p/ai':'ai'};
+var map={'/':'home','/drive':'drive','/ai':'ai','/chat':'chat','/p/home':'home','/p/drive':'drive','/p/ai':'ai','/p/chat':'chat'};
 document.addEventListener('click',function(e){var a=e.target.closest&&e.target.closest('a[href]');if(!a)return;var t=map[a.getAttribute('href')];if(t){e.preventDefault();post({type:'go',tab:t})}},true);
 addEventListener('wheel',function(e){if(Math.abs(e.deltaX)>Math.abs(e.deltaY)*1.5&&Math.abs(e.deltaX)>3)post({type:'wheelx',dx:e.deltaX})},{passive:true});
 var touch=matchMedia('(hover:none)').matches,ti='textarea,input:not([type]),input[type=text],input[type=search],input[type=password]';
@@ -237,21 +237,21 @@ footer .wrap{display:flex;justify-content:space-between;align-items:center;flex-
 }
 
 
-/* ---------- boot loader (fast, ~0.45s) ---------- */
-#boot{position:fixed;inset:0;z-index:200;background:#000;display:grid;place-items:center;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Arial,sans-serif;color:#f5f5f7;transition:opacity .15s cubic-bezier(.65,0,.35,1)}
+/* ---------- boot loader (~1.9s, plays fully) ---------- */
+#boot{position:fixed;inset:0;z-index:200;background:#000;display:grid;place-items:center;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Arial,sans-serif;color:#f5f5f7;transition:opacity .38s cubic-bezier(.65,0,.35,1)}
 #boot.out{opacity:0;pointer-events:none}
 #boot.out .stage{transform:scale(1.04);filter:blur(4px)}
-#boot .halo{position:absolute;width:70vmax;height:70vmax;border-radius:50%;background:radial-gradient(circle,rgba(118,185,0,.16) 0,rgba(118,185,0,.04) 35%,transparent 62%);opacity:0;animation:halo .3s cubic-bezier(.22,1,.36,1) forwards}
+#boot .halo{position:absolute;width:70vmax;height:70vmax;border-radius:50%;background:radial-gradient(circle,rgba(118,185,0,.16) 0,rgba(118,185,0,.04) 35%,transparent 62%);opacity:0;animation:halo .9s cubic-bezier(.22,1,.36,1) forwards}
 @keyframes halo{to{opacity:1}}
-#boot .stage{position:relative;display:flex;flex-direction:column;align-items:center;transition:transform .15s cubic-bezier(.65,0,.35,1),filter .15s}
+#boot .stage{position:relative;display:flex;flex-direction:column;align-items:center;transition:transform .38s cubic-bezier(.65,0,.35,1),filter .38s}
 #boot .mark{width:76px;height:76px;overflow:visible}
-#boot .mark .frame{fill:none;stroke:rgba(255,255,255,.9);stroke-width:1.4;stroke-dasharray:420;stroke-dashoffset:420;animation:draw .26s cubic-bezier(.65,0,.35,1) forwards}
-#boot .mark .z{fill:none;stroke:#76b900;stroke-width:5;stroke-linecap:square;stroke-linejoin:miter;stroke-dasharray:150;stroke-dashoffset:150;animation:draw .22s cubic-bezier(.65,0,.35,1) .08s forwards;filter:drop-shadow(0 0 10px rgba(118,185,0,.55))}
+#boot .mark .frame{fill:none;stroke:rgba(255,255,255,.9);stroke-width:1.4;stroke-dasharray:420;stroke-dashoffset:420;animation:draw .7s cubic-bezier(.65,0,.35,1) forwards}
+#boot .mark .z{fill:none;stroke:#76b900;stroke-width:5;stroke-linecap:square;stroke-linejoin:miter;stroke-dasharray:150;stroke-dashoffset:150;animation:draw .55s cubic-bezier(.65,0,.35,1) .3s forwards;filter:drop-shadow(0 0 10px rgba(118,185,0,.55))}
 @keyframes draw{to{stroke-dashoffset:0}}
-#boot .word{margin-top:30px;font-size:clamp(20px,4.6vw,30px);font-weight:600;letter-spacing:.5em;padding-left:.5em;text-transform:uppercase;position:relative;opacity:0;background:linear-gradient(100deg,#8a8a8f 0%,#fff 45%,#fff 55%,#8a8a8f 100%);background-size:250% 100%;background-position:100% 0;-webkit-background-clip:text;background-clip:text;color:transparent;animation:track .24s cubic-bezier(.22,1,.36,1) .06s forwards,sweep .3s cubic-bezier(.65,0,.35,1) .12s forwards}
+#boot .word{margin-top:30px;font-size:clamp(20px,4.6vw,30px);font-weight:600;letter-spacing:.5em;padding-left:.5em;text-transform:uppercase;position:relative;opacity:0;background:linear-gradient(100deg,#8a8a8f 0%,#fff 45%,#fff 55%,#8a8a8f 100%);background-size:250% 100%;background-position:100% 0;-webkit-background-clip:text;background-clip:text;color:transparent;animation:track .7s cubic-bezier(.22,1,.36,1) .35s forwards,sweep .9s cubic-bezier(.65,0,.35,1) .5s forwards}
 @keyframes track{from{opacity:0;letter-spacing:.8em;filter:blur(4px)}to{opacity:1;letter-spacing:.5em;filter:blur(0)}}
 @keyframes sweep{to{background-position:-50% 0}}
-#boot .tagl{margin-top:14px;font-size:11px;font-weight:500;letter-spacing:.42em;padding-left:.42em;color:#76b900;text-transform:uppercase;opacity:0;transform:translateY(6px);animation:rise .2s cubic-bezier(.22,1,.36,1) .12s forwards}
+#boot .tagl{margin-top:14px;font-size:11px;font-weight:500;letter-spacing:.42em;padding-left:.42em;color:#76b900;text-transform:uppercase;opacity:0;transform:translateY(6px);animation:rise .5s cubic-bezier(.22,1,.36,1) .75s forwards}
 @keyframes rise{to{opacity:1;transform:none}}
 #boot .bar{position:absolute;left:50%;bottom:clamp(48px,9vh,84px);width:min(220px,50vw);height:1px;background:rgba(255,255,255,.12);transform:translateX(-50%);overflow:hidden}
 #boot .bar i{position:absolute;inset:0;background:linear-gradient(90deg,rgba(118,185,0,.2),#76b900);transform-origin:0 50%;transform:scaleX(0);box-shadow:0 0 12px #76b900}
@@ -396,7 +396,7 @@ footer{padding-bottom:calc(max(40px,env(safe-area-inset-bottom)) + 56px)!importa
   <form id="aiForm"><input id="aiIn" maxlength="1000" placeholder="输入消息…" autocomplete="off" enterkeyhint="send" aria-label="输入消息"><button id="aiSend">发送</button></form>
 </div>
 <canvas id="spark" aria-hidden="true"></canvas>
-<header class="nav" id="nav"><div class="wrap lg lg-rim"><b>吴谦</b><nav aria-label="页面导航"><a href="#about" aria-label="跳到关于">关于</a><a href="#projects" aria-label="跳到项目">项目</a><a href="#contact" aria-label="跳到联系">联系</a><a href="/drive" aria-label="打开公共网盘">网盘</a></nav></div></header>
+<header class="nav" id="nav"><div class="wrap lg lg-rim"><b>吴谦</b><nav aria-label="页面导航"><a href="#about" aria-label="跳到关于">关于</a><a href="#projects" aria-label="跳到项目">项目</a><a href="#contact" aria-label="跳到联系">联系</a><a href="/drive" aria-label="打开公共网盘">网盘</a><a href="/chat" aria-label="打开实时聊天室">聊天</a></nav></div></header>
 
 <main>
 <section class="hero" id="top" aria-label="首屏">
@@ -496,7 +496,7 @@ footer{padding-bottom:calc(max(40px,env(safe-area-inset-bottom)) + 56px)!importa
 <template id="changelog">
   <div class="top"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#6ee7b7" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span><div><h3 id="sheetT">更新日志</h3></div></div>
   <ol class="clog">
-    <li><time datetime="2026-10-15">2026-10-15</time><span>返回手势、主页改版、国产 AI 模型</span></li>
+    <li><time datetime="2026-10-15">2026-10-15</time><span>实时聊天室、返回手势、主页改版、国产 AI 模型</span></li>
     <li><time datetime="2026-10-14">2026-10-14</time><span>管理后台、液态玻璃标签栏</span></li>
     <li><time datetime="2026-10-13">2026-10-13</time><span>公共网盘、AI 助手上线</span></li>
     <li><time datetime="2026-10-11">2026-10-11</time><span>网站上线（自有域名 + Cloudflare Workers）</span></li>
@@ -557,13 +557,13 @@ const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const $=(s,c=document)=>c.querySelector(s), $$=(s,c=document)=>[...c.querySelectorAll(s)];
 const post=m=>{window.__post&&window.__post(m)};
 
-/* ---- boot: always plays, ~0.45s total; tells the parent to show the tab bar when done ---- */
+/* ---- boot: always plays, ~1.9s total; tells the parent to show the tab bar when done ---- */
 const boot=$('#boot');let booted=false;
 function startIntro(){requestAnimationFrame(()=>requestAnimationFrame(()=>document.body.classList.add('loaded')))}
 function bootDone(){if(booted)return;booted=true;post({type:'booted'})}
 if(!boot){startIntro();bootDone()}else{
   const root=document.documentElement;root.style.overflow='hidden';
-  const prog=$('#bootProg'),pct=$('#bootPct'),t0=performance.now(),RUN=300,FADE=150;
+  const prog=$('#bootProg'),pct=$('#bootPct'),t0=performance.now(),RUN=1500,FADE=380;
   (function tick(t){const k=Math.min(1,(t-t0)/RUN),e=1-Math.pow(1-k,3);
     prog.style.transform='scaleX('+e+')';pct.textContent=String(Math.round(e*100)).padStart(3,'0');
     if(k<1)requestAnimationFrame(tick)})(t0);
