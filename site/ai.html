@@ -68,6 +68,13 @@ textarea::placeholder{color:#6e6e73}
 .opts .seg button{height:26px;padding:0 11px;background:none;box-shadow:none}
 .opts .seg button[aria-checked="true"]{color:var(--fg);background:rgba(255,255,255,.16)}
 .opts button:focus-visible{outline:2px solid var(--a1);outline-offset:2px}
+.think{max-width:100%;margin:2px 0 8px;border-radius:16px;background:rgba(255,255,255,.04);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.1)}
+.think summary{cursor:pointer;list-style:none;padding:9px 13px;font-size:13px;color:var(--mut);display:flex;align-items:center;gap:2px;user-select:none}
+.think summary::-webkit-details-marker{display:none}
+.think summary::before{content:'';width:7px;height:7px;border-right:1.6px solid currentColor;border-bottom:1.6px solid currentColor;transform:rotate(-45deg);margin-right:8px;transition:transform .2s}
+.think[open] summary::before{transform:rotate(45deg)}
+.think .tl{color:var(--fg);opacity:.85}
+.think .tb{padding:0 14px 12px 28px;font-size:13px;line-height:1.65;color:var(--mut);white-space:pre-wrap;word-break:break-word;max-height:40vh;overflow:auto;border-left:2px solid rgba(255,255,255,.1);margin-left:14px}
 .src{display:flex;flex-wrap:wrap;gap:6px;margin:-4px 0 6px}
 .src a{display:inline-flex;align-items:center;gap:5px;max-width:100%;font-size:12px;color:var(--fg);text-decoration:none;padding:5px 10px;border-radius:12px;background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.1)}
 .src a b{color:var(--a1);font-weight:700}.src a span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}
@@ -78,6 +85,15 @@ textarea::placeholder{color:#6e6e73}
 #sheet.on{display:block}
 #sheet .pan{position:absolute;left:max(12px,env(safe-area-inset-left));top:calc(env(safe-area-inset-top) + 64px);width:min(360px,calc(100vw - 24px));padding:8px;border-radius:24px;background:rgba(30,30,34,.84);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);box-shadow:inset 1.5px 1.5px 1px -1px rgba(255,255,255,.5),inset -1px -1px 1px -.5px rgba(255,255,255,.18),0 20px 50px -10px rgba(0,0,0,.7);transform-origin:20% 0;animation:pop .32s cubic-bezier(.3,1.4,.5,1)}
 @keyframes pop{from{opacity:0;transform:scale(.85) translateY(-8px)}}
+#sheet .pan{max-height:calc(100dvh - env(safe-area-inset-top) - 64px - max(16px,env(safe-area-inset-bottom)));overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+#sheet .lv{animation:lvin .26s cubic-bezier(.3,1.2,.5,1)}#sheet .lv.back{animation-name:lvback}
+@keyframes lvin{from{opacity:0;transform:translateX(18px)}}@keyframes lvback{from{opacity:0;transform:translateX(-18px)}}
+#sheet .hd{display:flex;align-items:center;gap:6px;padding:4px 4px 8px;position:sticky;top:-8px;z-index:1;background:inherit}
+#sheet .hd button.bk{width:auto;padding:8px 10px;color:var(--a1);font-size:14px;gap:2px}
+#sheet .hd strong{font-size:15px;flex:1;text-align:center;margin-right:58px}
+#sheet .cat .ic{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:rgba(255,255,255,.08);font-size:17px;flex:none}
+#sheet .cat .ar{color:var(--mut);font-size:18px;margin-left:2px}
+#sheet .cat .ct{color:var(--mut);font-size:12px}
 #sheet button{display:flex;width:100%;align-items:center;gap:10px;text-align:left;border:0;background:none;color:var(--fg);font:inherit;padding:11px 12px;border-radius:16px;cursor:pointer}
 #sheet button:hover,#sheet button.on{background:rgba(255,255,255,.09)}
 #sheet button .tx{flex:1;min-width:0}#sheet button b{font-size:15px;display:block}#sheet button small{color:var(--mut);font-size:12px}
@@ -100,7 +116,7 @@ textarea::placeholder{color:#6e6e73}
 <div id="log"><div class="inner" id="inner"></div></div>
 <form id="f" autocomplete="off">
   <div class="opts"><button type="button" id="web" aria-pressed="false" aria-label="联网搜索"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>联网搜索</button>
-  <div class="seg" role="radiogroup" aria-label="思考深度" id="eff"><span>思考</span><button type="button" role="radio" data-e="low">低</button><button type="button" role="radio" data-e="medium">中</button><button type="button" role="radio" data-e="high">高</button></div></div>
+  <div class="seg" role="radiogroup" aria-label="思考深度" id="eff"><span>思考</span><button type="button" role="radio" data-e="low" title="快速作答">迅捷</button><button type="button" role="radio" data-e="medium" title="先想一想再回答">均衡</button><button type="button" role="radio" data-e="high" title="一步步深入推理">深思</button><button type="button" role="radio" data-e="max" title="最大思考深度，较慢">极致</button></div></div>
   <div class="box"><textarea id="in" rows="1" placeholder="给 GPT-6 Astra 发消息" maxlength="4000" enterkeyhint="send"></textarea>
   <button id="send" type="submit" aria-label="发送" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg></button></div>
 </form>
@@ -116,7 +132,11 @@ const opts=()=>{$('#web').setAttribute('aria-pressed',web);document.querySelecto
 $('#web').onclick=()=>{web=!web;localStorage.setItem('aiWeb',web?'1':'0');opts()};
 $('#eff').onclick=e=>{const b=e.target.closest('button');if(!b)return;effort=b.dataset.e;localStorage.setItem('aiEffort',effort);opts()};opts();
 function showModel(){const m=cur();$('#mn').textContent=m.name;inp.placeholder='给 '+m.name+' 发消息';const h=inner.querySelector('.hello p');if(h)h.textContent='我是 '+m.name+'，'+m.desc+'。'}
-function sheet(){$('#pan').innerHTML=MODELS.map(m=>`<button data-id="${m.id}" class="${m.id===model?'on':''}"><span class="ck">${m.id===model?'✓':''}</span><span class="tx"><b>${esc(m.name)}</b><small>${esc(m.desc)}</small></span><i>${esc(m.tag)}</i></button>`).join('');$('#sheet').classList.add('on')}
+const CATS=[['推荐','✦','默认与不限次数'],['旗舰','◆','参数最大、推理最强'],['编程','⌘','写代码、改 Bug'],['国产','中','DeepSeek · 通义千问 · 智谱']];
+const catOf=m=>m.cat||'推荐';
+function lvCats(back){const cur=MODELS.find(m=>m.id===model);const cs=CATS.filter(c=>MODELS.some(m=>catOf(m)===c[0]));const extra=[...new Set(MODELS.map(catOf))].filter(c=>!CATS.some(x=>x[0]===c)).map(c=>[c,'•','']);$('#pan').innerHTML=`<div class="lv${back?' back':''}" role="menu" aria-label="模型分类">`+[...cs,...extra].map(([c,ic,d])=>{const n=MODELS.filter(m=>catOf(m)===c).length,on=cur&&catOf(cur)===c;return `<button class="cat${on?' on':''}" data-cat="${esc(c)}" role="menuitem" aria-haspopup="true"><span class="ic" aria-hidden="true">${ic}</span><span class="tx"><b>${esc(c)}</b><small>${on?'当前：'+esc(cur.name):esc(d)}</small></span><span class="ct">${n} 个</span><span class="ar" aria-hidden="true">›</span></button>`}).join('')+'</div>';const f=$('#pan button.on')||$('#pan button');f&&f.focus({preventScroll:true})}
+function lvModels(c){$('#pan').innerHTML=`<div class="lv" role="menu" aria-label="${esc(c)}模型"><div class="hd"><button class="bk" data-back="1" aria-label="返回分类">‹ 分类</button><strong>${esc(c)}</strong></div>`+MODELS.filter(m=>catOf(m)===c).map(m=>`<button data-id="${m.id}" role="menuitemradio" aria-checked="${m.id===model}" class="${m.id===model?'on':''}"><span class="ck">${m.id===model?'✓':''}</span><span class="tx"><b>${esc(m.name)}</b><small>${esc(m.desc)}</small></span><i>${esc(m.tag)}</i></button>`).join('')+'</div>';$('#pan').scrollTop=0;const f=$('#pan button[data-id].on')||$('#pan button[data-id]');f&&f.focus({preventScroll:true})}
+function sheet(){lvCats();$('#sheet').classList.add('on')}
 fetch('/api/models').then(r=>r.json()).then(j=>{if(j.models&&j.models.length){MODELS=j.models;if(!MODELS.some(m=>m.id===model))model='astra';showModel()}}).catch(()=>{});
 const newId=()=>crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(36).slice(2);
 const esc=s=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -131,7 +151,8 @@ function reset(){sid=newId();hist=[];save();hello()}
 try{const s=JSON.parse(sessionStorage.getItem('astra')||'null');if(s&&s.sid){sid=s.sid;hist=s.hist||[]}}catch(e){}
 if(!sid)reset();else if(!hist.length)hello();else{inner.innerHTML='';hist.forEach(m=>m.role==='user'?add('u',m.content):add('a',md(m.content),true))}
 $('#mb').onclick=sheet;
-$('#sheet').onclick=e=>{const b=e.target.closest('button[data-id]');if(b){model=b.dataset.id;localStorage.setItem('aiModel',model);showModel()}$('#sheet').classList.remove('on')};
+$('#sheet').onclick=e=>{const c=e.target.closest('button[data-cat]');if(c){lvModels(c.dataset.cat);return}if(e.target.closest('button[data-back]')){lvCats(true);return}if(e.target.closest('.pan')&&!e.target.closest('button[data-id]'))return;const b=e.target.closest('button[data-id]');if(b){model=b.dataset.id;localStorage.setItem('aiModel',model);showModel()}$('#sheet').classList.remove('on');$('#mb').focus({preventScroll:true})};
+document.addEventListener('keydown',e=>{if(!$('#sheet').classList.contains('on'))return;if(e.key==='Escape'){if($('#pan .hd'))lvCats(true);else{$('#sheet').classList.remove('on');$('#mb').focus()}}});
 $('#new').onclick=()=>{if(ctrl)ctrl.abort();reset();inp.focus()};
 const grow=()=>{inp.style.height='auto';inp.style.height=Math.min(140,inp.scrollHeight)+'px';send.disabled=!busy&&!inp.value.trim()};
 inp.addEventListener('input',grow);
@@ -142,17 +163,22 @@ async function ask(){const t=inp.value.trim();if(!t||busy)return;
   if(inner.querySelector('.hello'))inner.innerHTML='';
   inp.value='';grow();add('u',t);hist.push({role:'user',content:t});save();
   busy=true;send.disabled=false;send.innerHTML=STOP;send.classList.add('stop');
-  const w=add('a wait',web?'正在联网搜索':(effort==='high'?'正在深度思考':'正在思考'));let srcs=null;let full='',queue='',done=false,timer=0,started=false;
-  const paint=()=>{const st=near();w.innerHTML=md(full);if(st)down()};
+  const w=add('a wait',web?'正在联网搜索':(effort==='max'?'正在极致思考':effort==='high'?'正在深度思考':'正在思考'));let srcs=null;let full='',queue='',done=false,timer=0,started=false;
+  const paint=()=>{const st=near();w.innerHTML=md(full.replace(/^\s+/,''));if(st)down()};
   const pump=()=>{if(queue){if(!started){started=true;w.className='msg a typing'}const n=Math.max(1,Math.ceil(queue.length/14));full+=queue.slice(0,n);queue=queue.slice(n);paint()}
     if(queue||!done)timer=requestAnimationFrame(pump);else w.classList.remove('typing')};
   timer=requestAnimationFrame(pump);ctrl=new AbortController();
   try{const r=await fetch('/api/chat',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({sid,model,effort,web,messages:hist.slice(-16)}),signal:ctrl.signal});
     if(!r.ok||!r.body){let j={};try{j=await r.json()}catch(_){}throw new Error(j.error||'出错了，请稍后再试')}
     const rd=r.body.getReader(),dec=new TextDecoder();let buf='',err='',note='',by='';
+    let tk=null,tkTxt='',tkT0=0,tkOn=false;
+    const thinkAdd=t=>{if(!tk){tk=document.createElement('details');tk.className='think';tk.open=true;tk.innerHTML='<summary><span class="tl">正在思考</span><span class="ts"></span></summary><div class="tb"></div>';inner.insertBefore(tk,w);tkT0=Date.now();tkOn=true;w.textContent=''}
+      tkTxt+=t;const st=near();tk.querySelector('.tb').textContent=tkTxt;tk.querySelector('.ts').textContent=' · '+Math.round((Date.now()-tkT0)/1000)+'s';if(st)down()};
+    const thinkEnd=()=>{if(!tk||!tkOn)return;tkOn=false;tk.open=false;tk.querySelector('.tl').textContent='已深度思考';tk.querySelector('.ts').textContent=' '+Math.max(1,Math.round((Date.now()-tkT0)/1000))+' 秒'};
     for(;;){const{done:d,value}=await rd.read();if(d)break;buf+=dec.decode(value,{stream:true});let i;
       while((i=buf.indexOf('\n\n'))>=0){const ev=buf.slice(0,i);buf=buf.slice(i+2);const line=ev.split('\n').find(l=>l.startsWith('data:'));if(!line)continue;
-        const j=JSON.parse(line.slice(5));if(j.t)queue+=j.t;if(j.error)err=j.error;if(j.notice)note=j.notice;if(j.done)by=j.model;if(j.status&&!started)w.textContent=j.status.replace(/…$/,'');if(j.sources){srcs=j.sources;if(!started)w.textContent='已找到 '+srcs.length+' 个来源，正在整理'}}}
+        const j=JSON.parse(line.slice(5));if(j.k)thinkAdd(j.k);if(j.t){queue+=j.t;thinkEnd()}if(j.error)err=j.error;if(j.notice)note=j.notice;if(j.done)by=j.model;if(j.status&&!started)w.textContent=j.status.replace(/…$/,'');if(j.sources){srcs=j.sources;if(!started)w.textContent='已找到 '+srcs.length+' 个来源，正在整理'}}}
+    thinkEnd();
     if(err&&!full&&!queue)throw new Error(err);
     done=true;await new Promise(res=>{const c=()=>queue?setTimeout(c,30):res();c()});
     hist.push({role:'assistant',content:full||'…'});save();
