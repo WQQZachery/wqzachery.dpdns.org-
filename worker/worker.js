@@ -6,9 +6,30 @@ import ADMIN from './admin.html';
 import NOTFOUND from './404.html';
 import APP from './app.html';
 import AI from './ai.html';
+import OG from './og.png';
 import { DurableObject } from 'cloudflare:workers';
 
 const HF = 'https://huggingface.co';
+const LLMS = `# 吴谦 · Zachery Wu
+
+> 吴谦（Zachery Wu）的个人网站，运行在 Cloudflare Workers 上，月成本 $0。包含个人主页、公共网盘和 AI 助手 GPT-6 Astra。
+
+## 页面
+- [主页](https://wqzachery.dpdns.org/): 个人介绍、项目、常用工具、联系方式与更新日志
+- [公共网盘](https://wqzachery.dpdns.org/drive): 任何人可上传、在线预览和下载文件，存储在 Hugging Face
+- [AI 助手](https://wqzachery.dpdns.org/ai): GPT-6 Astra 聊天，支持多模型（含 DeepSeek R1、Qwen、GLM 等国产模型）、联网搜索与低/中/高思考等级
+
+## 关于作者
+- 名字：吴谦（Zachery Wu）
+- GitHub: https://github.com/WQQZachery
+- 源码: https://github.com/WQQZachery/wqzachery.dpdns.org-
+- 日常使用 Claude、ChatGPT、Gemini、Grok、GitHub Copilot 等 AI 与开发工具
+
+## 技术
+- Cloudflare Workers + Durable Objects (SQLite) + Workers AI
+- 网盘存储：Hugging Face 私有数据集，浏览器直传 S3 分片
+- 域名：wqzachery.dpdns.org
+`;
 const SEC = { 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'strict-origin-when-cross-origin' };
 const page = (b, s = 200) => new Response(b, { status: s, headers: { ...SEC, 'X-Frame-Options': 'SAMEORIGIN', 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=120' } });
 const json = (o, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { ...SEC, 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
@@ -34,11 +55,18 @@ export default {
     const u = new URL(req.url), p = u.pathname, m = req.method;
     try {
       if (p === '/' || p === '/drive' || p === '/drive/' || p === '/ai' || p === '/ai/') { if (m === 'GET') ctx.waitUntil(hit(req, env, p)); return page(APP); }
+      if (p === '/robots.txt') return new Response(`# 欢迎搜索引擎和 AI 抓取、索引与学习本站公开内容。\nUser-agent: GPTBot\nUser-agent: OAI-SearchBot\nUser-agent: ChatGPT-User\nUser-agent: ClaudeBot\nUser-agent: Claude-User\nUser-agent: Claude-SearchBot\nUser-agent: anthropic-ai\nUser-agent: PerplexityBot\nUser-agent: Perplexity-User\nUser-agent: Google-Extended\nUser-agent: Googlebot\nUser-agent: Bingbot\nUser-agent: Applebot\nUser-agent: Applebot-Extended\nUser-agent: CCBot\nUser-agent: Bytespider\nUser-agent: Baiduspider\nUser-agent: YandexBot\nUser-agent: DuckDuckBot\nUser-agent: Amazonbot\nUser-agent: meta-externalagent\nUser-agent: cohere-ai\nUser-agent: MistralAI-User\nUser-agent: YouBot\nUser-agent: Diffbot\nAllow: /\nDisallow: /admin\nDisallow: /api/\n\nUser-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /api/\n\nSitemap: https://wqzachery.dpdns.org/sitemap.xml\n`, { headers: { ...SEC, 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=3600' } });
+      if (p === '/7a416ee677f4d0164f25edf790e7566a.txt') return new Response('7a416ee677f4d0164f25edf790e7566a', { headers: { ...SEC, 'content-type': 'text/plain; charset=utf-8' } });
+      if (p === '/llms.txt') return new Response(LLMS, { headers: { ...SEC, 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=3600' } });
+      if (p === '/sitemap.xml') return new Response(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${[['/', '1.0'], ['/drive', '0.8'], ['/ai', '0.8']].map(([q, pr]) => `  <url><loc>https://wqzachery.dpdns.org${q}</loc><changefreq>weekly</changefreq><priority>${pr}</priority></url>`).join('\n')}\n</urlset>\n`, { headers: { ...SEC, 'content-type': 'application/xml; charset=utf-8', 'cache-control': 'public, max-age=3600' } });
+      if (p === '/og.png') return new Response(OG, { headers: { ...SEC, 'content-type': 'image/png', 'cache-control': 'public, max-age=86400' } });
       if (p === '/p/home' || p === '/index.html') return page(INDEX);
       if (p === '/p/drive' || p === '/drive.html') return page(DRIVE);
       if (p === '/p/ai') return page(AI);
       if (p === '/admin' || p === '/admin/') return page(ADMIN);
       if (p === '/api/chat' && m === 'POST') return chat(req, env, ctx);
+      if (p === '/api/search/raw' && m === 'GET' && isAdmin(req, env)) { const r = await fetch(u.searchParams.get('u'), { headers: UA }); const t = await r.text(); return json({ status: r.status, len: t.length, head: t.slice(Math.max(0, t.indexOf(u.searchParams.get('k') || '<html')), Math.max(0, t.indexOf(u.searchParams.get('k') || '<html')) + (+u.searchParams.get('n') || 1500)), algo: (t.match(/b_algo/g) || []).length, h2: [...t.matchAll(/<h2[^>]*>([\s\S]*?)<\/h2>/g)].slice(0, 8).map(x => unent(x[1])), items: (t.match(/<item>/g) || []).length }); }
+      if (p === '/api/search' && m === 'GET') { if (await limited(env.CHAT_RL, ip(req))) return json({ error: '太快了' }, 429); return json({ results: await webSearch(u.searchParams.get('q') || '', u.searchParams.get('e'), env) }); }
       if (p === '/api/models' && m === 'GET') return json({ models: MODELS.filter(x => x.via !== 'or' || env.OPENROUTER_KEY).map(({ id, name, tag, desc }) => ({ id, name, tag, desc })) });
       if (p === '/api/files' && m === 'GET') return list(req, env);
       if (p === '/api/folders' && m === 'POST') return mkFolder(req, env);
@@ -121,6 +149,10 @@ const MODELS = [
   { id: 'nemotron-super', name: 'Nemotron 3 Super', tag: '快', desc: 'NVIDIA 120B，速度和质量兼顾', via: 'or', model: 'nvidia/nemotron-3-super-120b-a12b:free' },
   { id: 'north', name: 'Cohere North Mini', tag: '极速', desc: '小而快，适合简单问答', via: 'or', model: 'cohere/north-mini-code:free' },
   { id: 'gemma', name: 'Gemma 4 31B', tag: 'Google', desc: 'Google 开源模型，高峰期可能繁忙', via: 'or', model: 'google/gemma-4-31b-it:free' },
+  { id: 'deepseek', name: 'DeepSeek R1', tag: '国产', desc: '深度求索推理模型，会先思考再回答', via: 'cf', model: '@cf/deepseek-ai/deepseek-r1-distill-qwen-32b', fb: ['@cf/qwen/qwen3-30b-a3b-fp8'] },
+  { id: 'qwen', name: 'Qwen 3.8', tag: '国产', desc: '阿里通义千问，中文写作和知识', via: 'cf', model: '@cf/qwen/qwen3.8-27b', fb: ['@cf/qwen/qwen3-30b-a3b-fp8'] },
+  { id: 'glm', name: 'GLM-4.7 Flash', tag: '国产', desc: '智谱，响应快', via: 'cf', model: '@cf/zai-org/glm-4.7-flash', fb: ['@cf/qwen/qwen3-30b-a3b-fp8'] },
+  { id: 'qwen-coder', name: 'Qwen 2.5 Coder', tag: '国产·编程', desc: '通义千问编程版，写代码', via: 'cf', model: '@cf/qwen/qwen2.5-coder-32b-instruct', fb: ['@cf/qwen/qwen3-30b-a3b-fp8'] },
   { id: 'llama4', name: 'Llama 4 Scout', tag: '不限次', desc: 'Meta 开源模型，长文本', via: 'cf', model: '@cf/meta/llama-4-scout-17b-16e-instruct' },
 ];
 const sysFor = mm => mm.id === 'astra' ? SYS : `你是 ${mm.name}，在吴谦（Zachery Wu）的个人网站 wqzachery.dpdns.org 上为访客提供帮助。用访客使用的语言回答，默认简体中文，清晰友好，可以使用 Markdown。不要编造关于吴谦的个人信息。`;
@@ -129,7 +161,7 @@ async function openrouter(env, mm, msgs, emit) {
   const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: { Authorization: 'Bearer ' + env.OPENROUTER_KEY, 'content-type': 'application/json', 'HTTP-Referer': 'https://wqzachery.dpdns.org', 'X-Title': 'wqzachery' },
-    body: JSON.stringify({ models: [...new Set([mm.model, 'nvidia/nemotron-3-super-120b-a12b:free', 'poolside/laguna-s-2.1:free'])].slice(0, 3), messages: [{ role: 'system', content: sysFor(mm) }, ...msgs], stream: true, max_tokens: 4000, reasoning: { effort: 'low', exclude: true } }),
+    body: JSON.stringify({ models: [...new Set([mm.model, 'nvidia/nemotron-3-super-120b-a12b:free', 'poolside/laguna-s-2.1:free'])].slice(0, 3), messages: [{ role: 'system', content: sysFor(mm) }, ...msgs], stream: true, max_tokens: 4000, reasoning: { effort: mm.effort || 'low', exclude: true } }),
   });
   if (!r.ok) throw new Error('or ' + r.status + ' ' + (await r.text()).slice(0, 200));
   let got = false, err = '', used = mm.model;
@@ -152,6 +184,8 @@ async function chat(req, env, ctx) {
     .filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content)
     .map(m => ({ role: m.role, content: m.content.slice(0, 4000) }));
   if (!msgs.length || msgs[msgs.length - 1].role !== 'user') return json({ error: '消息为空' }, 400);
+  const effort = ['low', 'medium', 'high'].includes(body.effort) ? body.effort : 'low';
+  const useWeb = !!body.web;
 
   const enc = new TextEncoder();
   const { readable, writable } = new TransformStream();
@@ -160,8 +194,25 @@ async function chat(req, env, ctx) {
   const meta = { ip: ip(req), geo: [req.cf?.country, req.cf?.city].filter(Boolean).join(' ') };
   const userTs = Date.now();
 
-  const mm = MODELS.find(x => x.id === body.model) || MODELS[0];
+  const mm0 = MODELS.find(x => x.id === body.model) || MODELS[0];
+  const mm = { ...mm0, effort };
+  EFFORT.v = effort;
   ctx.waitUntil((async () => {
+    const question = msgs[msgs.length - 1].content;
+    // thinking level also steers models without a native reasoning knob
+    const hint = { low: '', medium: '\n\n（请先仔细思考再回答，给出有条理的答案。）', high: '\n\n（这是一个需要深入思考的问题：请一步步推理，考虑多种可能和边界情况，检查结论后再给出完整、严谨的答案。）' }[effort];
+    let ctxBlock = '';
+    if (useWeb) {
+      await send({ status: '正在联网搜索…' });
+      const res = await webSearch(question, null, env).catch(() => []);
+      if (res.length) {
+        await send({ sources: res.map(r => ({ t: r.title, u: r.url })) });
+        const today = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
+        ctxBlock = `\n\n[联网搜索结果，搜索时间 ${today}（北京时间）。请优先依据这些结果回答，信息有时效性时以结果为准，在用到的句子后用 [编号] 标注来源；结果不相关时照常回答并说明没有找到相关资料。]\n` +
+          res.map((r, i) => `[${i + 1}] ${r.title}\n${r.url}\n${r.text}`).join('\n\n');
+      } else await send({ status: '没有搜到相关结果，直接回答' });
+    }
+    if (ctxBlock || hint) msgs[msgs.length - 1] = { role: 'user', content: question + hint + ctxBlock };
     let full = '', model = '', by = mm.name;
     if (mm.id !== 'astra') {
       try {
@@ -202,6 +253,96 @@ async function chat(req, env, ctx) {
   })());
 
   return new Response(readable, { headers: { ...SEC, 'content-type': 'text/event-stream; charset=utf-8', 'cache-control': 'no-cache, no-transform', 'x-accel-buffering': 'no' } });
+}
+
+/* ---------------- web search (no API key): Bing RSS → DuckDuckGo HTML → Wikipedia, then read the top pages ---------------- */
+const EFFORT = { v: 'low' };
+const UA = { 'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15', 'accept-language': 'zh-CN,zh;q=0.9,en;q=0.6' };
+const unent = s => String(s || '').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;|&#x27;/g, "'").replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(+n)).replace(/\s+/g, ' ').trim();
+const tfetch = (u, o = {}, ms = 5000) => fetch(u, { ...o, signal: AbortSignal.timeout(ms) });
+async function searchBing(q) {
+  const r = await tfetch('https://www.bing.com/search?format=rss&count=8&mkt=' + (/[\u4e00-\u9fff]/.test(q) ? 'zh-CN' : 'en-US') + '&q=' + encodeURIComponent(q), { headers: UA });
+  if (!r.ok) throw new Error('bing ' + r.status);
+  const x = await r.text();
+  return [...x.matchAll(/<item>([\s\S]*?)<\/item>/g)].map(m => ({
+    title: unent((m[1].match(/<title>([\s\S]*?)<\/title>/) || [])[1]),
+    url: unent((m[1].match(/<link>([\s\S]*?)<\/link>/) || [])[1]),
+    text: unent((m[1].match(/<description>([\s\S]*?)<\/description>/) || [])[1]) })).filter(r => /^https?:/.test(r.url));
+}
+async function searchBingHtml(q) {
+  const zh = /[\u4e00-\u9fff]/.test(q);
+  const r = await tfetch('https://www.bing.com/search?count=10&q=' + encodeURIComponent(q) + (zh ? '&setlang=zh-Hans&cc=CN' : '&setlang=en'), { headers: UA });
+  if (!r.ok) throw new Error('bingh ' + r.status);
+  const x = await r.text(), out = [];
+  for (const m of x.matchAll(/<li class="b_algo"[\s\S]*?<h2[^>]*>\s*<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?(?:<p[^>]*>([\s\S]*?)<\/p>|<\/li>)/g)) {
+    let u = unent(m[1]); const k = u.match(/[?&]u=a1([^&]+)/);
+    if (k) { try { u = atob(k[1].replace(/-/g, '+').replace(/_/g, '/')); } catch {} }
+    out.push({ title: unent(m[2]), url: u, text: unent(m[3] || '') });
+  }
+  return out.filter(r => /^https?:/.test(r.url));
+}
+async function searchNews(q) {
+  const zh = /[\u4e00-\u9fff]/.test(q);
+  const r = await tfetch('https://news.google.com/rss/search?q=' + encodeURIComponent(q) + (zh ? '&hl=zh-CN&gl=CN&ceid=CN:zh-Hans' : '&hl=en-US&gl=US&ceid=US:en'), { headers: UA });
+  if (!r.ok) throw new Error('news ' + r.status);
+  const x = await r.text();
+  return [...x.matchAll(/<item>([\s\S]*?)<\/item>/g)].slice(0, 6).map(m => {
+    const g = t => unent((m[1].match(new RegExp('<' + t + '[^>]*>([\\s\\S]*?)<\\/' + t + '>')) || [])[1]);
+    return { title: g('title'), url: g('link'), text: g('title') + ' — ' + g('pubDate') + ' · ' + g('source'), news: 1 };
+  }).filter(r => /^https?:/.test(r.url));
+}
+// keep the searchable core of a chatty question
+const cleanQ = q => q.replace(/[？?！!。，,、：:；;"“”'‘’（）()]/g, ' ').replace(/(请问|帮我|告诉我|你知道|能不能|可以|一下|是谁|是什么|颁给了谁|给了谁|怎么样|吗|呢|吧|呀)/g, ' ').replace(/\s+/g, ' ').trim() || q;
+async function searchDDG(q) {
+  const r = await tfetch('https://html.duckduckgo.com/html/', { method: 'POST', headers: { ...UA, 'content-type': 'application/x-www-form-urlencoded' }, body: 'q=' + encodeURIComponent(q) + '&kl=cn-zh' });
+  if (!r.ok) throw new Error('ddg ' + r.status);
+  const x = await r.text(), out = [];
+  for (const m of x.matchAll(/<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?class="result__snippet"[^>]*>([\s\S]*?)<\/a>/g)) {
+    let u = unent(m[1]); const k = u.match(/[?&]uddg=([^&]+)/); if (k) u = decodeURIComponent(k[1]); if (u.startsWith('//')) u = 'https:' + u;
+    out.push({ title: unent(m[2]), url: u, text: unent(m[3]) });
+  }
+  return out.filter(r => /^https?:/.test(r.url) && !/duckduckgo\.com\/y\.js/.test(r.url));
+}
+async function searchWiki(q) {
+  const r = await tfetch('https://zh.wikipedia.org/w/api.php?action=query&list=search&format=json&srlimit=5&srsearch=' + encodeURIComponent(q), { headers: UA });
+  const j = await r.json();
+  return (j.query?.search || []).map(s => ({ title: s.title, url: 'https://zh.wikipedia.org/wiki/' + encodeURIComponent(s.title), text: unent(s.snippet) }));
+}
+async function readPage(u) {
+  try {
+    const r = await tfetch(u, { headers: UA, redirect: 'follow' }, 4000);
+    if (!r.ok || !/html|text/.test(r.headers.get('content-type') || '')) return '';
+    let h = (await r.text()).slice(0, 400000);
+    h = h.replace(/<(script|style|noscript|svg|nav|footer|header|aside|form)[\s\S]*?<\/\1>/gi, ' ');
+    const main = h.match(/<(article|main)[\s\S]*?<\/\1>/i);
+    return unent(main ? main[0] : h).slice(0, 1800);
+  } catch { return ''; }
+}
+// Bing serves good results to Worker IPs only for English queries, so non-English questions get an English search query too
+async function toEnglishQuery(env, q) {
+  try {
+    const r = await env.AI.run('@cf/meta/llama-3.1-8b-instruct-fast', { max_tokens: 40, messages: [
+      { role: 'system', content: 'Convert the user question into ONE short English web search query (max 10 words). Keep names, numbers and years. Output only the query.' },
+      { role: 'user', content: q }] });
+    return String(r.response || '').split('\n')[0].replace(/^["'\s]+|["'\s]+$/g, '').slice(0, 120);
+  } catch { return ''; }
+}
+async function webSearch(q, only, env) {
+  q = String(q || '').replace(/\s+/g, ' ').trim().slice(0, 200); if (!q) return [];
+  let res = [];
+  if (only) { try { res = await ({ bing: searchBing, bingh: searchBingHtml, ddg: searchDDG, wiki: searchWiki, news: searchNews }[only] || searchBing)(q); } catch {} }
+  else {
+    // web results and encyclopedia results side by side, interleaved
+    q = cleanQ(q);
+    const zh = /[\u3040-\u30ff\u4e00-\u9fff\uac00-\ud7af]/.test(q);
+    const qe = zh && env ? (await toEnglishQuery(env, q)) || q : q;
+    const web = s => searchBingHtml(s).then(r => r.length ? r : searchBing(s)).catch(() => searchBing(s).catch(() => []));
+    const [a, b] = await Promise.all([web(qe), searchWiki(q).catch(() => [])]);
+    for (let i = 0; i < Math.max(a.length, b.length); i++) { if (a[i]) res.push(a[i]); if (b[i] && i < 2) res.push(b[i]); }
+  }
+  const seen = new Set(); res = res.filter(r => { const k = r.url.replace(/#.*$/, ''); if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 6);
+  const pages = await Promise.all(res.slice(0, 4).map(r => readPage(r.url)));
+  return res.map((r, i) => ({ title: r.title.slice(0, 120), url: r.url, text: ((pages[i] && pages[i].length > r.text.length ? pages[i] : r.text) || '').slice(0, 1800) }));
 }
 
 // parse an SSE byte stream, calling onData(jsonString) for each data: line
@@ -246,17 +387,28 @@ async function gemini(env, msgs, emit) {
 
 async function workersAI(env, msgs, emit, mm) {
   let lastErr;
-  for (const model of (mm ? [mm.model] : (env.AI_MODELS || env.CHAT_MODEL).split(','))) {
+  for (const model of (mm ? [mm.model, ...(mm.fb || [])] : (env.AI_MODELS || env.CHAT_MODEL).split(','))) {
     let got = false;
     try {
       const opts = { messages: [{ role: 'system', content: mm ? sysFor(mm) : SYS }, ...msgs], max_tokens: 3000, stream: true };
-      if (/gpt-oss/.test(model)) opts.reasoning_effort = 'low';
+      const ef = (mm && mm.effort) || EFFORT.v || 'low';
+      if (/gpt-oss/.test(model)) opts.reasoning_effort = ef;
+      if (/deepseek-r1|qwq|qwen3/.test(model)) opts.max_tokens = ef === 'high' ? 6000 : ef === 'medium' ? 4000 : 2500;
       const s = await env.AI.run(model, opts);
+      // reasoning models stream a <think>…</think> block first: hide it, show only the answer
+      let think = /deepseek-r1|qwq/.test(model) ? 0 : -1, buf = '';
       await sse(s, async d => {
         const j = JSON.parse(d);
         const dl = j.choices?.[0]?.delta;
-        const t = dl ? (dl.content ?? '') : (j.response ?? '');
-        if (t !== '' && t != null) { got = true; await emit(String(t)); }
+        let t = dl ? (dl.content ?? '') : (j.response ?? '');
+        if (t === '' || t == null) return;
+        t = String(t);
+        if (think >= 0 && think < 2) {
+          buf += t;
+          if (think === 0 && !/^\s*<think>/.test(buf) && buf.trim().length > 7) { think = 2; t = buf; }
+          else { const k = buf.indexOf('</think>'); if (k < 0) return; think = 2; t = buf.slice(k + 8).replace(/^\s+/, ''); if (!t) return; }
+        }
+        got = true; await emit(t);
       });
       if (got) return model.split('/').pop();
       lastErr = new Error(model + ' empty');
