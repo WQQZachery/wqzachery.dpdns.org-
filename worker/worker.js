@@ -67,7 +67,7 @@ export default {
       if (p === '/api/chat' && m === 'POST') return chat(req, env, ctx);
       if (p === '/api/search/raw' && m === 'GET' && isAdmin(req, env)) { const r = await fetch(u.searchParams.get('u'), { headers: UA }); const t = await r.text(); return json({ status: r.status, len: t.length, head: t.slice(Math.max(0, t.indexOf(u.searchParams.get('k') || '<html')), Math.max(0, t.indexOf(u.searchParams.get('k') || '<html')) + (+u.searchParams.get('n') || 1500)), algo: (t.match(/b_algo/g) || []).length, h2: [...t.matchAll(/<h2[^>]*>([\s\S]*?)<\/h2>/g)].slice(0, 8).map(x => unent(x[1])), items: (t.match(/<item>/g) || []).length }); }
       if (p === '/api/search' && m === 'GET') { if (await limited(env.CHAT_RL, ip(req))) return json({ error: '太快了' }, 429); return json({ results: await webSearch(u.searchParams.get('q') || '', u.searchParams.get('e'), env) }); }
-      if (p === '/api/models' && m === 'GET') return json({ models: MODELS.filter(x => x.via !== 'or' || env.OPENROUTER_KEY).map(({ id, name, tag, desc }) => ({ id, name, tag, desc })) });
+      if (p === '/api/models' && m === 'GET') return json({ models: MODELS.filter(x => x.via !== 'or' || env.OPENROUTER_KEY).map(({ id, cat, name, tag, desc }) => ({ id, cat, name, tag, desc })) });
       if (p === '/api/files' && m === 'GET') return list(req, env);
       if (p === '/api/folders' && m === 'POST') return mkFolder(req, env);
       if (p === '/api/folders' && m === 'DELETE') return rmFolder(req, env, u.searchParams.get('path') || '');
@@ -87,6 +87,7 @@ export default {
       if (p === '/api/admin/check') return isAdmin(req, env) ? json({ ok: true, hasGemini: !!env.GEMINI_KEY, lastAIError }) : json({ error: '密钥错误' }, 403);
       if (p === '/api/admin/stats') { if (!isAdmin(req, env)) return json({ error: '密钥错误' }, 403); return json(await store(env).stats(+u.searchParams.get('days') || 30)); }
       if (p === '/api/admin/sessions') { if (!isAdmin(req, env)) return json({ error: '密钥错误' }, 403); return json(await store(env).sessions(+u.searchParams.get('offset') || 0)); }
+      if (p === '/api/admin/analyze' && m === 'POST') { if (!isAdmin(req, env)) return json({ error: '密钥错误' }, 403); return json(await analyze(env, u.searchParams.get('id') || '', u.searchParams.get('force') === '1')); }
       if (p === '/api/admin/session') { if (!isAdmin(req, env)) return json({ error: '密钥错误' }, 403); return json(await store(env).messages(u.searchParams.get('id') || '')); }
       if (p === '/api/admin/models') { if (!isAdmin(req, env)) return json({ error: '密钥错误' }, 403); const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200', { headers: { 'x-goog-api-key': env.GEMINI_KEY } }); const j = await r.json(); return json((j.models || []).filter(m => (m.supportedGenerationMethods || []).includes('generateContent')).map(m => m.name)); }
       if (p.startsWith('/api/')) return json({ error: 'not found' }, 404);
@@ -106,12 +107,18 @@ export class Store extends DurableObject {
       CREATE INDEX IF NOT EXISTS msgs_sid ON msgs(sid, id);
       CREATE TABLE IF NOT EXISTS ups(path TEXT PRIMARY KEY, ip TEXT, ts INTEGER, name TEXT, size INTEGER, geo TEXT);
       CREATE TABLE IF NOT EXISTS hits(id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEGER, day TEXT, ip TEXT, path TEXT, geo TEXT, ua TEXT, ref TEXT);
-      CREATE INDEX IF NOT EXISTS hits_day ON hits(day);`);
+      CREATE INDEX IF NOT EXISTS hits_day ON hits(day);
+      CREATE TABLE IF NOT EXISTS ana(sid TEXT PRIMARY KEY, n INTEGER, ts INTEGER, data TEXT);`);
+    for (const c of ['think TEXT', 'mname TEXT', 'extra TEXT']) { try { this.sql.exec('ALTER TABLE msgs ADD COLUMN ' + c); } catch {} }
   }
-  log(rows) { for (const r of rows) this.sql.exec('INSERT INTO msgs(sid,role,content,ts,ip,geo,model) VALUES(?,?,?,?,?,?,?)', r.sid, r.role, r.content, r.ts, r.ip, r.geo, r.model || ''); return true; }
+  log(rows) { for (const r of rows) this.sql.exec('INSERT INTO msgs(sid,role,content,ts,ip,geo,model,think,mname,extra) VALUES(?,?,?,?,?,?,?,?,?,?)', r.sid, r.role, r.content, r.ts, r.ip, r.geo, r.model || '', r.think || '', r.mname || '', r.extra || ''); return true; }
+  saveAna(sid, n, data) { this.sql.exec('INSERT OR REPLACE INTO ana(sid,n,ts,data) VALUES(?,?,?,?)', sid, n, Date.now(), data); return true; }
+  pending(limit) { return this.sql.exec('SELECT m.sid FROM msgs m LEFT JOIN ana a ON a.sid=m.sid GROUP BY m.sid HAVING a.n IS NULL OR a.n<COUNT(*) ORDER BY MAX(m.ts) DESC LIMIT ?', limit).toArray().map(r => r.sid); }
   sessions(offset) {
     const rows = this.sql.exec(`SELECT sid, COUNT(*) n, MIN(ts) first, MAX(ts) last, MAX(ip) ip, MAX(geo) geo,
-      (SELECT content FROM msgs m2 WHERE m2.sid=m.sid AND role='user' ORDER BY id LIMIT 1) preview
+      (SELECT content FROM msgs m2 WHERE m2.sid=m.sid AND role='user' ORDER BY id LIMIT 1) preview,
+      (SELECT GROUP_CONCAT(DISTINCT COALESCE(NULLIF(mname,''),model)) FROM msgs m3 WHERE m3.sid=m.sid AND role='assistant') models,
+      (SELECT data FROM ana a WHERE a.sid=m.sid) ana, (SELECT n FROM ana a WHERE a.sid=m.sid) ana_n
       FROM msgs m GROUP BY sid ORDER BY last DESC LIMIT 50 OFFSET ?`, offset).toArray();
     const t = this.sql.exec('SELECT COUNT(DISTINCT sid) s, COUNT(*) n FROM msgs').one();
     return { sessions: rows, total: t.s, messages: t.n };
@@ -135,7 +142,42 @@ export class Store extends DurableObject {
   ups() { return this.sql.exec('SELECT path, ip FROM ups').toArray(); }
   moveUps(pairs) { for (const [a, b] of pairs) this.sql.exec('UPDATE ups SET path=? WHERE path=?', b, a); return true; }
   dropUps(prefix) { this.sql.exec("DELETE FROM ups WHERE path=? OR substr(path,1,?)=?", prefix, prefix.length + 1, prefix + '/'); return true; }
-  messages(sid) { return { messages: this.sql.exec('SELECT role, content, ts, model FROM msgs WHERE sid=? ORDER BY id', sid).toArray() }; }
+  messages(sid) { const a = this.sql.exec('SELECT data, n FROM ana WHERE sid=?', sid).toArray()[0]; return { messages: this.sql.exec('SELECT role, content, ts, model, think, mname, extra, ip, geo FROM msgs WHERE sid=? ORDER BY id', sid).toArray(), ana: a ? a.data : null, ana_n: a ? a.n : 0 }; }
+}
+
+/* ---------------- admin: AI analysis of chat sessions ---------------- */
+async function analyzeOne(env, sid, force) {
+  const st = store(env);
+  const { messages, ana_n } = await st.messages(sid);
+  if (!messages.length) return null;
+  if (!force && ana_n === messages.length) return null;
+  const u = messages.find(x => x.role === 'user') || {};
+  const models = [...new Set(messages.filter(x => x.role === 'assistant').map(x => x.mname || x.model).filter(Boolean))];
+  const convo = messages.map(x => (x.role === 'user' ? '访客：' : `AI(${x.mname || x.model || ''})：`) + String(x.content).replace(/\s+/g, ' ').slice(0, x.role === 'user' ? 600 : 300)).join('\n').slice(0, 6000);
+  const prompt = `下面是网站访客与 AI 助手的一段对话。请用简体中文分析，只输出一个 JSON 对象，不要任何其他文字：\n{"title":"不超过14字的主题","summary":"不超过70字，概括访客想做什么、AI 给了什么帮助、是否解决","topics":["1-3个关键词"],"intent":"提问|闲聊|编程|写作|翻译|搜索资讯|测试AI|其他","flag":"正常|敏感内容|滥用/越狱|疑似测试"}\n\n对话：\n${convo}`;
+  let data = null;
+  for (const model of ['@cf/meta/llama-3.3-70b-instruct-fp8-fast', '@cf/qwen/qwen3-30b-a3b-fp8']) {
+    try {
+      const r = await env.AI.run(model, { messages: [{ role: 'user', content: prompt }], max_tokens: 400 });
+      let t = r?.response ?? r?.choices?.[0]?.message?.content ?? '';
+      if (typeof t === 'object') { data = t; break; }
+      t = String(t).replace(/<think>[\s\S]*?<\/think>/, '');
+      const mt = t.match(/\{[\s\S]*\}/); if (!mt) continue;
+      data = JSON.parse(mt[0]); break;
+    } catch {}
+  }
+  if (!data) return null;
+  data.models = models; data.ip = u.ip || ''; data.geo = u.geo || '';
+  try { data.settings = JSON.parse(u.extra || '{}'); } catch {}
+  await st.saveAna(sid, messages.length, JSON.stringify(data));
+  return { sid, data };
+}
+async function analyze(env, sid, force) {
+  if (sid) { const r = await analyzeOne(env, sid, true).catch(e => ({ error: String(e) })); return { done: r ? [r] : [] }; }
+  const ids = await store(env).pending(6);
+  const done = (await Promise.all(ids.map(id => analyzeOne(env, id, force).catch(() => null)))).filter(Boolean);
+  const left = Math.max(0, (await store(env).pending(200)).length);
+  return { done, left };
 }
 
 /* ---------------- AI chat, streamed as SSE: data: {"t":"..."} ---------------- */
@@ -143,25 +185,25 @@ const SYS = '你是 GPT-6 Astra，吴谦（Zachery Wu）个人网站 wqzachery.d
 
 // models visitors can pick. 'cf' = Workers AI (no daily cap that matters), 'or' = OpenRouter free tier (shared ~50 requests/day, may be busy)
 const MODELS = [
-  { id: 'astra', name: 'GPT-6 Astra', tag: '默认', desc: '均衡好用，不限次数', via: 'cf' },
-  { id: 'nemotron-ultra', name: 'Nemotron 3 Ultra', tag: '最强', desc: 'NVIDIA 550B 大模型，推理和知识最强', via: 'or', model: 'nvidia/nemotron-3-ultra-550b-a55b:free' },
-  { id: 'laguna', name: 'Laguna S 2.1', tag: '编程', desc: 'Poolside 编程模型，写代码首选', via: 'or', model: 'poolside/laguna-s-2.1:free' },
-  { id: 'nemotron-super', name: 'Nemotron 3 Super', tag: '快', desc: 'NVIDIA 120B，速度和质量兼顾', via: 'or', model: 'nvidia/nemotron-3-super-120b-a12b:free' },
-  { id: 'north', name: 'Cohere North Mini', tag: '极速', desc: '小而快，适合简单问答', via: 'or', model: 'cohere/north-mini-code:free' },
-  { id: 'gemma', name: 'Gemma 4 31B', tag: 'Google', desc: 'Google 开源模型，高峰期可能繁忙', via: 'or', model: 'google/gemma-4-31b-it:free' },
-  { id: 'deepseek', name: 'DeepSeek R1', tag: '国产', desc: '深度求索推理模型，会先思考再回答', via: 'cf', model: '@cf/deepseek-ai/deepseek-r1-distill-qwen-32b', fb: ['@cf/qwen/qwen3-30b-a3b-fp8'] },
-  { id: 'qwen', name: 'Qwen 3.8', tag: '国产', desc: '阿里通义千问，中文写作和知识', via: 'cf', model: '@cf/qwen/qwen3.8-27b', fb: ['@cf/qwen/qwen3-30b-a3b-fp8'] },
-  { id: 'glm', name: 'GLM-4.7 Flash', tag: '国产', desc: '智谱，响应快', via: 'cf', model: '@cf/zai-org/glm-4.7-flash', fb: ['@cf/qwen/qwen3-30b-a3b-fp8'] },
-  { id: 'qwen-coder', name: 'Qwen 2.5 Coder', tag: '国产·编程', desc: '通义千问编程版，写代码', via: 'cf', model: '@cf/qwen/qwen2.5-coder-32b-instruct', fb: ['@cf/qwen/qwen3-30b-a3b-fp8'] },
-  { id: 'llama4', name: 'Llama 4 Scout', tag: '不限次', desc: 'Meta 开源模型，长文本', via: 'cf', model: '@cf/meta/llama-4-scout-17b-16e-instruct' },
+  { id: 'astra', cat: '推荐', name: 'GPT-6 Astra', tag: '默认', desc: '均衡好用，不限次数', via: 'cf' },
+  { id: 'nemotron-ultra', cat: '旗舰', name: 'Nemotron 3 Ultra', tag: '最强', desc: 'NVIDIA 550B 大模型，推理和知识最强', via: 'or', model: 'nvidia/nemotron-3-ultra-550b-a55b:free' },
+  { id: 'laguna', cat: '编程', name: 'Laguna S 2.1', tag: '编程', desc: 'Poolside 编程模型，写代码首选', via: 'or', model: 'poolside/laguna-s-2.1:free' },
+  { id: 'nemotron-super', cat: '旗舰', name: 'Nemotron 3 Super', tag: '快', desc: 'NVIDIA 120B，速度和质量兼顾', via: 'or', model: 'nvidia/nemotron-3-super-120b-a12b:free' },
+  { id: 'north', cat: '编程', name: 'Cohere North Mini', tag: '极速', desc: '小而快，适合简单问答', via: 'or', model: 'cohere/north-mini-code:free' },
+  { id: 'gemma', cat: '旗舰', name: 'Gemma 4 31B', tag: 'Google', desc: 'Google 开源模型，高峰期可能繁忙', via: 'or', model: 'google/gemma-4-31b-it:free' },
+  { id: 'deepseek', cat: '国产', name: 'DeepSeek R1', tag: '国产', desc: '深度求索推理模型，会先思考再回答', via: 'cf', model: '@cf/deepseek-ai/deepseek-r1-distill-qwen-32b', fb: ['@cf/qwen/qwen3-30b-a3b-fp8'] },
+  { id: 'qwen', cat: '国产', name: 'Qwen 3.8', tag: '国产', desc: '阿里通义千问，中文写作和知识', via: 'cf', model: '@cf/qwen/qwen3.8-27b', fb: ['@cf/qwen/qwen3-30b-a3b-fp8'] },
+  { id: 'glm', cat: '国产', name: 'GLM-4.7 Flash', tag: '国产', desc: '智谱，响应快', via: 'cf', model: '@cf/zai-org/glm-4.7-flash', fb: ['@cf/qwen/qwen3-30b-a3b-fp8'] },
+  { id: 'qwen-coder', cat: '编程', name: 'Qwen 2.5 Coder', tag: '国产·编程', desc: '通义千问编程版，写代码', via: 'cf', model: '@cf/qwen/qwen2.5-coder-32b-instruct', fb: ['@cf/qwen/qwen3-30b-a3b-fp8'] },
+  { id: 'llama4', cat: '推荐', name: 'Llama 4 Scout', tag: '不限次', desc: 'Meta 开源模型，长文本', via: 'cf', model: '@cf/meta/llama-4-scout-17b-16e-instruct' },
 ];
 const sysFor = mm => mm.id === 'astra' ? SYS : `你是 ${mm.name}，在吴谦（Zachery Wu）的个人网站 wqzachery.dpdns.org 上为访客提供帮助。用访客使用的语言回答，默认简体中文，清晰友好，可以使用 Markdown。不要编造关于吴谦的个人信息。`;
 
-async function openrouter(env, mm, msgs, emit) {
+async function openrouter(env, mm, msgs, emit, onThink) {
   const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: { Authorization: 'Bearer ' + env.OPENROUTER_KEY, 'content-type': 'application/json', 'HTTP-Referer': 'https://wqzachery.dpdns.org', 'X-Title': 'wqzachery' },
-    body: JSON.stringify({ models: [...new Set([mm.model, 'nvidia/nemotron-3-super-120b-a12b:free', 'poolside/laguna-s-2.1:free'])].slice(0, 3), messages: [{ role: 'system', content: sysFor(mm) }, ...msgs], stream: true, max_tokens: 4000, reasoning: { effort: mm.effort || 'low', exclude: true } }),
+    body: JSON.stringify({ models: [...new Set([mm.model, 'nvidia/nemotron-3-super-120b-a12b:free', 'poolside/laguna-s-2.1:free'])].slice(0, 3), messages: [{ role: 'system', content: sysFor(mm) }, ...msgs], stream: true, max_tokens: mm.effort === 'max' ? 8000 : 4000, reasoning: { effort: mm.effort === 'max' ? 'high' : (mm.effort || 'low'), exclude: false } }),
   });
   if (!r.ok) throw new Error('or ' + r.status + ' ' + (await r.text()).slice(0, 200));
   let got = false, err = '', used = mm.model;
@@ -169,7 +211,11 @@ async function openrouter(env, mm, msgs, emit) {
     const j = JSON.parse(d);
     if (j.model) used = j.model;
     if (j.error) { err = j.error.message || 'error'; return; }
-    const t = j.choices?.[0]?.delta?.content;
+    const dl = j.choices?.[0]?.delta || {};
+    const rk = dl.reasoning || dl.reasoning_content;
+    if (rk && onThink) await onThink(String(rk));
+    let t = dl.content;
+    if (t && !got) t = String(t).replace(/^\s+/, '');
     if (t) { got = true; await emit(String(t)); }
   });
   if (!got) throw new Error(err || 'empty');
@@ -184,7 +230,7 @@ async function chat(req, env, ctx) {
     .filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content)
     .map(m => ({ role: m.role, content: m.content.slice(0, 4000) }));
   if (!msgs.length || msgs[msgs.length - 1].role !== 'user') return json({ error: '消息为空' }, 400);
-  const effort = ['low', 'medium', 'high'].includes(body.effort) ? body.effort : 'low';
+  const effort = ['low', 'medium', 'high', 'max'].includes(body.effort) ? body.effort : 'low';
   const useWeb = !!body.web;
 
   const enc = new TextEncoder();
@@ -200,24 +246,26 @@ async function chat(req, env, ctx) {
   ctx.waitUntil((async () => {
     const question = msgs[msgs.length - 1].content;
     // thinking level also steers models without a native reasoning knob
-    const hint = { low: '', medium: '\n\n（请先仔细思考再回答，给出有条理的答案。）', high: '\n\n（这是一个需要深入思考的问题：请一步步推理，考虑多种可能和边界情况，检查结论后再给出完整、严谨的答案。）' }[effort];
+    const hint = { low: '', medium: '\n\n（请先仔细思考再回答，给出有条理的答案。）', high: '\n\n（这是一个需要深入思考的问题：请一步步推理，考虑多种可能和边界情况，检查结论后再给出完整、严谨的答案。）', max: '\n\n（极致模式：请投入最大的思考深度。先拆解问题，逐步推理并自我验证每一步，主动考虑反例、边界情况和替代方案，必要时给出计算或代码验证，最后给出完整、精确、结构清晰的答案，并指出仍不确定的部分。）' }[effort];
     let ctxBlock = '';
     if (useWeb) {
       await send({ status: '正在联网搜索…' });
       const res = await webSearch(question, null, env).catch(() => []);
       if (res.length) {
-        await send({ sources: res.map(r => ({ t: r.title, u: r.url })) });
+        srcList = res.map(r => ({ t: r.title, u: r.url })); await send({ sources: srcList });
         const today = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
         ctxBlock = `\n\n[联网搜索结果，搜索时间 ${today}（北京时间）。请优先依据这些结果回答，信息有时效性时以结果为准，在用到的句子后用 [编号] 标注来源；结果不相关时照常回答并说明没有找到相关资料。]\n` +
           res.map((r, i) => `[${i + 1}] ${r.title}\n${r.url}\n${r.text}`).join('\n\n');
       } else await send({ status: '没有搜到相关结果，直接回答' });
     }
     if (ctxBlock || hint) msgs[msgs.length - 1] = { role: 'user', content: question + hint + ctxBlock };
-    let full = '', model = '', by = mm.name;
+    let full = '', model = '', by = mm.name, thinkTxt = '';
+    const onThink = t => { if (thinkTxt.length > 20000) return; thinkTxt += t; return send({ k: t }); };
+    let srcList = [];
     if (mm.id !== 'astra') {
       try {
-        model = mm.via === 'or' ? (env.OPENROUTER_KEY ? await openrouter(env, mm, msgs, t => { full += t; return send({ t }); }) : (() => { throw new Error('no key'); })())
-                                : await workersAI(env, msgs, t => { full += t; return send({ t }); }, mm);
+        model = mm.via === 'or' ? (env.OPENROUTER_KEY ? await openrouter(env, mm, msgs, t => { full += t; return send({ t }); }, onThink) : (() => { throw new Error('no key'); })())
+                                : await workersAI(env, msgs, t => { full += t; return send({ t }); }, mm, onThink);
         const real = MODELS.find(x => x.model && model.startsWith(x.model.replace(':free', '')));
         if (real && real.id !== mm.id) { by = real.name; await send({ notice: `${mm.name} 现在太忙了，这次由 ${real.name} 回答` }); }
       } catch (e) {
@@ -235,7 +283,7 @@ async function chat(req, env, ctx) {
       if (isAdmin(req, env)) await send({ debug: lastAIError });
       if (full) { model = 'gemini (cut)'; }
       else {
-        try { model = await workersAI(env, msgs, t => { full += t; return send({ t }); }); }
+        try { model = await workersAI(env, msgs, t => { full += t; return send({ t }); }, null, onThink); }
         catch (e2) {
           const m = String(e2 && e2.message || e2);
           await send({ error: /4006|neuron|quota|limit/i.test(m) ? '今天的免费 AI 额度用完了，明天再来吧' : 'AI 暂时不可用，请稍后再试' });
@@ -246,8 +294,8 @@ async function chat(req, env, ctx) {
     try { await w.close(); } catch {}
     try {
       await store(env).log([
-        { sid, role: 'user', content: msgs[msgs.length - 1].content, ts: userTs, ...meta },
-        ...(full ? [{ sid, role: 'assistant', content: full, ts: Date.now(), ...meta, model }] : []),
+        { sid, role: 'user', content: question, ts: userTs, ...meta, extra: JSON.stringify({ model: mm.id, effort, web: useWeb }) },
+        ...(full ? [{ sid, role: 'assistant', content: full, ts: Date.now(), ...meta, model, mname: by, think: thinkTxt, extra: srcList.length ? JSON.stringify({ sources: srcList }) : '' }] : []),
       ]);
     } catch {}
   })());
@@ -385,29 +433,39 @@ async function gemini(env, msgs, emit) {
   throw lastErr;
 }
 
-async function workersAI(env, msgs, emit, mm) {
+async function workersAI(env, msgs, emit, mm, onThink) {
   let lastErr;
   for (const model of (mm ? [mm.model, ...(mm.fb || [])] : (env.AI_MODELS || env.CHAT_MODEL).split(','))) {
     let got = false;
     try {
       const opts = { messages: [{ role: 'system', content: mm ? sysFor(mm) : SYS }, ...msgs], max_tokens: 3000, stream: true };
       const ef = (mm && mm.effort) || EFFORT.v || 'low';
-      if (/gpt-oss/.test(model)) opts.reasoning_effort = ef;
-      if (/deepseek-r1|qwq|qwen3/.test(model)) opts.max_tokens = ef === 'high' ? 6000 : ef === 'medium' ? 4000 : 2500;
+      if (/gpt-oss/.test(model)) opts.reasoning_effort = ef === 'max' ? 'high' : ef;
+      if (ef === 'max') opts.max_tokens = 8000;
+      if (/deepseek-r1|qwq|qwen3/.test(model)) opts.max_tokens = ef === 'max' ? 8000 : ef === 'high' ? 6000 : ef === 'medium' ? 4000 : 2500;
       const s = await env.AI.run(model, opts);
       // reasoning models stream a <think>…</think> block first: hide it, show only the answer
-      let think = /deepseek-r1|qwq/.test(model) ? 0 : -1, buf = '';
+      let think = /deepseek-r1|qwq/.test(model) ? 0 : -1, buf = '', sent = 0;
       await sse(s, async d => {
         const j = JSON.parse(d);
         const dl = j.choices?.[0]?.delta;
+        const rk = dl && (dl.reasoning_content || dl.reasoning);
+        if (rk && onThink) await onThink(String(rk));
         let t = dl ? (dl.content ?? '') : (j.response ?? '');
         if (t === '' || t == null) return;
         t = String(t);
         if (think >= 0 && think < 2) {
           buf += t;
-          if (think === 0 && !/^\s*<think>/.test(buf) && buf.trim().length > 7) { think = 2; t = buf; }
-          else { const k = buf.indexOf('</think>'); if (k < 0) return; think = 2; t = buf.slice(k + 8).replace(/^\s+/, ''); if (!t) return; }
+          if (think === 0 && !/^\s*<think>/.test(buf) && !/<\/think>/.test(buf) && buf.trim().length > 7 && !/^\s*</.test(buf)) { think = 2; t = buf; }
+          else {
+            const k = buf.indexOf('</think>');
+            const inner = buf.replace(/^\s*<think>/, '');
+            if (k < 0) { const part = inner.slice(sent); if (part && onThink) { sent += part.length; await onThink(part); } return; }
+            const head = buf.slice(0, k).replace(/^\s*<think>/, ''); const rest = head.slice(sent); if (rest && onThink) await onThink(rest);
+            think = 2; t = buf.slice(k + 8).replace(/^\s+/, ''); if (!t) return;
+          }
         }
+        if (!got) { t = t.replace(/^\s+/, ''); if (!t) return; }
         got = true; await emit(t);
       });
       if (got) return model.split('/').pop();
