@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>公共网盘 · 吴谦</title>
+<link rel="canonical" href="https://wqzachery.dpdns.org/drive">
 <script>
 (function(){if(window.parent===window)return;var d=document.documentElement;d.classList.add('embed');
 var post=function(m){try{parent.postMessage(m,location.origin)}catch(e){}};window.__post=post;
@@ -27,8 +28,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","M
 body::before{content:"";position:fixed;inset:0;z-index:-1;background:radial-gradient(600px 400px at 15% 10%,rgba(110,231,183,.16),transparent 70%),radial-gradient(600px 400px at 90% 30%,rgba(96,165,250,.14),transparent 70%)}
 a{color:inherit}
 .wrap{max-width:860px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 28px) max(20px,env(safe-area-inset-right)) calc(env(safe-area-inset-bottom) + 40px) max(20px,env(safe-area-inset-left))}
-.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:34px}
-.top a{color:var(--mut);text-decoration:none;font-size:14px}
+.gnav{position:sticky;top:calc(env(safe-area-inset-top) + 10px);z-index:40;display:flex;align-items:center;justify-content:space-between;gap:12px;height:52px;max-width:640px;margin:-14px auto 30px;padding:0 20px;border-radius:999px;background:rgba(255,255,255,.05);-webkit-backdrop-filter:blur(14px) saturate(170%) brightness(1.04);backdrop-filter:blur(14px) saturate(170%) brightness(1.04);box-shadow:inset 1.5px 1.5px 1px -1px rgba(255,255,255,.45),inset -1px -1px 1px -.5px rgba(255,255,255,.18),inset 0 0 12px rgba(255,255,255,.04),0 8px 24px rgba(0,0,0,.25)}
+.gnav .gb{display:flex;align-items:baseline;gap:8px;padding:8px 0;color:var(--fg);text-decoration:none;min-width:0}.gnav .gb b{font-size:16px;font-weight:600;letter-spacing:.3px}.gnav .gb span{color:var(--mut);font-size:13px}
+.gnav .gq{color:var(--mut);font-size:12.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+@media(max-width:720px){.gnav{margin:-14px -6px 30px}}
+@media(max-width:480px){.gnav{height:46px;padding:0 16px}.gnav .gb b{font-size:15px}}
+html.embed .gnav .gb{pointer-events:none}
 h1{font-size:clamp(34px,8vw,56px);letter-spacing:-.03em;line-height:1.05}
 h1 span{background:linear-gradient(90deg,var(--a1),var(--a2));-webkit-background-clip:text;background-clip:text;color:transparent}
 .sub{color:var(--mut);margin:12px 0 28px;font-size:15px;line-height:1.6}
@@ -103,13 +108,24 @@ h1 span{background:linear-gradient(90deg,var(--a1),var(--a2));-webkit-background
 #list a.v,#list button.v{font-size:14px;color:var(--fg);background:none;border:0;cursor:pointer;white-space:nowrap;padding:0}
 #list .acts{display:flex;gap:14px;align-items:center}
 .ups{margin-top:10px;display:flex;flex-direction:column;gap:8px}
-.up{font-size:13px;color:var(--mut)}.up .bar3{height:4px;border-radius:4px;background:rgba(255,255,255,.1);overflow:hidden;margin-top:5px}.up .bar3 i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--a1),var(--a2))}
-.up.ok{color:var(--a1)}.up.err{color:#ffb4a8}
+.up{font-size:13px;color:var(--mut);padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.04);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.08)}
+.up .uh{display:flex;align-items:center;gap:10px}.up .un{flex:1;min-width:0;color:var(--fg);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.up .ux{flex:none;border:0;border-radius:999px;padding:5px 11px;font:inherit;font-size:12px;font-weight:600;color:#fff;background:rgba(255,255,255,.1);cursor:pointer;transition:background .2s}
+.up .ux:hover{background:rgba(255,90,90,.35)}.up .ux:focus-visible{outline:2px solid var(--a1);outline-offset:2px}
+.up .us{display:flex;justify-content:space-between;gap:8px;margin-top:4px;font-variant-numeric:tabular-nums}
+.up .bar3{height:5px;border-radius:5px;background:rgba(255,255,255,.1);overflow:hidden;margin-top:6px}.up .bar3 i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--a1),var(--a2));transition:width .2s linear}
+.up.ok{color:var(--a1)}.up.err{color:#ffb4a8}.up.cx{opacity:.6}.up.ok .ux,.up.err .ux,.up.cx .ux{display:none}
+.up.wait .bar3 i{width:0!important}
+.upall{display:none;justify-content:flex-end}.upall.on{display:flex}.upall button{border:0;background:none;color:#ffb4a8;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;padding:4px 2px}
+.terms summary{cursor:pointer;color:var(--fg);font-weight:600;list-style:none;display:flex;align-items:center;gap:6px}.terms summary::-webkit-details-marker{display:none}
+.terms summary::after{content:'›';transition:transform .25s;display:inline-block}.terms[open] summary::after{transform:rotate(90deg)}.terms .tb{margin-top:8px}
+#list .empty .eu{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}#list .empty .eu svg{width:44px;height:44px;stroke:var(--mut);fill:none;stroke-width:1.5;opacity:.7}
+#list .empty .eu button{border:0;border-radius:999px;padding:8px 16px;font:inherit;font-size:13px;font-weight:600;color:#04150e;background:var(--a1);cursor:pointer}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="top"><a href="/" class="no-embed">← 吴谦 · 主页</a><span class="embed-only" style="font-weight:600">吴谦 · 网盘</span><span id="quota" style="color:var(--mut);font-size:13px"></span></div>
+  <header class="gnav"><a href="/" class="gb" aria-label="回到主页"><b>吴谦</b><span>网盘</span></a><span id="quota" class="gq"></span></header>
   <h1>公共<span>网盘</span></h1>
   <p class="sub">任何人都可以上传、在线查看和下载，不限文件大小。文件直传存储节点，所有文件公开可见，请勿上传隐私内容。</p>
 
@@ -120,6 +136,7 @@ h1 span{background:linear-gradient(90deg,var(--a1),var(--a2));-webkit-background
     <span class="btn">选择文件</span>
     <input id="file" type="file" multiple hidden>
   </label>
+  <div class="upall" id="upall"><button type="button" id="cxall">全部取消</button></div>
   <div class="ups" id="ups"></div>
   <div id="msg"></div>
 
@@ -130,13 +147,13 @@ h1 span{background:linear-gradient(90deg,var(--a1),var(--a2));-webkit-background
   <div class="filter" id="filter"></div>
   <ul id="list" class="glass"><li class="empty">加载中…</li></ul>
 
-  <div class="terms">
-    <b>使用条款</b><br>
+  <details class="terms">
+    <summary>使用条款</summary><div class="tb">
     1. 禁止上传任何违法、色情、暴力、侵犯版权或他人隐私的内容，以及恶意软件。<br>
     2. 所有文件对所有访客公开，上传即表示你有权分享该文件。<br>
     3. 站长有权随时删除任何文件，不保证文件永久保存。<br>
     4. 同一个 IP 上传的文件会显示相同颜色的来源标记，你自己上传的会标为「我」。<br>
-  </div>
+  </div></details>
 </div>
 <div id="pv" role="dialog" aria-modal="true"><div class="ph"><b id="pvn"></b><button id="pvd">下载</button><button id="pvx">关闭</button></div><div class="pb" id="pvb"></div></div>
 <script>
@@ -187,8 +204,8 @@ function render(){crumb();const q=$('#q').value.trim().toLowerCase(),L=$('#list'
  const G=view==='grid';
  const up=cwd&&G?folderTile(cwd.includes('/')?cwd.slice(0,cwd.lastIndexOf('/')):'','..',''):cwd?`<li class="fd" data-d="${esc(cwd.includes('/')?cwd.slice(0,cwd.lastIndexOf('/')):'')}"><div class="ico">↩︎</div><div class="n"><b>返回上一级</b></div></li>`:'';
  const h=sub.map(d=>G?folderTile(d,d.split('/').pop(),countIn(d)+' 个文件'):`<li class="fd" data-d="${esc(d)}"><div class="ico f">📁</div><div class="n"><b>${esc(d.split('/').pop())}</b><small>${countIn(d)} 个文件</small></div></li>`).join('')+v.map(f=>fileRow(f,false)).join('');
- L.innerHTML=up+(h||'<li class="empty">'+(cwd?'这个文件夹还是空的，上传的文件会放到这里':'还没有文件，来上传第一个吧')+'</li>')}
-function cd(d){cwd=d;sessionStorage.setItem('cwd',d);$('#q').value='';render();window.scrollTo({top:Math.max(0,$('.bar2').offsetTop-20),behavior:'smooth'})}
+ L.innerHTML=up+(h||'<li class="empty"><div class="eu"><svg viewBox="0 0 24 24"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H10l2 2h6.5A2.5 2.5 0 0 1 21 9.5v7a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 16.5z"/><path d="M12 15.5v-5M9.5 13l2.5-2.5 2.5 2.5"/></svg><span>'+(q?'没有找到匹配的文件':cwd?'这个文件夹还是空的':'还没有文件')+'</span>'+(q?'':'<button type="button" data-pick>上传文件到这里</button>')+'</div></li>')}
+function cd(d,pop){if(!pop&&d!==cwd)history.pushState({cwd:d,pv:0},'');cwd=d;sessionStorage.setItem('cwd',d);$('#q').value='';render();window.scrollTo({top:Math.max(0,$('.bar2').offsetTop-20),behavior:'smooth'})}
 $('#crumb').onclick=e=>{const b=e.target.closest('button[data-d]');if(b)cd(b.dataset.d)};
 $('#cats').onclick=e=>{const b=e.target.closest('button[data-c]');if(b){cat=b.dataset.c;render()}};
 $('#vt').onclick=e=>{const b=e.target.closest('button[data-v]');if(b){view=b.dataset.v;localStorage.setItem('driveView',view);render()}};
@@ -204,29 +221,38 @@ async function hashFile(f,prog){
  if(f.size<=256*1048576&&crypto.subtle){prog(0,'计算校验…');const b=await f.arrayBuffer();const d=await crypto.subtle.digest('SHA-256',b);return[...new Uint8Array(d)].map(x=>x.toString(16).padStart(2,'0')).join('')}
  const h=new Sha256(),CH=8*1048576;for(let o=0;o<f.size;o+=CH){h.update(new Uint8Array(await f.slice(o,o+CH).arrayBuffer()));prog(o/f.size,'计算校验 '+Math.round(o/f.size*100)+'%');await new Promise(r=>setTimeout(r))}return h.hex()}
 let relay=false;
-function xput(url,body,headers,onp,viaRelay){return new Promise((res,rej)=>{const x=new XMLHttpRequest();x.open('PUT',viaRelay?'/api/up/part':url);for(const k in headers||{})x.setRequestHeader(k,headers[k]);if(viaRelay)x.setRequestHeader('x-target',url);
- x.upload.onprogress=e=>onp&&onp(e.loaded);x.onload=()=>{if(x.status>=300)return rej(new Error('存储返回 '+x.status));res(viaRelay?JSON.parse(x.responseText).etag:x.getResponseHeader('ETag'))};x.onerror=()=>rej(Object.assign(new Error('网络错误'),{net:1}));x.send(body)})}
-async function put(url,body,headers,onp){if(!relay){try{return await xput(url,body,headers,onp,false)}catch(e){if(!e.net)throw e;relay=true}}return xput(url,body,headers,onp,true)}
-async function up(f){
- const row=document.createElement('div');row.className='up';row.innerHTML=`<span></span><div class="bar3"><i></i></div>`;$('#ups').prepend(row);
- const txt=row.firstChild,bar=row.querySelector('i'),set=(p,t)=>{bar.style.width=(p*100).toFixed(1)+'%';txt.textContent=f.name+' · '+t};
+function xput(url,body,headers,onp,viaRelay,ctl){return new Promise((res,rej)=>{if(ctl&&ctl.cx)return rej(Object.assign(new Error('已取消'),{cx:1}));const x=new XMLHttpRequest();ctl&&ctl.xs.add(x);x.open('PUT',viaRelay?'/api/up/part':url);for(const k in headers||{})x.setRequestHeader(k,headers[k]);if(viaRelay)x.setRequestHeader('x-target',url);
+ x.upload.onprogress=e=>onp&&onp(e.loaded);const end=()=>ctl&&ctl.xs.delete(x);x.onload=()=>{end();if(x.status>=300)return rej(new Error('存储返回 '+x.status));res(viaRelay?JSON.parse(x.responseText).etag:x.getResponseHeader('ETag'))};x.onerror=()=>{end();rej(Object.assign(new Error('网络错误'),{net:1}))};x.onabort=()=>{end();rej(Object.assign(new Error('已取消'),{cx:1}))};x.send(body)})}
+async function put(url,body,headers,onp,ctl){if(!relay){try{return await xput(url,body,headers,onp,false,ctl)}catch(e){if(!e.net)throw e;relay=true}}return xput(url,body,headers,onp,true,ctl)}
+const jobs=new Set();
+function cancelJob(ctl){if(ctl.done)return;ctl.cx=true;ctl.xs.forEach(x=>{try{x.abort()}catch(e){}});ctl.row.className='up cx';ctl.txt.textContent='已取消';ctl.rt.textContent='';ctl.done=true;jobs.delete(ctl);upAll();setTimeout(()=>ctl.row.remove(),2500)}
+const upAll=()=>$('#upall').classList.toggle('on',jobs.size>1);
+$('#cxall').onclick=()=>[...jobs].forEach(cancelJob);
+const eta=s=>s<60?Math.max(1,Math.round(s))+' 秒':s<3600?Math.round(s/60)+' 分钟':(s/3600).toFixed(1)+' 小时';
+function mkJob(f){const row=document.createElement('div');row.className='up wait';row.innerHTML=`<div class="uh"><span class="un"></span><button type="button" class="ux">取消</button></div><div class="bar3"><i></i></div><div class="us"><span class="ut">等待上传…</span><span class="ur"></span></div>`;
+ row.querySelector('.un').textContent=f.name;$('#ups').append(row);
+ const ctl={f,row,xs:new Set(),cx:false,done:false,txt:row.querySelector('.ut'),rt:row.querySelector('.ur'),bar:row.querySelector('i')};
+ row.querySelector('.ux').setAttribute('aria-label','取消上传 '+f.name);row.querySelector('.ux').onclick=()=>cancelJob(ctl);jobs.add(ctl);upAll();return ctl}
+async function up(ctl){const f=ctl.f,row=ctl.row,chk=()=>{if(ctl.cx)throw Object.assign(new Error('已取消'),{cx:1})};
+ if(ctl.cx)return;row.className='up';
+ const set=(p,t,r)=>{if(ctl.cx)return;ctl.bar.style.width=(p*100).toFixed(1)+'%';ctl.txt.textContent=t;ctl.rt.textContent=r||''};
  try{
   if(!f.size)throw new Error('空文件');
-  const oid=await hashFile(f,(p,t)=>set(p*.1,t));
-  let r=await fetch('/api/up/init',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({name:f.name,size:f.size,oid,dir:cwd})});let pl=await r.json();if(!r.ok)throw new Error(pl.error);
-  const t0=performance.now(),spd=done=>{const s=done/((performance.now()-t0)/1000||1);return fmt(s)+'/s'};
+  const oid=await hashFile(f,(p,t)=>{chk();set(p*.1,t)});chk();
+  let r=await fetch('/api/up/init',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({name:f.name,size:f.size,oid,dir:cwd})});let pl=await r.json();if(!r.ok)throw new Error(pl.error);chk();
+  const t0=performance.now(),prog=l=>{const el=(performance.now()-t0)/1000||.001,sp=l/el,pc=l/f.size;set(.1+.88*pc,'上传中 '+Math.round(pc*100)+'% · '+fmt(l)+' / '+fmt(f.size),fmt(sp)+'/s'+(sp>0&&pc<1?' · 剩 '+eta((f.size-l)/sp):''))};
   const fin={path:pl.path,oid,size:f.size,verify:pl.verify};
-  if(pl.mode==='basic'){await put(pl.href,f,pl.header,l=>set(.1+.88*l/f.size,'上传 '+Math.round(l/f.size*100)+'% · '+spd(l)))}
+  if(pl.mode==='basic'){await put(pl.href,f,pl.header,prog,ctl)}
   else if(pl.mode==='multipart'){const n=pl.parts.length,done=new Array(n).fill(0),etags=new Array(n);let next=0;
-   const worker=async()=>{for(;;){const i=next++;if(i>=n)return;const a=i*pl.chunk,b=Math.min(f.size,a+pl.chunk);let tries=0;
-     for(;;){try{etags[i]=await put(pl.parts[i],f.slice(a,b),{},l=>{done[i]=l;const s=done.reduce((x,y)=>x+y,0);set(.1+.88*s/f.size,'上传 '+Math.round(s/f.size*100)+'% · '+spd(s))});break}catch(e){if(++tries>=3)throw e}}}};
+   const worker=async()=>{for(;;){chk();const i=next++;if(i>=n)return;const a=i*pl.chunk,b=Math.min(f.size,a+pl.chunk);let tries=0;
+     for(;;){try{etags[i]=await put(pl.parts[i],f.slice(a,b),{},l=>{done[i]=l;prog(done.reduce((x,y)=>x+y,0))},ctl);break}catch(e){if(e.cx||++tries>=3)throw e}}}};
    await Promise.all(Array.from({length:Math.min(4,n)},worker));
    fin.complete=pl.complete;fin.parts=etags.map((e,i)=>({partNumber:i+1,etag:e}))}
-  set(.99,'保存中…');
+  chk();set(.99,'保存中…');row.querySelector('.ux').disabled=true;
   r=await fetch('/api/up/finish',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(fin)});const j=await r.json();if(!r.ok)throw new Error(j.error);
-  set(1,'上传成功 ✓');row.className='up ok';load();setTimeout(()=>row.remove(),6000);
- }catch(e){row.className='up err';txt.textContent=f.name+' · 失败：'+e.message}}
-const many=fl=>{[...fl].reduce((p,f)=>p.then(()=>up(f)),Promise.resolve())};
+  ctl.done=true;jobs.delete(ctl);upAll();set(1,'上传成功 ✓ · '+fmt(f.size));row.className='up ok';load();setTimeout(()=>row.remove(),6000);
+ }catch(e){if(e.cx||ctl.cx)return;ctl.done=true;jobs.delete(ctl);upAll();row.className='up err';ctl.txt.textContent='失败：'+e.message;ctl.rt.textContent=''}}
+const many=fl=>{const cs=[...fl].map(mkJob);cs.reduce((p,c)=>p.then(()=>up(c)),Promise.resolve())};
 $('#file').onchange=e=>{many(e.target.files);e.target.value=''};
 const d=$('#drop');['dragenter','dragover'].forEach(t=>d.addEventListener(t,e=>{e.preventDefault();d.classList.add('over')}));
 ['dragleave','drop'].forEach(t=>d.addEventListener(t,e=>{e.preventDefault();d.classList.remove('over')}));d.addEventListener('drop',e=>many(e.dataTransfer.files));
@@ -237,11 +263,14 @@ function download(p,name){const a=document.createElement('a');a.href='/api/files
 
 /* ---------- online preview ---------- */
 const pv=$('#pv'),pvb=$('#pvb');let cur=null;
-function closePv(){window.__post&&__post({type:'bar',show:true});pv.classList.remove('open');pvb.innerHTML='';document.documentElement.style.overflow=''}
-$('#pvx').onclick=closePv;addEventListener('keydown',e=>{if(e.key==='Escape')closePv()});
+function closePv(){if(!pv.classList.contains('open'))return;window.__post&&__post({type:'bar',show:true});pv.classList.remove('open');pvb.innerHTML='';document.documentElement.style.overflow=''}
+const pvBack=()=>{if(history.state&&history.state.pv)history.back();else closePv()};
+$('#pvx').onclick=pvBack;addEventListener('keydown',e=>{if(e.key==='Escape')pvBack()});
+history.replaceState({cwd,pv:0},'');
+addEventListener('popstate',e=>{const st=e.state||{};if(pv.classList.contains('open')&&!st.pv)closePv();if(typeof st.cwd==='string'&&st.cwd!==cwd)cd(st.cwd,true)});
 $('#pvd').onclick=()=>cur&&download(cur.path,cur.name);
 const view_=f=>view2(f);
-async function view2(f){cur=f;window.__post&&__post({type:'bar',show:false});$('#pvn').textContent=f.name;pvb.innerHTML='<div class="na">加载中…</div>';pv.classList.add('open');document.documentElement.style.overflow='hidden';
+async function view2(f){cur=f;if(!(history.state&&history.state.pv))history.pushState({cwd,pv:1},'');window.__post&&__post({type:'bar',show:false});$('#pvn').textContent=f.name;pvb.innerHTML='<div class="na">加载中…</div>';pv.classList.add('open');document.documentElement.style.overflow='hidden';
  try{const s={url:'/api/files/raw/'+enc(f.path)},k=kindOf(f.name);
   if(k==='img'){pvb.innerHTML=`<img src="${esc(s.url)}" alt="">`;pvb.querySelector('img').onerror=()=>{pvb.innerHTML='<div class="na">图片加载失败'+(ext(f.name)==='heic'?'（HEIC 只有 Safari 能显示）':'')+'</div>'}}
   else if(k==='video'){pvb.innerHTML=`<video src="${esc(s.url)}" controls playsinline preload="metadata"></video>`;pvb.querySelector('video').onerror=()=>{pvb.innerHTML='<div class="na">这个视频格式当前浏览器无法播放'+(ext(f.name)==='mov'?'（.mov 在 Safari 里最稳）':'')+'<br>可以下载后观看</div>'}}
@@ -252,6 +281,7 @@ async function view2(f){cur=f;window.__post&&__post({type:'bar',show:false});$('
  }catch(e){pvb.innerHTML='<div class="na">'+esc(e.message)+'</div>'}}
 
 $('#list').onclick=e=>{const t=e.target;
+ if(t.closest('[data-pick]')){$('#file').click();return}
  const tg=t.closest('.tag');if(tg){tagF=tg.dataset.tag;render();return}
  const fd=t.closest('li.fd');if(fd){cd(fd.dataset.d);return}
  if(view==='grid'){const li=t.closest('li[data-p]');if(li){const f=files.find(x=>x.path===li.dataset.p);if(!f)return;kindOf(f.name)?view_(f):download(f.path,f.name);return}}
