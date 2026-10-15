@@ -21,4 +21,5 @@ curl -s -X PUT "https://api.cloudflare.com/client/v4/accounts/$A/workers/scripts
  -F "404.html=@$D/site/404.html;type=text/plain" \
  -F "app.html=@$D/site/app.html;type=text/plain" \
  -F "ai.html=@$D/site/ai.html;type=text/plain" \
+ -F "chat.html=@$D/site/chat.html;type=text/plain" \
  -F "og.png=@$D/site/og.png;type=application/octet-stream" | python3 -c "import sys,json;d=json.load(sys.stdin);print('success',d['success'],d.get('errors'))"
