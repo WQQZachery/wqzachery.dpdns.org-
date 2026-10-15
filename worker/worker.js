@@ -6,18 +6,20 @@ import ADMIN from './admin.html';
 import NOTFOUND from './404.html';
 import APP from './app.html';
 import AI from './ai.html';
+import CHAT_HTML from './chat.html';
 import OG from './og.png';
 import { DurableObject } from 'cloudflare:workers';
 
 const HF = 'https://huggingface.co';
 const LLMS = `# 吴谦 · Zachery Wu
 
-> 吴谦（Zachery Wu）的个人网站，运行在 Cloudflare Workers 上，月成本 $0。包含个人主页、公共网盘和 AI 助手 GPT-6 Astra。
+> 吴谦（Zachery Wu）的个人网站，运行在 Cloudflare Workers 上，月成本 $0。包含个人主页、公共网盘、AI 助手 GPT-6 Astra 和实时聊天室。
 
 ## 页面
 - [主页](https://wqzachery.dpdns.org/): 个人介绍、项目、常用工具、联系方式与更新日志
 - [公共网盘](https://wqzachery.dpdns.org/drive): 任何人可上传、在线预览和下载文件，存储在 Hugging Face
 - [AI 助手](https://wqzachery.dpdns.org/ai): GPT-6 Astra 聊天，支持多模型（含 DeepSeek R1、Qwen、GLM 等国产模型）、联网搜索与低/中/高思考等级
+- [聊天室](https://wqzachery.dpdns.org/chat): 实时公共聊天室（WebSocket），匿名昵称、在线人数、私信与 @提及
 
 ## 关于作者
 - 名字：吴谦（Zachery Wu）
@@ -54,16 +56,24 @@ export default {
   async fetch(req, env, ctx) {
     const u = new URL(req.url), p = u.pathname, m = req.method;
     try {
-      if (p === '/' || p === '/drive' || p === '/drive/' || p === '/ai' || p === '/ai/') { if (m === 'GET') ctx.waitUntil(hit(req, env, p)); return page(APP); }
+      if (p === '/' || p === '/drive' || p === '/drive/' || p === '/ai' || p === '/ai/' || p === '/chat' || p === '/chat/') { if (m === 'GET') ctx.waitUntil(hit(req, env, p)); return page(APP); }
       if (p === '/robots.txt') return new Response(`# 欢迎搜索引擎和 AI 抓取、索引与学习本站公开内容。\nUser-agent: GPTBot\nUser-agent: OAI-SearchBot\nUser-agent: ChatGPT-User\nUser-agent: ClaudeBot\nUser-agent: Claude-User\nUser-agent: Claude-SearchBot\nUser-agent: anthropic-ai\nUser-agent: PerplexityBot\nUser-agent: Perplexity-User\nUser-agent: Google-Extended\nUser-agent: Googlebot\nUser-agent: Bingbot\nUser-agent: Applebot\nUser-agent: Applebot-Extended\nUser-agent: CCBot\nUser-agent: Bytespider\nUser-agent: Baiduspider\nUser-agent: YandexBot\nUser-agent: DuckDuckBot\nUser-agent: Amazonbot\nUser-agent: meta-externalagent\nUser-agent: cohere-ai\nUser-agent: MistralAI-User\nUser-agent: YouBot\nUser-agent: Diffbot\nAllow: /\nDisallow: /admin\nDisallow: /api/\n\nUser-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /api/\n\nSitemap: https://wqzachery.dpdns.org/sitemap.xml\n`, { headers: { ...SEC, 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=3600' } });
       if (p === '/7a416ee677f4d0164f25edf790e7566a.txt') return new Response('7a416ee677f4d0164f25edf790e7566a', { headers: { ...SEC, 'content-type': 'text/plain; charset=utf-8' } });
       if (p === '/llms.txt') return new Response(LLMS, { headers: { ...SEC, 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=3600' } });
-      if (p === '/sitemap.xml') return new Response(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${[['/', '1.0'], ['/drive', '0.8'], ['/ai', '0.8']].map(([q, pr]) => `  <url><loc>https://wqzachery.dpdns.org${q}</loc><changefreq>weekly</changefreq><priority>${pr}</priority></url>`).join('\n')}\n</urlset>\n`, { headers: { ...SEC, 'content-type': 'application/xml; charset=utf-8', 'cache-control': 'public, max-age=3600' } });
+      if (p === '/sitemap.xml') return new Response(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${[['/', '1.0'], ['/drive', '0.8'], ['/ai', '0.8'], ['/chat', '0.7']].map(([q, pr]) => `  <url><loc>https://wqzachery.dpdns.org${q}</loc><changefreq>weekly</changefreq><priority>${pr}</priority></url>`).join('\n')}\n</urlset>\n`, { headers: { ...SEC, 'content-type': 'application/xml; charset=utf-8', 'cache-control': 'public, max-age=3600' } });
       if (p === '/og.png') return new Response(OG, { headers: { ...SEC, 'content-type': 'image/png', 'cache-control': 'public, max-age=86400' } });
       if (p === '/p/home' || p === '/index.html') return page(INDEX);
       if (p === '/p/drive' || p === '/drive.html') return page(DRIVE);
       if (p === '/p/ai') return page(AI);
+      if (p === '/p/chat') return page(CHAT_HTML);
       if (p === '/admin' || p === '/admin/') return page(ADMIN);
+      if (p === '/api/chat/ws') {
+        if ((req.headers.get('upgrade') || '').toLowerCase() !== 'websocket') return json({ error: '需要 WebSocket' }, 426);
+        const h = new Headers(req.headers); h.set('x-ip', ip(req));
+        return store(env).fetch(new Request(req.url, { headers: h }));
+      }
+      if (p === '/api/chat/msg' && m === 'DELETE') { if (!isAdmin(req, env)) return json({ error: '密钥错误' }, 403); return json(await store(env).chatDel(+u.searchParams.get('id') || 0)); }
+      if (p === '/api/admin/chat') { if (!isAdmin(req, env)) return json({ error: '密钥错误' }, 403); return json(await store(env).chatAdmin()); }
       if (p === '/api/chat' && m === 'POST') return chat(req, env, ctx);
       if (p === '/api/search/raw' && m === 'GET' && isAdmin(req, env)) { const r = await fetch(u.searchParams.get('u'), { headers: UA }); const t = await r.text(); return json({ status: r.status, len: t.length, head: t.slice(Math.max(0, t.indexOf(u.searchParams.get('k') || '<html')), Math.max(0, t.indexOf(u.searchParams.get('k') || '<html')) + (+u.searchParams.get('n') || 1500)), algo: (t.match(/b_algo/g) || []).length, h2: [...t.matchAll(/<h2[^>]*>([\s\S]*?)<\/h2>/g)].slice(0, 8).map(x => unent(x[1])), items: (t.match(/<item>/g) || []).length }); }
       if (p === '/api/search' && m === 'GET') { if (await limited(env.CHAT_RL, ip(req))) return json({ error: '太快了' }, 429); return json({ results: await webSearch(u.searchParams.get('q') || '', u.searchParams.get('e'), env) }); }
@@ -108,7 +118,11 @@ export class Store extends DurableObject {
       CREATE TABLE IF NOT EXISTS ups(path TEXT PRIMARY KEY, ip TEXT, ts INTEGER, name TEXT, size INTEGER, geo TEXT);
       CREATE TABLE IF NOT EXISTS hits(id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEGER, day TEXT, ip TEXT, path TEXT, geo TEXT, ua TEXT, ref TEXT);
       CREATE INDEX IF NOT EXISTS hits_day ON hits(day);
-      CREATE TABLE IF NOT EXISTS ana(sid TEXT PRIMARY KEY, n INTEGER, ts INTEGER, data TEXT);`);
+      CREATE TABLE IF NOT EXISTS ana(sid TEXT PRIMARY KEY, n INTEGER, ts INTEGER, data TEXT);
+      CREATE TABLE IF NOT EXISTS chat(id INTEGER PRIMARY KEY AUTOINCREMENT, uid TEXT, nick TEXT, to_uid TEXT DEFAULT '', to_nick TEXT DEFAULT '', dm TEXT DEFAULT '', text TEXT, ts INTEGER, ip TEXT);
+      CREATE INDEX IF NOT EXISTS chat_dm ON chat(dm, id);
+      CREATE TABLE IF NOT EXISTS chat_leave(uid TEXT PRIMARY KEY, nick TEXT, ts INTEGER);`);
+    try { ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair('ping', 'pong')); } catch {}
     for (const c of ['think TEXT', 'mname TEXT', 'extra TEXT']) { try { this.sql.exec('ALTER TABLE msgs ADD COLUMN ' + c); } catch {} }
   }
   log(rows) { for (const r of rows) this.sql.exec('INSERT INTO msgs(sid,role,content,ts,ip,geo,model,think,mname,extra) VALUES(?,?,?,?,?,?,?,?,?,?)', r.sid, r.role, r.content, r.ts, r.ip, r.geo, r.model || '', r.think || '', r.mname || '', r.extra || ''); return true; }
@@ -142,8 +156,157 @@ export class Store extends DurableObject {
   ups() { return this.sql.exec('SELECT path, ip FROM ups').toArray(); }
   moveUps(pairs) { for (const [a, b] of pairs) this.sql.exec('UPDATE ups SET path=? WHERE path=?', b, a); return true; }
   dropUps(prefix) { this.sql.exec("DELETE FROM ups WHERE path=? OR substr(path,1,?)=?", prefix, prefix.length + 1, prefix + '/'); return true; }
+  /* ---------- public chat room: WebSocket Hibernation API, state in socket attachments + SQLite ---------- */
+  async fetch(req) {
+    const u = new URL(req.url);
+    if ((req.headers.get('upgrade') || '').toLowerCase() !== 'websocket') return new Response('expected websocket', { status: 426 });
+    const addr = req.headers.get('x-ip') || 'x';
+    const pair = new WebSocketPair(), [client, server] = Object.values(pair);
+    this.ctx.acceptWebSocket(server);
+    const key = String(u.searchParams.get('key') || '');
+    if (!/^[A-Za-z0-9_-]{16,64}$/.test(key)) { cSend(server, { t: 'err', msg: '身份无效，请刷新页面' }); try { server.close(4000, 'bad key'); } catch {} return new Response(null, { status: 101, webSocket: client }); }
+    if (this.socks().filter(w => w.a.ip === addr).length >= CHAT.ipCap) {
+      cSend(server, { t: 'err', fatal: 1, msg: '同一网络打开的聊天窗口太多了，请关闭一些再试' });
+      try { server.close(4029, 'too many'); } catch {}
+      return new Response(null, { status: 101, webSocket: client });
+    }
+    const uid = await chatUid(key);
+    const nick = cleanNick(u.searchParams.get('nick')) || this.lastNick(uid) || randNick();
+    const already = this.socks(server).some(w => w.a.uid === uid);
+    server.serializeAttachment({ uid, nick, ip: addr, t0: Date.now(), ts: [], lt: '', ltt: 0, nk: 0 });
+    const recon = this.sql.exec('DELETE FROM chat_leave WHERE uid=? RETURNING uid', uid).toArray().length > 0;
+    cSend(server, { t: 'hello', me: { uid, nick }, history: this.pubHistory(), dms: this.dmList(uid), ...this.presence() });
+    if (!already && !recon) this.bcast({ t: 'sys', k: 'join', uid, text: nick + ' 加入了聊天' }, server);
+    this.bcast({ t: 'presence', ...this.presence() });
+    return new Response(null, { status: 101, webSocket: client });
+  }
+  // open sockets with their attachments (optionally excluding one that is closing)
+  socks(except) {
+    const out = [];
+    for (const w of this.ctx.getWebSockets()) { if (w === except || w.readyState > 1) continue; let a = null; try { a = w.deserializeAttachment(); } catch {} if (a && a.uid) out.push({ w, a }); }
+    return out;
+  }
+  presence(except) {
+    const m = new Map(); for (const { a } of this.socks(except)) if (!m.has(a.uid)) m.set(a.uid, a.nick);
+    return { n: m.size, users: [...m].slice(0, 200).map(([uid, nick]) => ({ uid, nick })) };
+  }
+  bcast(o, except, only) { const s = JSON.stringify(o); for (const { w, a } of this.socks(except)) if (!only || only.includes(a.uid)) { try { w.send(s); } catch {} } }
+  lastNick(uid) { const r = this.sql.exec("SELECT nick FROM chat WHERE uid=? ORDER BY id DESC LIMIT 1", uid).toArray()[0]; return r ? r.nick : ''; }
+  pubHistory() { return this.sql.exec("SELECT id, uid, nick, text, ts FROM chat WHERE dm='' ORDER BY id DESC LIMIT ?", CHAT.keep).toArray().reverse(); }
+  dmList(uid) {
+    return this.sql.exec(`SELECT id, uid, nick, to_uid, to_nick, text, ts FROM chat WHERE id IN (SELECT MAX(id) FROM chat WHERE dm<>'' AND (uid=? OR to_uid=?) GROUP BY dm) ORDER BY id DESC LIMIT 30`, uid, uid).toArray();
+  }
+  async webSocketMessage(ws, raw) {
+    let a; try { a = ws.deserializeAttachment(); } catch {} if (!a) return;
+    let m; try { m = JSON.parse(typeof raw === 'string' ? raw : new TextDecoder().decode(raw)); } catch { return; }
+    if (!m || typeof m !== 'object') return;
+    const now = Date.now(), err = msg => cSend(ws, { t: 'err', msg, cid: m.cid });
+    if (m.t === 'typing') {
+      if (now - (this.ty?.get(ws) || 0) < 1000) return; (this.ty ||= new WeakMap()).set(ws, now);
+      const to = cleanUid(m.to);
+      this.bcast({ t: 'typing', uid: a.uid, nick: a.nick, to: to || '' }, ws, to ? [to] : null); return;
+    }
+    if (m.t === 'dmhist') {
+      const w = cleanUid(m.with); if (!w) return;
+      const rows = this.sql.exec('SELECT id, uid, nick, to_uid, to_nick, text, ts FROM chat WHERE dm=? ORDER BY id DESC LIMIT ?', dmKey(a.uid, w), CHAT.dmKeep).toArray().reverse();
+      cSend(ws, { t: 'dmhist', with: w, msgs: rows }); return;
+    }
+    if (m.t === 'nick') {
+      const nn = cleanNick(m.nick);
+      if (!nn) return err('昵称需要 1–16 个字，不能含敏感词');
+      if (nn === a.nick) return;
+      if (now - (a.nk || 0) < 10000) return err('改名太频繁了，10 秒后再试');
+      const old = a.nick;
+      for (const s of this.socks()) if (s.a.uid === a.uid) { s.a.nick = nn; s.a.nk = now; s.w.serializeAttachment(s.a); }
+      this.bcast({ t: 'nick', uid: a.uid, nick: nn, old });
+      this.bcast({ t: 'sys', k: 'nick', text: old + ' 改名为 ' + nn });
+      this.bcast({ t: 'presence', ...this.presence() }); return;
+    }
+    if (m.t !== 'msg') return;
+    let text = String(m.text ?? '').replace(/\r\n?/g, '\n').replace(/[\u0000-\u0008\u000b-\u001f\u007f\u200b-\u200f\u202a-\u202e\u2066-\u2069]/g, '').replace(/\n{4,}/g, '\n\n\n').trim();
+    if (!text) return err('消息不能为空');
+    if ([...text].length > CHAT.max) return err('消息太长了，最多 ' + CHAT.max + ' 字');
+    const ts = (a.ts || []).filter(t => now - t < 60000);
+    if (ts.length && now - ts[ts.length - 1] < CHAT.gap) return err('发得太快了，请慢一点');
+    if (ts.length >= CHAT.perMin) return err('一分钟内发得太多了，休息一下吧');
+    const norm = text.replace(/\s+/g, '').toLowerCase();
+    if (norm === a.lt && now - a.ltt < CHAT.dup) return err('请不要重复发送相同内容');
+    ts.push(now); a.ts = ts.slice(-CHAT.perMin); a.lt = norm; a.ltt = now;
+    ws.serializeAttachment(a);
+    text = filterWords(text);
+    const to = m.to ? cleanUid(m.to) : '';
+    if (m.to && !to) return err('私信对象无效');
+    if (to === a.uid) return err('不能给自己发私信');
+    let toNick = '';
+    if (to) { const on = this.socks().find(s => s.a.uid === to); toNick = on ? on.a.nick : (this.lastNick(to) || cleanNick(m.toNick) || '匿名'); }
+    const dm = to ? dmKey(a.uid, to) : '';
+    const id = this.sql.exec('INSERT INTO chat(uid,nick,to_uid,to_nick,dm,text,ts,ip) VALUES(?,?,?,?,?,?,?,?) RETURNING id', a.uid, a.nick, to, toNick, dm, text, now, a.ip).one().id;
+    this.sql.exec('DELETE FROM chat WHERE dm=? AND id<=(SELECT id FROM chat WHERE dm=? ORDER BY id DESC LIMIT 1 OFFSET ?)', dm, dm, to ? CHAT.dmKeep : CHAT.keep);
+    const msg = { id, uid: a.uid, nick: a.nick, text, ts: now, ...(to ? { to_uid: to, to_nick: toNick } : {}) };
+    const s = JSON.stringify({ t: 'msg', m: msg });
+    for (const o of this.socks()) {
+      if (to && o.a.uid !== to && o.a.uid !== a.uid) continue;
+      try { o.w.send(o.w === ws ? JSON.stringify({ t: 'msg', m: msg, cid: m.cid }) : s); } catch {}
+    }
+  }
+  async webSocketClose(ws, code) { try { ws.close(code === 1005 || code === 1006 ? 1000 : code, 'bye'); } catch {} this.left(ws); }
+  async webSocketError(ws) { this.left(ws); }
+  left(ws) {
+    let a; try { a = ws.deserializeAttachment(); } catch {} if (!a || !a.uid || a.gone) return;
+    a.gone = 1; try { ws.serializeAttachment(a); } catch {}
+    if (!this.socks(ws).some(s => s.a.uid === a.uid)) {
+      this.sql.exec('INSERT OR REPLACE INTO chat_leave(uid,nick,ts) VALUES(?,?,?)', a.uid, a.nick, Date.now());
+      this.ctx.storage.getAlarm().then(t => { if (!t) return this.ctx.storage.setAlarm(Date.now() + CHAT.leaveDelay + 200); }).catch(() => {});
+    }
+    this.bcast({ t: 'presence', ...this.presence(ws) }, ws);
+  }
+  async alarm() {
+    const now = Date.now(), online = new Set(this.socks().map(s => s.a.uid));
+    for (const r of this.sql.exec('SELECT uid, nick, ts FROM chat_leave').toArray()) {
+      if (online.has(r.uid)) { this.sql.exec('DELETE FROM chat_leave WHERE uid=?', r.uid); continue; }
+      if (now - r.ts < CHAT.leaveDelay) continue;
+      this.sql.exec('DELETE FROM chat_leave WHERE uid=?', r.uid);
+      this.bcast({ t: 'sys', k: 'leave', uid: r.uid, text: r.nick + ' 离开了' });
+    }
+    const left = this.sql.exec('SELECT MIN(ts) t FROM chat_leave').one().t;
+    if (left) await this.ctx.storage.setAlarm(left + CHAT.leaveDelay + 200);
+    this.bcast({ t: 'presence', ...this.presence() });
+  }
+  chatDel(id) {
+    const r = this.sql.exec('DELETE FROM chat WHERE id=? RETURNING uid, to_uid, dm', id).toArray()[0];
+    if (!r) return { ok: false, error: '消息不存在' };
+    this.bcast({ t: 'del', id }, null, r.dm ? [r.uid, r.to_uid] : null);
+    return { ok: true };
+  }
+  chatAdmin() {
+    const t = this.sql.exec("SELECT COUNT(*) n, SUM(dm='') pub, COUNT(DISTINCT uid) users FROM chat").one();
+    const recent = this.sql.exec("SELECT id, uid, nick, to_nick, dm<>'' dm, text, ts, ip FROM chat ORDER BY id DESC LIMIT 60").toArray();
+    return { total: t.n, pub: t.pub || 0, users: t.users, online: this.presence().n, recent };
+  }
   messages(sid) { const a = this.sql.exec('SELECT data, n FROM ana WHERE sid=?', sid).toArray()[0]; return { messages: this.sql.exec('SELECT role, content, ts, model, think, mname, extra, ip, geo FROM msgs WHERE sid=? ORDER BY id', sid).toArray(), ana: a ? a.data : null, ana_n: a ? a.n : 0 }; }
 }
+
+/* ---------------- chat room helpers ---------------- */
+const CHAT = { keep: 100, dmKeep: 50, max: 500, gap: 1000, perMin: 20, dup: 30000, ipCap: 5, leaveDelay: 8000 };
+const cSend = (ws, o) => { try { ws.send(JSON.stringify(o)); } catch {} };
+async function chatUid(key) {   // public id = hash of the secret key kept in the visitor's localStorage, so nobody can pose as someone else
+  const d = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('wqz-chat:' + key)));
+  return [...d.slice(0, 8)].map(x => x.toString(16).padStart(2, '0')).join('');
+}
+const cleanUid = s => /^[a-f0-9]{16}$/.test(String(s || '')) ? String(s) : '';
+const dmKey = (a, b) => a < b ? a + ':' + b : b + ':' + a;
+const BAD = ['傻逼', '傻b', '煞笔', '沙比', '操你妈', '操你', '草泥马', '你妈的', '他妈的', '妈的', '尼玛', '去死', '滚蛋', '智障', '脑残', '贱人', '婊子', '狗日', '日你', '屌', '鸡巴', '约炮', '裸聊', '援交', '博彩', '赌博网', '代开发票', '色情网', '黄色网站',
+  'fuck', 'fucking', 'shit', 'bitch', 'asshole', 'cunt', 'nigger', 'nigga', 'faggot', 'retard', 'dickhead', 'motherfucker', 'porn'];
+const BAD_RE = new RegExp(BAD.map(w => /^[a-z]+$/.test(w) ? '\\b' + w + '\\b' : w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'gi');
+const filterWords = t => t.replace(BAD_RE, '***');
+function cleanNick(n) {
+  n = String(n || '').normalize('NFC').replace(/[\u0000-\u001f\u007f\u200b-\u200f\u202a-\u202e\u2066-\u2069<>]/g, '').replace(/\s+/g, ' ').trim();
+  if (!n || [...n].length > 16 || filterWords(n) !== n || /^(系统|管理员|admin|system)$/i.test(n)) return '';
+  return n;
+}
+const NICK_A = ['快乐的', '安静的', '勇敢的', '慵懒的', '好奇的', '机智的', '温柔的', '闪亮的', '迷糊的', '酷酷的', '认真的', '飞翔的', '佛系的', '元气的', '神秘的', '爱笑的'];
+const NICK_B = ['熊猫', '海豚', '狐狸', '考拉', '企鹅', '柴犬', '橘猫', '仓鼠', '水獭', '刺猬', '鲸鱼', '小鹿', '松鼠', '羊驼', '猫头鹰', '树懒'];
+const randNick = () => { const r = crypto.getRandomValues(new Uint8Array(2)); return NICK_A[r[0] % NICK_A.length] + NICK_B[r[1] % NICK_B.length]; };
 
 /* ---------------- admin: AI analysis of chat sessions ---------------- */
 async function analyzeOne(env, sid, force) {
