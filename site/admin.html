@@ -300,6 +300,7 @@ body.has-bar .toast{bottom:calc(env(safe-area-inset-bottom) + 132px)}
         <div class="card glass"><small>网盘文件</small><b id="c-fs">–</b><i id="c-used">&nbsp;</i></div>
         <div class="card glass"><small>今日 AI 对话</small><b id="c-ai">–</b><i id="c-aiq">&nbsp;</i></div>
       </div>
+      <div class="panel glass" id="chatp"><h3>聊天室 <span id="chs">加载中…</span></h3><div class="scroll cap"><table id="cht"></table></div></div>
       <div class="panel glass"><h3>最近 30 天访问量 <span id="tot"></span></h3><svg class="chart" id="ch1"></svg><div class="legend"><span><i style="background:#6ee7b7"></i>浏览量 PV</span><span><i style="background:#60a5fa"></i>独立访客 UV</span></div></div>
       <div class="two">
         <div class="panel glass"><h3>最近 30 天上传</h3><svg class="chart" id="ch2"></svg><div class="legend"><span><i style="background:#f6c177"></i>文件数</span></div></div>
@@ -368,7 +369,11 @@ const dlUrl=p=>'/api/files/dl/'+p.split('/').map(encodeURIComponent).join('/');
 const isFine=matchMedia('(hover:hover) and (pointer:fine)');
 
 async function enter(){try{await api('/api/admin/check');localStorage.setItem('adminKey',key);$('#login').style.display='none';$('#app').style.display='block';refresh()}catch(e){$('#err').textContent='密钥错误';localStorage.removeItem('adminKey')}}
-async function refresh(){await Promise.all([loadStats(),loadFiles(),loadSes()]).catch(e=>toast(e.message))}
+async function refresh(){await Promise.all([loadStats(),loadFiles(),loadSes(),loadChat()]).catch(e=>toast(e.message))}
+async function loadChat(){const j=await api('/api/admin/chat');$('#chs').textContent=`共 ${j.total} 条（大厅 ${j.pub}） · ${j.users} 位发言者 · 当前在线 ${j.online}`;
+  $('#cht').innerHTML=j.recent.length?'<tr><th>时间</th><th>昵称</th><th>内容</th><th>IP</th><th></th></tr>'+j.recent.map(m=>`<tr><td style="white-space:nowrap">${esc(sd(m.ts))}</td><td>${esc(m.nick)}${m.dm?' → '+esc(m.to_nick)+' <span class="mut">私信</span>':''}</td><td style="word-break:break-all">${esc(String(m.text).slice(0,200))}</td><td class="mut">${esc(m.ip)}</td><td><button class="pill bad" data-cdel="${m.id}" type="button">删除</button></td></tr>`).join(''):'<tr><td class="mut">还没有聊天消息</td></tr>'}
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-cdel]');if(!b)return;if(!confirm('删除这条消息？所有人那里都会消失'))return;
+  try{await api('/api/chat/msg?id='+b.dataset.cdel,{method:'DELETE'});toast('已删除');loadChat()}catch(err){toast(err.message)}});
 
 /* ---------- overview / uploads / visitors ---------- */
 function days30(){const out=[];for(let i=29;i>=0;i--)out.push(cnDay(Date.now()-i*864e5));return out}
