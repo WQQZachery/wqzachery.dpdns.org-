@@ -3,7 +3,7 @@ import http.server, urllib.request, os
 SITE=os.path.join(os.path.dirname(os.path.abspath(__file__)),'..','site')
 import os
 UP=os.environ.get('UP','https://wqzachery.15112479050.workers.dev')
-MAP={'/':'app.html','/drive':'app.html','/ai':'app.html','/p/home':'index.html','/p/drive':'drive.html','/p/ai':'ai.html','/admin':'admin.html'}
+MAP={'/':'app.html','/drive':'app.html','/ai':'app.html','/chat':'app.html','/p/chat':'chat.html','/p/home':'index.html','/p/drive':'drive.html','/p/ai':'ai.html','/admin':'admin.html'}
 class H(http.server.BaseHTTPRequestHandler):
     def log_message(self,*a): pass
     def _proxy(self):
