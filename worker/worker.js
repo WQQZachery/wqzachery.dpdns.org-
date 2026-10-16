@@ -1,30 +1,39 @@
 // wqzachery v3: pages + streaming AI chat (Gemini → Workers AI fallback) + chat logs (Durable Object SQLite)
 // + public drive (Hugging Face; browser uploads straight to HF's S3, downloads straight from HF CDN)
-import INDEX from './index.html';
-import DRIVE from './drive.html';
-import ADMIN from './admin.html';
+import INDEX0 from './index.html';
+import DRIVE0 from './drive.html';
+import ADMIN0 from './admin.html';
 import NOTFOUND from './404.html';
-import APP from './app.html';
-import AI from './ai.html';
-import CHAT_HTML from './chat.html';
+import APP0 from './app.html';
+import AI0 from './ai.html';
+import CHAT0 from './chat.html';
+import PRIVACY0 from './privacy.html';
+import SHARED_CSS from './shared.css';
+import SHARED_JS from './shared.js';
 import OG from './og.png';
 import { DurableObject } from 'cloudflare:workers';
 
 const HF = 'https://huggingface.co';
+// /shared.css + /shared.js are cached for a year; pages reference them with ?v=<content hash> (placeholder __V__)
+const fnv = t => { let h = 0x811c9dc5; for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 0x01000193); } return (h >>> 0).toString(36); };
+const VER = fnv(SHARED_CSS + SHARED_JS);
+const fill = h => h.split('__V__').join(VER);
+const [INDEX, DRIVE, ADMIN, APP, AI, CHAT_HTML, PRIVACY] = [INDEX0, DRIVE0, ADMIN0, APP0, AI0, CHAT0, PRIVACY0].map(fill);
+const asset = (body, type) => new Response(body, { headers: { ...SEC, 'content-type': type + '; charset=utf-8', 'cache-control': 'public, max-age=31536000, immutable', 'access-control-allow-origin': '*' } });
 const LLMS = `# 吴谦 · Zachery Wu
 
 > 吴谦（Zachery Wu）的个人网站，运行在 Cloudflare Workers 上，月成本 $0。包含个人主页、公共网盘、AI 助手 GPT-6 Astra 和实时聊天室。
 
 ## 页面
 - [主页](https://wqzachery.dpdns.org/): 个人介绍、项目、常用工具、联系方式与更新日志
-- [公共网盘](https://wqzachery.dpdns.org/drive): 任何人可上传、在线预览和下载文件，存储在 Hugging Face
+- [公共网盘](https://wqzachery.dpdns.org/drive): 任何人可上传、在线预览和下载文件（单文件 ≤2 GB，每 IP 每天 ≤5 GB / 50 个，禁止可执行文件），存储在 Hugging Face
+- [隐私说明](https://wqzachery.dpdns.org/privacy): 记录哪些数据、发给哪些第三方、保存多久
 - [AI 助手](https://wqzachery.dpdns.org/ai): GPT-6 Astra 聊天，支持多模型（含 DeepSeek R1、Qwen、GLM 等国产模型）、联网搜索与低/中/高思考等级
 - [聊天室](https://wqzachery.dpdns.org/chat): 实时公共聊天室（WebSocket），匿名昵称、在线人数、私信与 @提及
 
 ## 关于作者
 - 名字：吴谦（Zachery Wu）
 - GitHub: https://github.com/WQQZachery
-- 源码: https://github.com/WQQZachery/wqzachery.dpdns.org-
 - 日常使用 Claude、ChatGPT、Gemini、Grok、GitHub Copilot 等 AI 与开发工具
 
 ## 技术
@@ -33,11 +42,31 @@ const LLMS = `# 吴谦 · Zachery Wu
 - 域名：wqzachery.dpdns.org
 `;
 const SEC = { 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'strict-origin-when-cross-origin' };
-const page = (b, s = 200) => new Response(b, { status: s, headers: { ...SEC, 'X-Frame-Options': 'SAMEORIGIN', 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=120' } });
-const json = (o, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { ...SEC, 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
+const page = (b, s = 200, x = {}) => new Response(b, { status: s, headers: { ...SEC, 'X-Frame-Options': 'SAMEORIGIN', 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=120', ...x } });
+const NOIDX = { 'X-Robots-Tag': 'noindex, nofollow' };
+const json = (o, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { ...SEC, ...NOIDX, 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
 const ip = r => r.headers.get('cf-connecting-ip') || 'x';
 async function limited(rl, key) { try { const { success } = await rl.limit({ key }); return !success; } catch { return false; } }
-const isAdmin = (req, env) => { const k = req.headers.get('x-admin-key') || ''; return !!env.ADMIN_KEY && k === env.ADMIN_KEY; };
+// admin auth: decided once per request in fetch() (constant-time compare + per-IP lockout kept in the DO), read via isAdmin()
+const ADM = new WeakMap();
+const isAdmin = req => ADM.get(req) === true;
+function safeEq(a, b) {   // constant-time string compare (length leaks only via the loop bound, which is the secret's length)
+  const x = new TextEncoder().encode(String(a)), y = new TextEncoder().encode(String(b));
+  let d = x.length ^ y.length;
+  for (let i = 0; i < y.length; i++) d |= (x[i % (x.length || 1)] ?? 0) ^ y[i];
+  return d === 0 && x.length > 0;
+}
+const LOCK = { fails: 5, win: 15 * 60e3 };
+async function authenticate(req, env) {
+  const k = req.headers.get('x-admin-key');
+  if (!k) return 'none';
+  const st = store(env), who = ip(req);
+  if (await st.authLocked(who, LOCK.fails, LOCK.win)) return 'locked';
+  if (env.ADMIN_KEY && safeEq(k, env.ADMIN_KEY)) { ADM.set(req, true); return 'ok'; }
+  const kh = [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('wqz-ak:' + k)))].slice(0, 8).map(x => x.toString(16).padStart(2, '0')).join('');
+  await st.authFail(who, kh);
+  return 'bad';
+}
 let lastAIError = '';
 const cnDay = t => new Date(t + 8 * 3600e3).toISOString().slice(0, 10);   // calendar day in China time
 const BOT = /bot|spider|crawl|slurp|preview|monitor|curl|wget|python|headless|lighthouse|facebookexternalhit/i;
@@ -56,36 +85,44 @@ export default {
   async fetch(req, env, ctx) {
     const u = new URL(req.url), p = u.pathname, m = req.method;
     try {
+      const au = await authenticate(req, env);
+      if (au === 'locked' && p.startsWith('/api/')) return json({ error: '管理员密钥错误次数过多，请 15 分钟后再试', code: 'locked' }, 429);
       if (p === '/' || p === '/drive' || p === '/drive/' || p === '/ai' || p === '/ai/' || p === '/chat' || p === '/chat/') { if (m === 'GET') ctx.waitUntil(hit(req, env, p)); return page(APP); }
       if (p === '/robots.txt') return new Response(`# 欢迎搜索引擎和 AI 抓取、索引与学习本站公开内容。\nUser-agent: GPTBot\nUser-agent: OAI-SearchBot\nUser-agent: ChatGPT-User\nUser-agent: ClaudeBot\nUser-agent: Claude-User\nUser-agent: Claude-SearchBot\nUser-agent: anthropic-ai\nUser-agent: PerplexityBot\nUser-agent: Perplexity-User\nUser-agent: Google-Extended\nUser-agent: Googlebot\nUser-agent: Bingbot\nUser-agent: Applebot\nUser-agent: Applebot-Extended\nUser-agent: CCBot\nUser-agent: Bytespider\nUser-agent: Baiduspider\nUser-agent: YandexBot\nUser-agent: DuckDuckBot\nUser-agent: Amazonbot\nUser-agent: meta-externalagent\nUser-agent: cohere-ai\nUser-agent: MistralAI-User\nUser-agent: YouBot\nUser-agent: Diffbot\nAllow: /\nDisallow: /admin\nDisallow: /api/\n\nUser-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /api/\n\nSitemap: https://wqzachery.dpdns.org/sitemap.xml\n`, { headers: { ...SEC, 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=3600' } });
       if (p === '/7a416ee677f4d0164f25edf790e7566a.txt') return new Response('7a416ee677f4d0164f25edf790e7566a', { headers: { ...SEC, 'content-type': 'text/plain; charset=utf-8' } });
       if (p === '/llms.txt') return new Response(LLMS, { headers: { ...SEC, 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=3600' } });
-      if (p === '/sitemap.xml') return new Response(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${[['/', '1.0'], ['/drive', '0.8'], ['/ai', '0.8'], ['/chat', '0.7']].map(([q, pr]) => `  <url><loc>https://wqzachery.dpdns.org${q}</loc><changefreq>weekly</changefreq><priority>${pr}</priority></url>`).join('\n')}\n</urlset>\n`, { headers: { ...SEC, 'content-type': 'application/xml; charset=utf-8', 'cache-control': 'public, max-age=3600' } });
+      if (p === '/sitemap.xml') return new Response(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${[['/', '1.0'], ['/drive', '0.8'], ['/ai', '0.8'], ['/chat', '0.7'], ['/privacy', '0.3']].map(([q, pr]) => `  <url><loc>https://wqzachery.dpdns.org${q}</loc><changefreq>weekly</changefreq><priority>${pr}</priority></url>`).join('\n')}\n</urlset>\n`, { headers: { ...SEC, 'content-type': 'application/xml; charset=utf-8', 'cache-control': 'public, max-age=3600' } });
       if (p === '/og.png') return new Response(OG, { headers: { ...SEC, 'content-type': 'image/png', 'cache-control': 'public, max-age=86400' } });
       if (p === '/p/home' || p === '/index.html') return page(INDEX);
       if (p === '/p/drive' || p === '/drive.html') return page(DRIVE);
       if (p === '/p/ai') return page(AI);
       if (p === '/p/chat') return page(CHAT_HTML);
-      if (p === '/admin' || p === '/admin/') return page(ADMIN);
+      if (p === '/privacy' || p === '/privacy/' || p === '/p/privacy') return page(PRIVACY);
+      if (p === '/shared.css') return asset(SHARED_CSS, 'text/css');
+      if (p === '/shared.js') return asset(SHARED_JS, 'text/javascript');
+      if (p === '/admin' || p === '/admin/') return page(ADMIN, 200, { ...NOIDX, 'cache-control': 'no-store' });
       if (p === '/api/chat/ws') {
         if ((req.headers.get('upgrade') || '').toLowerCase() !== 'websocket') return json({ error: '需要 WebSocket' }, 426);
         const h = new Headers(req.headers); h.set('x-ip', ip(req));
         return store(env).fetch(new Request(req.url, { headers: h }));
       }
-      if (p === '/api/chat/msg' && m === 'DELETE') { if (!isAdmin(req, env)) return json({ error: '密钥错误' }, 403); return json(await store(env).chatDel(+u.searchParams.get('id') || 0)); }
-      if (p === '/api/admin/chat') { if (!isAdmin(req, env)) return json({ error: '密钥错误' }, 403); return json(await store(env).chatAdmin()); }
+      if (p === '/api/chat/msg' && m === 'DELETE') { if (!isAdmin(req)) return json({ error: '密钥错误' }, 403); return json(await store(env).chatDel(+u.searchParams.get('id') || 0)); }
+      if (p === '/api/admin/chat') { if (!isAdmin(req)) return json({ error: '密钥错误' }, 403); return json(await store(env).chatAdmin()); }
       if (p === '/api/chat' && m === 'POST') return chat(req, env, ctx);
-      if (p === '/api/search/raw' && m === 'GET' && isAdmin(req, env)) { const r = await fetch(u.searchParams.get('u'), { headers: UA }); const t = await r.text(); return json({ status: r.status, len: t.length, head: t.slice(Math.max(0, t.indexOf(u.searchParams.get('k') || '<html')), Math.max(0, t.indexOf(u.searchParams.get('k') || '<html')) + (+u.searchParams.get('n') || 1500)), algo: (t.match(/b_algo/g) || []).length, h2: [...t.matchAll(/<h2[^>]*>([\s\S]*?)<\/h2>/g)].slice(0, 8).map(x => unent(x[1])), items: (t.match(/<item>/g) || []).length }); }
-      if (p === '/api/search' && m === 'GET') { if (await limited(env.CHAT_RL, ip(req))) return json({ error: '太快了' }, 429); return json({ results: await webSearch(u.searchParams.get('q') || '', u.searchParams.get('e'), env) }); }
+      if (p === '/api/search' && m === 'GET') { if (!isAdmin(req)) return json({ error: '需要管理员密钥' }, 403); return json({ results: await webSearch(u.searchParams.get('q') || '', u.searchParams.get('e'), env) }); }
       if (p === '/api/models' && m === 'GET') return json({ models: MODELS.filter(x => x.via !== 'or' || env.OPENROUTER_KEY).map(({ id, cat, name, tag, desc }) => ({ id, cat, name, tag, desc })) });
       if (p === '/api/files' && m === 'GET') return list(req, env);
+      if (p === '/api/report' && m === 'POST') return report(req, env);
+      if (p === '/api/admin/reports') return reportAdmin(req, env);
+      if (p === '/api/stats' && m === 'GET') return publicStats(env);
+      if (p === '/api/limits' && m === 'GET') { const L = lim(env); return json({ maxFile: L.file, dayBytes: L.dayBytes, dayFiles: L.dayFiles, blocked: [...BLOCK_EXT], reasons: REASONS, aiDaily: env.AI_DAILY_CAP != null && env.AI_DAILY_CAP !== '' ? +env.AI_DAILY_CAP : 200 }); }
       if (p === '/api/folders' && m === 'POST') return mkFolder(req, env);
       if (p === '/api/folders' && m === 'DELETE') return rmFolder(req, env, u.searchParams.get('path') || '');
       if (p === '/api/move' && m === 'POST') return move(req, env);
       if (p === '/api/rename' && m === 'POST') return rename(req, env);
       if (p === '/api/up/init' && m === 'POST') return upInit(req, env);
       if (p === '/api/up/finish' && m === 'POST') return upFinish(req, env);
-      if (p === '/api/up/part' && m === 'PUT') return upPart(req);
+      if (p === '/api/up/part' && m === 'PUT') return upPart(req, env);
       if (p.startsWith('/api/files/')) {
         const rest = p.slice(11), i = rest.indexOf('/'), op = rest.slice(0, i), path = decodeURIComponent(rest.slice(i + 1));
         if (!okPath(path)) return json({ error: '路径无效' }, 400);
@@ -94,12 +131,11 @@ export default {
         if ((op === 'dl' || op === 'view') && m === 'GET') return fileUrl(env, path, false);
         if (op === 'dl' && m === 'DELETE') return del(req, env, path);
       }
-      if (p === '/api/admin/check') return isAdmin(req, env) ? json({ ok: true, hasGemini: !!env.GEMINI_KEY, lastAIError }) : json({ error: '密钥错误' }, 403);
-      if (p === '/api/admin/stats') { if (!isAdmin(req, env)) return json({ error: '密钥错误' }, 403); return json(await store(env).stats(+u.searchParams.get('days') || 30)); }
-      if (p === '/api/admin/sessions') { if (!isAdmin(req, env)) return json({ error: '密钥错误' }, 403); return json(await store(env).sessions(+u.searchParams.get('offset') || 0)); }
-      if (p === '/api/admin/analyze' && m === 'POST') { if (!isAdmin(req, env)) return json({ error: '密钥错误' }, 403); return json(await analyze(env, u.searchParams.get('id') || '', u.searchParams.get('force') === '1')); }
-      if (p === '/api/admin/session') { if (!isAdmin(req, env)) return json({ error: '密钥错误' }, 403); return json(await store(env).messages(u.searchParams.get('id') || '')); }
-      if (p === '/api/admin/models') { if (!isAdmin(req, env)) return json({ error: '密钥错误' }, 403); const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200', { headers: { 'x-goog-api-key': env.GEMINI_KEY } }); const j = await r.json(); return json((j.models || []).filter(m => (m.supportedGenerationMethods || []).includes('generateContent')).map(m => m.name)); }
+      if (p === '/api/admin/check') return isAdmin(req) ? json({ ok: true, hasGemini: !!env.GEMINI_KEY, lastAIError }) : json({ error: '密钥错误' }, 403);
+      if (p === '/api/admin/stats') { if (!isAdmin(req)) return json({ error: '密钥错误' }, 403); return json(await store(env).stats(+u.searchParams.get('days') || 30)); }
+      if (p === '/api/admin/sessions') { if (!isAdmin(req)) return json({ error: '密钥错误' }, 403); return json(await store(env).sessions(+u.searchParams.get('offset') || 0)); }
+      if (p === '/api/admin/analyze' && m === 'POST') { if (!isAdmin(req)) return json({ error: '密钥错误' }, 403); return json(await analyze(env, u.searchParams.get('id') || '', u.searchParams.get('force') === '1')); }
+      if (p === '/api/admin/session') { if (!isAdmin(req)) return json({ error: '密钥错误' }, 403); return json(await store(env).messages(u.searchParams.get('id') || '')); }
       if (p.startsWith('/api/')) return json({ error: 'not found' }, 404);
       return page(NOTFOUND, 404);
     } catch (e) {
@@ -121,7 +157,13 @@ export class Store extends DurableObject {
       CREATE TABLE IF NOT EXISTS ana(sid TEXT PRIMARY KEY, n INTEGER, ts INTEGER, data TEXT);
       CREATE TABLE IF NOT EXISTS chat(id INTEGER PRIMARY KEY AUTOINCREMENT, uid TEXT, nick TEXT, to_uid TEXT DEFAULT '', to_nick TEXT DEFAULT '', dm TEXT DEFAULT '', text TEXT, ts INTEGER, ip TEXT);
       CREATE INDEX IF NOT EXISTS chat_dm ON chat(dm, id);
-      CREATE TABLE IF NOT EXISTS chat_leave(uid TEXT PRIMARY KEY, nick TEXT, ts INTEGER);`);
+      CREATE TABLE IF NOT EXISTS chat_leave(uid TEXT PRIMARY KEY, nick TEXT, ts INTEGER);
+      CREATE TABLE IF NOT EXISTS auth_fail(ip TEXT, kh TEXT, ts INTEGER, PRIMARY KEY(ip, kh));
+      CREATE TABLE IF NOT EXISTS ai_use(ip TEXT, day TEXT, n INTEGER DEFAULT 0, busy INTEGER DEFAULT 0, PRIMARY KEY(ip, day));
+      CREATE TABLE IF NOT EXISTS upq(path TEXT PRIMARY KEY, ip TEXT, day TEXT, oid TEXT, size INTEGER, ts INTEGER, done INTEGER DEFAULT 0);
+      CREATE INDEX IF NOT EXISTS upq_ip ON upq(ip, day);
+      CREATE TABLE IF NOT EXISTS reports(id INTEGER PRIMARY KEY AUTOINCREMENT, path TEXT, name TEXT, reason TEXT, note TEXT, ip TEXT, ts INTEGER, status TEXT DEFAULT 'open');
+      CREATE INDEX IF NOT EXISTS reports_st ON reports(status, id);`);
     try { ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair('ping', 'pong')); } catch {}
     for (const c of ['think TEXT', 'mname TEXT', 'extra TEXT']) { try { this.sql.exec('ALTER TABLE msgs ADD COLUMN ' + c); } catch {} }
   }
@@ -283,6 +325,60 @@ export class Store extends DurableObject {
     const recent = this.sql.exec("SELECT id, uid, nick, to_nick, dm<>'' dm, text, ts, ip FROM chat ORDER BY id DESC LIMIT 60").toArray();
     return { total: t.n, pub: t.pub || 0, users: t.users, online: this.presence().n, recent };
   }
+  /* ---------- admin key lockout: N distinct wrong keys from one IP inside the window → locked ---------- */
+  authLocked(addr, n, win) {
+    const since = Date.now() - win;
+    this.sql.exec('DELETE FROM auth_fail WHERE ts<?', since);
+    return this.sql.exec('SELECT COUNT(*) c FROM auth_fail WHERE ip=? AND ts>=?', addr, since).one().c >= n;
+  }
+  authFail(addr, kh) { this.sql.exec('INSERT OR REPLACE INTO auth_fail(ip,kh,ts) VALUES(?,?,?)', addr, kh, Date.now()); return true; }
+  /* ---------- AI: one generation at a time per IP + daily cap ---------- */
+  aiBegin(addr, day, cap) {
+    const now = Date.now();
+    const r = this.sql.exec('SELECT n, busy FROM ai_use WHERE ip=? AND day=?', addr, day).toArray()[0] || { n: 0, busy: 0 };
+    if (r.busy && now - r.busy < 180e3) return 'busy';
+    if (cap > 0 && r.n >= cap) return 'cap';
+    this.sql.exec('INSERT INTO ai_use(ip,day,n,busy) VALUES(?,?,1,?) ON CONFLICT(ip,day) DO UPDATE SET n=n+1, busy=?', addr, day, now, now);
+    if (Math.random() < .02) this.sql.exec('DELETE FROM ai_use WHERE day<?', cnDay(now - 7 * 864e5));
+    return 'ok';
+  }
+  aiEnd(addr, day) { this.sql.exec('UPDATE ai_use SET busy=0 WHERE ip=? AND day=?', addr, day); return true; }
+  /* ---------- drive: per-IP daily upload quota (pending inits count for 2 h, finished uploads for the whole day) ---------- */
+  upUsage(addr, day) {
+    const r = this.sql.exec('SELECT COUNT(*) n, COALESCE(SUM(size),0) b FROM upq WHERE ip=? AND day=? AND (done=1 OR ts>?)', addr, day, Date.now() - 2 * 3600e3).one();
+    return { n: r.n, bytes: r.b };
+  }
+  upReserve(path, addr, day, oid, size, maxN, maxB) {
+    const u = this.upUsage(addr, day);
+    if (u.n + 1 > maxN || u.bytes + size > maxB) return { ok: false, ...u };
+    this.sql.exec('INSERT OR REPLACE INTO upq(path,ip,day,oid,size,ts,done) VALUES(?,?,?,?,?,?,0)', path, addr, day, oid, size, Date.now());
+    if (Math.random() < .02) this.sql.exec('DELETE FROM upq WHERE day<?', cnDay(Date.now() - 3 * 864e5));
+    return { ok: true, ...u };
+  }
+  upPending(path) { return this.sql.exec('SELECT path, ip, oid, size, done, ts FROM upq WHERE path=?', path).toArray()[0] || null; }
+  upDone(path) { this.sql.exec('UPDATE upq SET done=1 WHERE path=?', path); return true; }
+  upDrop(path) { this.sql.exec('DELETE FROM upq WHERE path=?', path); return true; }
+  /* ---------- reports ---------- */
+  report(path, name, reason, note, addr, dayCap) {
+    const since = Date.now() - 864e5;
+    if (this.sql.exec('SELECT COUNT(*) c FROM reports WHERE ip=? AND ts>?', addr, since).one().c >= dayCap) return { ok: false, error: '今天举报次数太多了，明天再试', code: 'quota' };
+    if (this.sql.exec("SELECT COUNT(*) c FROM reports WHERE ip=? AND path=? AND status='open'", addr, path).one().c) return { ok: true, dup: true };
+    this.sql.exec('INSERT INTO reports(path,name,reason,note,ip,ts) VALUES(?,?,?,?,?,?)', path, name, reason, note, addr, Date.now());
+    return { ok: true };
+  }
+  reportsOpen() {
+    return { open: this.sql.exec("SELECT path, MAX(name) name, COUNT(*) n, GROUP_CONCAT(reason, '、') reasons, GROUP_CONCAT(NULLIF(note,''), ' | ') notes, MIN(ts) first, MAX(ts) last, GROUP_CONCAT(DISTINCT ip) ips, MIN(id) id FROM reports WHERE status='open' GROUP BY path ORDER BY last DESC LIMIT 100").toArray(),
+      total: this.sql.exec("SELECT COUNT(*) c FROM reports WHERE status='open'").one().c };
+  }
+  reportsIgnore(path) { this.sql.exec("UPDATE reports SET status='ignored' WHERE path=? AND status='open'", path); return true; }
+  // a deleted file (or folder prefix) loses its uploader, quota and report rows
+  forgetFile(prefix, isDir) {
+    for (const t of ['ups', 'reports']) {
+      if (isDir) this.sql.exec(`DELETE FROM ${t} WHERE substr(path,1,?)=?`, prefix.length + 1, prefix + '/');
+      else this.sql.exec(`DELETE FROM ${t} WHERE path=?`, prefix);
+    }
+    return true;
+  }
   messages(sid) { const a = this.sql.exec('SELECT data, n FROM ana WHERE sid=?', sid).toArray()[0]; return { messages: this.sql.exec('SELECT role, content, ts, model, think, mname, extra, ip, geo FROM msgs WHERE sid=? ORDER BY id', sid).toArray(), ana: a ? a.data : null, ana_n: a ? a.n : 0 }; }
 }
 
@@ -393,24 +489,37 @@ async function chat(req, env, ctx) {
     .filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content)
     .map(m => ({ role: m.role, content: m.content.slice(0, 4000) }));
   if (!msgs.length || msgs[msgs.length - 1].role !== 'user') return json({ error: '消息为空' }, 400);
-  const effort = ['low', 'medium', 'high', 'max'].includes(body.effort) ? body.effort : 'low';
-  const useWeb = !!body.web;
+  // whitelist: model must be one we offer (missing → default), effort one of the four levels (missing → low)
+  if (body.effort != null && !['low', 'medium', 'high', 'max'].includes(body.effort)) return json({ error: '思考强度参数无效' }, 400);
+  const effort = body.effort || 'low';
+  const offered = MODELS.filter(x => x.via !== 'or' || env.OPENROUTER_KEY);
+  if (body.model != null && body.model !== '' && !offered.some(x => x.id === body.model)) return json({ error: '模型不存在或暂不可用' }, 400);
+  const useWeb = body.web === true;
+  // one generation at a time per IP + daily cap (AI_DAILY_CAP, default 200; 0 = unlimited); the admin is exempt
+  const who = ip(req), day = cnDay(Date.now()), cap = env.AI_DAILY_CAP != null && env.AI_DAILY_CAP !== '' ? +env.AI_DAILY_CAP : 200;
+  if (!isAdmin(req)) {
+    const g = await store(env).aiBegin(who, day, cap);
+    if (g === 'busy') return json({ error: '上一条回答还在生成中，请等它结束（或点停止）后再发', code: 'busy' }, 429);
+    if (g === 'cap') return json({ error: `今天的提问次数已达上限（每天 ${cap} 次），明天再来吧`, code: 'cap' }, 429);
+  }
 
   const enc = new TextEncoder();
   const { readable, writable } = new TransformStream();
   const w = writable.getWriter();
-  const send = o => w.write(enc.encode('data: ' + JSON.stringify(o) + '\n\n'));
+  // visitor pressed stop / closed the tab → writes fail: stop generating and release the per-IP slot right away
+  let gone = false; const GONE = new Error('client gone');
+  const send = o => gone ? Promise.reject(GONE) : w.write(enc.encode('data: ' + JSON.stringify(o) + '\n\n')).catch(() => { if (!gone) { gone = true; if (!isAdmin(req)) store(env).aiEnd(who, day).catch(() => {}); } throw GONE; });
   const meta = { ip: ip(req), geo: [req.cf?.country, req.cf?.city].filter(Boolean).join(' ') };
   const userTs = Date.now();
 
   const mm0 = MODELS.find(x => x.id === body.model) || MODELS[0];
   const mm = { ...mm0, effort };
   EFFORT.v = effort;
-  ctx.waitUntil((async () => {
+  ctx.waitUntil((async () => { try {
     const question = msgs[msgs.length - 1].content;
     // thinking level also steers models without a native reasoning knob
     const hint = { low: '', medium: '\n\n（请先仔细思考再回答，给出有条理的答案。）', high: '\n\n（这是一个需要深入思考的问题：请一步步推理，考虑多种可能和边界情况，检查结论后再给出完整、严谨的答案。）', max: '\n\n（极致模式：请投入最大的思考深度。先拆解问题，逐步推理并自我验证每一步，主动考虑反例、边界情况和替代方案，必要时给出计算或代码验证，最后给出完整、精确、结构清晰的答案，并指出仍不确定的部分。）' }[effort];
-    let ctxBlock = '';
+    let ctxBlock = '', srcList = [];   // (srcList used to be declared after its first use → TDZ error whenever web search found results)
     if (useWeb) {
       await send({ status: '正在联网搜索…' });
       const res = await webSearch(question, null, env).catch(() => []);
@@ -424,7 +533,6 @@ async function chat(req, env, ctx) {
     if (ctxBlock || hint) msgs[msgs.length - 1] = { role: 'user', content: question + hint + ctxBlock };
     let full = '', model = '', by = mm.name, thinkTxt = '';
     const onThink = t => { if (thinkTxt.length > 20000) return; thinkTxt += t; return send({ k: t }); };
-    let srcList = [];
     if (mm.id !== 'astra') {
       try {
         model = mm.via === 'or' ? (env.OPENROUTER_KEY ? await openrouter(env, mm, msgs, t => { full += t; return send({ t }); }, onThink) : (() => { throw new Error('no key'); })())
@@ -432,8 +540,9 @@ async function chat(req, env, ctx) {
         const real = MODELS.find(x => x.model && model.startsWith(x.model.replace(':free', '')));
         if (real && real.id !== mm.id) { by = real.name; await send({ notice: `${mm.name} 现在太忙了，这次由 ${real.name} 回答` }); }
       } catch (e) {
+        if (gone) throw e;
         lastAIError = String(e && e.message || e).slice(0, 300);
-        if (isAdmin(req, env)) await send({ debug: lastAIError });
+        if (isAdmin(req)) await send({ debug: lastAIError });
         if (full) model = (mm.model || mm.id) + ' (cut)';
         else { by = 'GPT-6 Astra'; await send({ notice: `${mm.name} 现在太忙了，这次由 GPT-6 Astra 回答` }); }
       }
@@ -442,8 +551,9 @@ async function chat(req, env, ctx) {
       const out = await gemini(env, msgs, t => { full += t; return send({ t }); });
       model = out;
     } catch (e1) {
+      if (gone) throw e1;
       lastAIError = String(e1 && e1.message || e1).slice(0, 300);
-      if (isAdmin(req, env)) await send({ debug: lastAIError });
+      if (isAdmin(req)) await send({ debug: lastAIError });
       if (full) { model = 'gemini (cut)'; }
       else {
         try { model = await workersAI(env, msgs, t => { full += t; return send({ t }); }, null, onThink); }
@@ -461,7 +571,7 @@ async function chat(req, env, ctx) {
         ...(full ? [{ sid, role: 'assistant', content: full, ts: Date.now(), ...meta, model, mname: by, think: thinkTxt, extra: srcList.length ? JSON.stringify({ sources: srcList }) : '' }] : []),
       ]);
     } catch {}
-  })());
+  } catch {} finally { try { await w.close(); } catch {} if (!isAdmin(req)) await store(env).aiEnd(who, day).catch(() => {}); } })());
 
   return new Response(readable, { headers: { ...SEC, 'content-type': 'text/event-stream; charset=utf-8', 'cache-control': 'no-cache, no-transform', 'x-accel-buffering': 'no' } });
 }
@@ -642,7 +752,7 @@ async function workersAI(env, msgs, emit, mm, onThink) {
 const H = env => ({ Authorization: 'Bearer ' + env.HF_TOKEN });
 const base = path => path.split('/').pop();
 const nameOf = path => base(path).replace(/^\d{8}-[a-z0-9]{6}-/, '');
-const cleanName = n => (n || 'file').normalize('NFC').replace(/[\/\\\x00-\x1f"<>|:*?#%]/g, '_').replace(/^\.+/, '').slice(0, 150) || 'file';
+const cleanName = n => (String(n || 'file').normalize('NFC').replace(/[\u007f\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g, '').replace(/[\/\\\x00-\x1f"<>|:*?#%]/g, '_').replace(/^[.\s]+/, '').slice(0, 150).replace(/[.\s]+$/, '')) || 'file';
 // folder path relative to files/: up to 4 levels, each segment cleaned
 function cleanDir(d) {
   const segs = String(d || '').split('/').map(s => s.trim()).filter(Boolean);
@@ -667,7 +777,7 @@ async function ipTag(addr) {
 
 async function list(req, env) {
   let t; try { t = await tree(env); } catch { return json({ error: '存储暂时不可用' }, 502); }
-  const admin = isAdmin(req, env), me = ip(req);
+  const admin = isAdmin(req), me = ip(req);
   let owners = {}; try { for (const r of await store(env).ups()) owners[r.path] = r.ip; } catch {}
   const tags = {};
   const folders = new Set();
@@ -695,23 +805,23 @@ async function mkFolder(req, env) {
   const d = cleanDir(b.path);
   if (!d) return json({ error: '文件夹名无效（最多 4 层）' }, 400);
   const c = await commit(env, 'mkdir ' + d, [{ key: 'file', value: { path: `files/${d}/.keep`, content: btoa('keep'), encoding: 'base64' } }]);
-  if (!c.ok) return json({ error: '创建失败 (' + c.status + ')' }, 502);
+  if (!c.ok) return json({ error: '创建失败，请稍后再试' }, 502);
   return json({ ok: true, path: d });
 }
 
 async function rmFolder(req, env, path) {
-  if (!isAdmin(req, env)) return json({ error: '管理员密钥错误' }, 403);
+  if (!isAdmin(req)) return json({ error: '管理员密钥错误' }, 403);
   const d = cleanDir(path);
   if (!d) return json({ error: '参数错误' }, 400);
   const c = await commit(env, 'rmdir ' + d, [{ key: 'deletedFolder', value: { path: 'files/' + d } }]);
   if (!c.ok) return json({ error: '删除失败 (' + c.status + ')' }, 502);
-  try { await store(env).dropUps('files/' + d); } catch {}
+  try { await store(env).forgetFile('files/' + d, true); } catch {}
   return json({ ok: true });
 }
 
 // admin: rename a file (keeps its stamp prefix) or a folder (re-commits everything under it)
 async function rename(req, env) {
-  if (!isAdmin(req, env)) return json({ error: '管理员密钥错误' }, 403);
+  if (!isAdmin(req)) return json({ error: '管理员密钥错误' }, 403);
   const b = await req.json().catch(() => ({}));
   const nn = cleanName(String(b.name || '').trim()).slice(0, 150);
   if (!nn || nn === '.keep') return json({ error: '新名字无效' }, 400);
@@ -749,7 +859,7 @@ async function rename(req, env) {
 
 // admin: move files into a folder (LFS objects are content-addressed, so a move is a cheap re-commit)
 async function move(req, env) {
-  if (!isAdmin(req, env)) return json({ error: '管理员密钥错误' }, 403);
+  if (!isAdmin(req)) return json({ error: '管理员密钥错误' }, 403);
   const b = await req.json().catch(() => ({}));
   const to = b.to ? cleanDir(b.to) : '';
   if (to === null) return json({ error: '目标文件夹无效' }, 400);
@@ -771,26 +881,78 @@ async function move(req, env) {
   return json({ ok: true, moved: pairs.length });
 }
 
-// step 1: browser sends name/size/sha256; we ask HF where to put the bytes
+/* ---------- upload limits (env-configurable) and blocked types ---------- */
+const GB = 1024 ** 3;
+const lim = env => ({ file: +(env.UP_MAX_FILE || 2 * GB), dayBytes: +(env.UP_DAY_BYTES || 5 * GB), dayFiles: +(env.UP_DAY_FILES || 50) });
+const BLOCK_EXT = new Set(('exe msi msp mst apk xapk apks aab ipa bat cmd ps1 psm1 ps1xml scr com pif cpl vbs vbe jse wsf wsh hta jar dll sys drv ocx sh bash zsh csh ksh command run ' +
+  'app dmg pkg mpkg deb rpm appx appxbundle msix msixbundle reg lnk gadget inf elf so dylib out').split(' '));
+const extOf = n => { const m = String(n).toLowerCase().match(/\.([a-z0-9_]{1,12})$/); return m ? m[1] : ''; };
+const blockedName = n => BLOCK_EXT.has(extOf(n));
+const ERR = { big: '文件太大', type: '类型不支持', quota: '今日额度已用完' };
+const fmtB = b => b >= GB ? (b / GB).toFixed(b % GB ? 1 : 0) + ' GB' : Math.round(b / 1048576) + ' MB';
+// magic-byte sniff of the first bytes: Windows PE (MZ), ELF, Mach-O / universal, shebang scripts, deb/rpm, and ZIPs that are APK/JAR/IPA
+function sniff(u8) {
+  if (!u8 || u8.length < 2) return '';
+  const b = i => u8[i], s = (i, n) => String.fromCharCode(...u8.slice(i, i + n));
+  if (b(0) === 0x4d && b(1) === 0x5a) return 'Windows 可执行文件';
+  if (s(0, 4) === '\x7fELF') return 'Linux 可执行文件';
+  const m4 = u8.length >= 4 ? ((b(0) << 24) | (b(1) << 16) | (b(2) << 8) | b(3)) >>> 0 : 0;
+  if ([0xfeedface, 0xfeedfacf, 0xcefaedfe, 0xcffaedfe, 0xcafebabe, 0xbebafeca].includes(m4)) return 'macOS 可执行文件';
+  if (s(0, 2) === '#!') return '脚本文件';
+  if (s(0, 8) === '!<arch>\n') return '安装包';
+  if (m4 === 0xedabeedb) return '安装包';
+  if (s(0, 4) === 'PK\x03\x04') {
+    const t = new TextDecoder('latin1').decode(u8);
+    if (/AndroidManifest\.xml|classes\.dex/.test(t)) return 'Android 安装包';
+    if (/META-INF\/MANIFEST\.MF/.test(t)) return 'Java 程序';
+    if (/Payload\/[^\/]+\.app\//.test(t)) return 'iOS 安装包';
+  }
+  return '';
+}
+const b64u8 = t => { try { const x = atob(String(t || '').slice(0, 8192)); return Uint8Array.from(x, c => c.charCodeAt(0)); } catch { return null; } };
+// read the first bytes of an uploaded (not yet committed) LFS object through a git-LFS download link
+async function headBytes(env, oid, size, n = 65536) {
+  const r = await fetch(`${HF}/datasets/${env.HF_REPO}.git/info/lfs/objects/batch`, { method: 'POST',
+    headers: { ...H(env), Accept: 'application/vnd.git-lfs+json', 'Content-Type': 'application/vnd.git-lfs+json' },
+    body: JSON.stringify({ operation: 'download', transfers: ['basic'], objects: [{ oid, size }], hash_algo: 'sha256', ref: { name: 'main' } }) });
+  if (!r.ok) throw new Error('lfs batch ' + r.status);
+  const o = (await r.json()).objects?.[0] || {};
+  if (o.error || !o.actions?.download?.href) throw new Error('lfs object missing');
+  const d = await fetch(o.actions.download.href, { headers: { ...(o.actions.download.header || {}), Range: 'bytes=0-' + (Math.min(n, size) - 1) } });
+  if (!d.ok && d.status !== 206) throw new Error('lfs read ' + d.status);
+  const total = +((d.headers.get('content-range') || '').split('/')[1] || d.headers.get('content-length') || -1);
+  return { u8: new Uint8Array(await d.arrayBuffer()).slice(0, n), total };
+}
+
+// step 1: browser sends name/size/sha256 (+ first bytes); we check limits and ask HF where to put the bytes
 async function upInit(req, env) {
   if (await limited(env.UP_RL, ip(req))) return json({ error: '上传太频繁了，请稍后再试' }, 429);
   const b = await req.json().catch(() => ({}));
   const oid = String(b.oid || ''), size = Math.floor(+b.size);
   if (!/^[a-f0-9]{64}$/.test(oid) || !(size > 0)) return json({ error: '参数错误' }, 400);
-  const name = cleanName(b.name);
+  const name = cleanName(b.name), L = lim(env);
+  if (size > L.file) return json({ error: `${ERR.big}：单个文件最大 ${fmtB(L.file)}`, code: 'big' }, 413);
+  if (blockedName(name)) return json({ error: `${ERR.type}：不能上传可执行文件、安装包或脚本（.${extOf(name)}）`, code: 'type' }, 415);
+  const kind = b.head ? sniff(b64u8(b.head)) : '';
+  if (kind) return json({ error: `${ERR.type}：检测到${kind}，不能上传`, code: 'type' }, 415);
   const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
   const rand = [...crypto.getRandomValues(new Uint8Array(6))].map(x => 'abcdefghijklmnopqrstuvwxyz0123456789'[x % 36]).join('');
   const dir = b.dir ? cleanDir(b.dir) : '';
   if (dir === null) return json({ error: '文件夹无效' }, 400);
   const path = `files/${dir ? dir + '/' : ''}${stamp}-${rand}-${name}`;
+  {
+    const adm = isAdmin(req);   // the admin has no daily quota, but still gets a pending row (needed by the relay + finish checks)
+    const q = await store(env).upReserve(path, ip(req), cnDay(Date.now()), oid, size, adm ? 1e9 : L.dayFiles, adm ? 1e18 : L.dayBytes);
+    if (!q.ok) return json({ error: `${ERR.quota}：每个网络每天最多上传 ${L.dayFiles} 个文件、共 ${fmtB(L.dayBytes)}（今天已用 ${q.n} 个、${fmtB(q.bytes)}），北京时间 0 点重置`, code: 'quota' }, 429);
+  }
   const r = await fetch(`${HF}/datasets/${env.HF_REPO}.git/info/lfs/objects/batch`, {
     method: 'POST',
     headers: { ...H(env), Accept: 'application/vnd.git-lfs+json', 'Content-Type': 'application/vnd.git-lfs+json' },
     body: JSON.stringify({ operation: 'upload', transfers: ['basic', 'multipart'], objects: [{ oid, size }], hash_algo: 'sha256', ref: { name: 'main' } }),
   });
-  if (!r.ok) return json({ error: '存储暂时不可用 (' + r.status + ')' }, 502);
+  if (!r.ok) return json({ error: '存储暂时不可用，请稍后再试' }, 502);
   const d = await r.json(), o = d.objects?.[0] || {};
-  if (o.error) return json({ error: '存储拒绝了文件: ' + o.error.message }, 502);
+  if (o.error) return json({ error: '存储拒绝了这个文件，请稍后再试' }, 502);
   const up = o.actions?.upload;
   let plan = { mode: 'exists' };
   if (up) {
@@ -808,19 +970,29 @@ async function upFinish(req, env) {
   const b = await req.json().catch(() => ({}));
   const oid = String(b.oid || ''), size = Math.floor(+b.size), path = String(b.path || '');
   if (!/^[a-f0-9]{64}$/.test(oid) || !(size > 0) || !okPath(path) || !/^\d{8}-[a-z0-9]{6}-/.test(base(path))) return json({ error: '参数错误' }, 400);
+  if (size > lim(env).file) return json({ error: ERR.big, code: 'big' }, 413);
+  if (blockedName(nameOf(path))) return json({ error: ERR.type, code: 'type' }, 415);
+  const st = store(env), pend = await st.upPending(path);
+  if (!isAdmin(req) && (!pend || pend.oid !== oid || pend.size !== size || pend.done)) return json({ error: '上传会话无效或已过期，请重新上传' }, 400);
   if (b.complete) {
     if (!String(b.complete).startsWith(HF + '/api/complete_multipart')) return json({ error: '参数错误' }, 400);
     const c = await fetch(b.complete, { method: 'POST', headers: { ...H(env), 'Content-Type': 'application/vnd.git-lfs+json', Accept: 'application/vnd.git-lfs+json' }, body: JSON.stringify({ oid, parts: b.parts || [] }) });
-    if (!c.ok) return json({ error: '合并分片失败 (' + c.status + ')' }, 502);
+    if (!c.ok) return json({ error: '网络失败：合并分片失败，请重试' }, 502);
   }
   if (b.verify && b.verify.href && String(b.verify.href).startsWith(HF + '/')) {
     const v = await fetch(b.verify.href, { method: 'POST', headers: { ...H(env), ...(b.verify.header || {}), 'Content-Type': 'application/vnd.git-lfs+json', Accept: 'application/vnd.git-lfs+json' }, body: JSON.stringify({ oid, size }) });
-    if (!v.ok) return json({ error: '存储校验失败 (' + v.status + ')' }, 502);
+    if (!v.ok) return json({ error: '网络失败：存储校验失败，请重试' }, 502);
   }
+  // authoritative content check on the stored bytes (the client-sent head may be forged)
+  let hb; try { hb = await headBytes(env, oid, size); } catch { return json({ error: '网络失败：无法校验文件内容，请重试' }, 502); }
+  if (hb.total !== size) { await st.upDrop(path).catch(() => {}); return json({ error: '文件大小与声明不符，请重新上传' }, 400); }
+  const kind = sniff(hb.u8);
+  if (kind) { await st.upDrop(path).catch(() => {}); return json({ error: `${ERR.type}：检测到${kind}，不能上传`, code: 'type' }, 415); }
   const nd = JSON.stringify({ key: 'header', value: { summary: 'upload ' + nameOf(path) } }) + '\n' +
     JSON.stringify({ key: 'lfsFile', value: { path, algo: 'sha256', oid, size } }) + '\n';
   const c = await fetch(`${HF}/api/datasets/${env.HF_REPO}/commit/main`, { method: 'POST', headers: { ...H(env), 'Content-Type': 'application/x-ndjson' }, body: nd });
-  if (!c.ok) return json({ error: '保存失败 (' + c.status + ')' }, 502);
+  if (!c.ok) return json({ error: '网络失败：保存失败，请重试' }, 502);
+  await st.upDone(path).catch(() => {});
   try { const c = req.cf || {}; await store(env).logUp(path, ip(req), Date.now(), nameOf(path), size, [c.country, c.region, c.city].filter(Boolean).join(' ')); } catch {}
   return json({ ok: true, name: nameOf(path), path, size });
 }
@@ -836,11 +1008,48 @@ async function fileUrl(env, path, asJson) {
 }
 
 async function del(req, env, path) {
-  if (!isAdmin(req, env)) return json({ error: '管理员密钥错误' }, 403);
+  if (!isAdmin(req)) return json({ error: '管理员密钥错误' }, 403);
   const nd = JSON.stringify({ key: 'header', value: { summary: 'admin delete' } }) + '\n' + JSON.stringify({ key: 'deletedFile', value: { path } }) + '\n';
   const c = await fetch(`${HF}/api/datasets/${env.HF_REPO}/commit/main`, { method: 'POST', headers: { ...H(env), 'Content-Type': 'application/x-ndjson' }, body: nd });
   if (!c.ok) return json({ error: '删除失败 (' + c.status + ')' }, 502);
+  try { await store(env).forgetFile(path, false); } catch {}
   return json({ ok: true });
+}
+
+/* ---------- reports: anyone can flag a file, the admin deletes or ignores ---------- */
+const REASONS = ['违法违规', '色情低俗', '侵犯版权', '侵犯隐私', '恶意软件/病毒', '垃圾广告', '其他'];
+async function report(req, env) {
+  if (await limited(env.UP_RL, 'rep:' + ip(req))) return json({ error: '操作太频繁了，请稍后再试' }, 429);
+  const b = await req.json().catch(() => ({}));
+  const path = String(b.path || ''), reason = String(b.reason || '');
+  if (!okPath(path) || base(path) === '.keep') return json({ error: '文件无效' }, 400);
+  if (!REASONS.includes(reason)) return json({ error: '请选择举报原因' }, 400);
+  const note = String(b.note || '').replace(/[\u0000-\u001f\u007f\u202a-\u202e]/g, ' ').trim().slice(0, 300);
+  const r = await store(env).report(path, nameOf(path), reason, note, ip(req), 20);
+  return r.ok ? json({ ok: true }) : json({ error: r.error, code: r.code }, 429);
+}
+async function reportAdmin(req, env) {
+  if (!isAdmin(req)) return json({ error: '管理员密钥错误' }, 403);
+  if (req.method === 'GET') return json(await store(env).reportsOpen());
+  const b = await req.json().catch(() => ({}));
+  const path = String(b.path || '');
+  if (!okPath(path)) return json({ error: '参数错误' }, 400);
+  if (b.action === 'ignore') { await store(env).reportsIgnore(path); return json({ ok: true }); }
+  if (b.action === 'delete') return del(req, env, path);
+  return json({ error: '参数错误' }, 400);
+}
+
+/* ---------- public, verifiable site numbers for the home page ---------- */
+const LAUNCH = Date.UTC(2026, 9, 11) - 8 * 3600e3;   // 2026-10-11 00:00 China time
+const FEATURES = ['主页', '公共网盘', 'AI 助手', '聊天室'];
+let pubCache = null;
+async function publicStats(env) {
+  if (pubCache && Date.now() - pubCache.t < 600e3) return json(pubCache.v);
+  let files = null;
+  try { files = (await tree(env)).filter(x => x.type === 'file' && base(x.path) !== '.keep').length; } catch {}
+  const v = { files, days: Math.floor((Date.now() - LAUNCH) / 864e5) + 1, since: '2026-10-11', features: FEATURES.length, featureNames: FEATURES, models: MODELS.filter(x => x.via !== 'or' || env.OPENROUTER_KEY).length };
+  if (files != null) pubCache = { t: Date.now(), v };
+  return json(v);
 }
 
 // stream a file through our own domain (works where the HF CDN is unreachable); supports Range for video seeking
@@ -851,7 +1060,7 @@ async function raw(req, env, path, dl) {
   const fh = { ...H(env) }; const rg = req.headers.get('range'); if (rg) fh.Range = rg;
   const r = await fetch(`${HF}/datasets/${env.HF_REPO}/resolve/main/${path.split('/').map(encodeURIComponent).join('/')}`, { headers: fh, method: req.method });
   if (r.status === 404) return json({ error: '文件不存在' }, 404);
-  if (!r.ok && r.status !== 206) return json({ error: '读取失败 (' + r.status + ')' }, 502);
+  if (!r.ok && r.status !== 206) return json({ error: '读取失败，请稍后再试' }, r.status === 416 ? 416 : 502);
   const h = new Headers(SEC);
   let type = MIME[ext] || r.headers.get('content-type') || 'application/octet-stream';
   if (!dl && /^text\/html|svg/.test(type)) type = 'text/plain; charset=utf-8'; // never render uploaded html/svg as a page
@@ -866,11 +1075,19 @@ async function raw(req, env, path, dl) {
 }
 
 // fallback upload path: relay one part to HF's S3 when the browser cannot reach it directly
-async function upPart(req) {
+async function upPart(req, env) {
   const t = req.headers.get('x-target') || '';
   if (!/^https:\/\/hf-hub-lfs-[a-z0-9-]+\.s3[a-z0-9.-]*\.amazonaws\.com\//.test(t)) return json({ error: '参数错误' }, 400);
+  const path = req.headers.get('x-up') || '';
+  const pend = okPath(path) ? await store(env).upPending(path) : null;
+  if (!pend || pend.done || Date.now() - pend.ts > 6 * 3600e3) return json({ error: '上传会话无效或已过期，请重新上传' }, 400);
+  const len = +(req.headers.get('content-length') || 0);
+  if (len > 110 * 1048576 || len > pend.size + 1048576) return json({ error: ERR.big, code: 'big' }, 413);
   const body = await req.arrayBuffer();
+  if (body.byteLength > 110 * 1048576 || body.byteLength > pend.size) return json({ error: ERR.big, code: 'big' }, 413);
+  const pn = new URL(t).searchParams.get('partNumber');
+  if (!pn || pn === '1') { const kind = sniff(new Uint8Array(body, 0, Math.min(65536, body.byteLength))); if (kind) return json({ error: `${ERR.type}：检测到${kind}，不能上传`, code: 'type' }, 415); }
   const r = await fetch(t, { method: 'PUT', body });
-  if (!r.ok) return json({ error: '存储返回 ' + r.status }, 502);
+  if (!r.ok) return json({ error: '网络失败：中转上传失败，请重试' }, 502);
   return json({ etag: r.headers.get('etag') });
 }
