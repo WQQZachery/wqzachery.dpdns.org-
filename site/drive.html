@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>公共网盘 · 吴谦</title>
 <link rel="canonical" href="https://wqzachery.dpdns.org/drive">
+<meta name="description" content="吴谦个人网站的公共网盘：任何人可上传、在线预览和下载文件（单文件最大 2 GB，禁止可执行文件），所有文件公开。">
 <script>
 (function(){if(window.parent===window)return;var d=document.documentElement;d.classList.add('embed');
 var post=function(m){try{parent.postMessage(m,location.origin)}catch(e){}};window.__post=post;
@@ -16,6 +17,7 @@ document.addEventListener('focusin',function(e){if(touch&&e.target.matches&&e.ta
 document.addEventListener('focusout',function(e){if(touch&&e.target.matches&&e.target.matches(ti))post({type:'bar',show:true})});
 })();
 </script>
+<link rel="stylesheet" href="/shared.css?v=__V__">
 <style>html.embed .no-embed{display:none!important}html.embed body{padding-bottom:100px}html:not(.embed) .embed-only{display:none}
 </style>
 
@@ -121,31 +123,46 @@ h1 span{background:linear-gradient(90deg,var(--a1),var(--a2));-webkit-background
 .terms summary::after{content:'›';transition:transform .25s;display:inline-block}.terms[open] summary::after{transform:rotate(90deg)}.terms .tb{margin-top:8px}
 #list .empty .eu{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}#list .empty .eu svg{width:44px;height:44px;stroke:var(--mut);fill:none;stroke-width:1.5;opacity:.7}
 #list .empty .eu button{border:0;border-radius:999px;padding:8px 16px;font:inherit;font-size:13px;font-weight:600;color:#04150e;background:var(--a1);cursor:pointer}
+/* report dialog, pagination, retry */
+.lnk{background:none;border:0;padding:0 2px;color:var(--a1);font:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:3px;min-height:24px}
+#pv .ph .rep{color:#ffb4a8}
+#rp{position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.6);overflow-y:auto}
+#rp[hidden]{display:none}
+.rpbox{width:min(420px,100%);padding:22px;border-radius:22px;display:flex;flex-direction:column;gap:8px;background:rgba(28,28,32,.96)!important;max-height:calc(100dvh - 40px);overflow:auto}
+.rpbox h3{font-size:18px}.rpbox .rpn{color:var(--mut);font-size:13px;word-break:break-all}
+.rpbox label{font-size:13px;color:var(--mut);margin-top:6px}
+.rpbox select,.rpbox textarea{font:inherit;font-size:16px;color:var(--fg);background:rgba(255,255,255,.07);border:0;border-radius:12px;padding:11px 12px;box-shadow:inset 0 0 0 .5px rgba(255,255,255,.12);min-height:44px}
+.rpbox select:focus-visible,.rpbox textarea:focus-visible{outline:2px solid var(--a2)}
+.rpm{min-height:18px;font-size:13px;color:#ffb4a8}.rpm.ok{color:var(--a1)}
+.rpa{display:flex;gap:10px;justify-content:flex-end}.rpa button{min-height:44px;padding:0 18px;border-radius:999px;border:0;font:inherit;font-weight:600;cursor:pointer;color:var(--fg);background:rgba(255,255,255,.1)}.rpa .pri{background:#ff6b5a;color:#fff}.rpa button:disabled{opacity:.5}
+.more{display:flex;justify-content:center;margin:14px 0 0}.more button,#list .empty button.retry{min-height:44px;padding:0 20px;border-radius:999px;border:0;font:inherit;font-size:14px;font-weight:600;color:var(--fg);background:rgba(255,255,255,.1);cursor:pointer}
+#list .empty.errbox{flex-direction:column;gap:10px;text-align:center;color:#ffb4a8}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header class="gnav"><a href="/" class="gb" aria-label="回到主页"><b>吴谦</b><span>网盘</span></a><span id="quota" class="gq"></span></header>
   <h1>公共<span>网盘</span></h1>
-  <p class="sub">任何人都可以上传、在线查看和下载，不限文件大小。文件直传存储节点，所有文件公开可见，请勿上传隐私内容。</p>
+  <p class="sub">任何人都可以上传、在线查看和下载。所有文件对所有访客公开，请勿上传隐私内容。<button type="button" class="lnk" data-privacy>隐私说明</button></p>
 
   <label id="drop" class="glass" for="file">
     <b>点击选择文件，或拖到这里</b>
-    <small>支持任意类型和大小 · 可多选</small>
+    <small id="limtxt">单个文件最大 2 GB · 每个网络每天最多 5 GB / 50 个 · 不支持可执行文件、安装包和脚本 · 可多选</small>
     <small id="dest">上传到：全部文件</small>
     <span class="btn">选择文件</span>
     <input id="file" type="file" multiple hidden>
   </label>
   <div class="upall" id="upall"><button type="button" id="cxall">全部取消</button></div>
-  <div class="ups" id="ups"></div>
-  <div id="msg"></div>
+  <div class="ups" id="ups" aria-live="polite"></div>
+  <div id="msg" role="status" aria-live="polite"></div>
 
-  <div class="bar2"><h2 id="h2">全部文件</h2><div class="tools"><input id="q" type="search" placeholder="搜索"><button class="pill" id="mk">＋ 文件夹</button></div></div>
+  <div class="bar2"><h2 id="h2">全部文件</h2><div class="tools"><input id="q" type="search" placeholder="搜索" aria-label="搜索文件"><button class="pill" id="mk">＋ 文件夹</button></div></div>
   <div class="crumb" id="crumb"></div>
   <div class="vbar"><div class="cats" id="cats"><button data-c="" class="on">全部</button><button data-c="img">图片</button><button data-c="video">视频</button><button data-c="audio">音频</button><button data-c="doc">文档</button><button data-c="other">其他</button></div>
    <div class="vt" id="vt"><button data-v="grid" aria-label="网格"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg></button><button data-v="list" aria-label="列表"><svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg></button></div></div>
   <div class="filter" id="filter"></div>
-  <ul id="list" class="glass"><li class="empty">加载中…</li></ul>
+  <ul id="list" class="glass" aria-busy="true"><li class="empty">加载中…</li></ul>
+  <div class="more" id="more"></div>
 
   <details class="terms">
     <summary>使用条款</summary><div class="tb">
@@ -153,9 +170,19 @@ h1 span{background:linear-gradient(90deg,var(--a1),var(--a2));-webkit-background
     2. 所有文件对所有访客公开，上传即表示你有权分享该文件。<br>
     3. 站长有权随时删除任何文件，不保证文件永久保存。<br>
     4. 同一个 IP 上传的文件会显示相同颜色的来源标记，你自己上传的会标为「我」。<br>
+    5. 上传限制：单个文件最大 2 GB；每个网络（IP）每天（北京时间）最多上传 5 GB、50 个文件；不能上传可执行文件、安装包和脚本（按扩展名和文件内容检测）。<br>
+    6. 发现违规文件请在预览里点「举报」，站长会尽快处理。文件目前没有自动过期删除。<br>
+    <button type="button" class="lnk" data-privacy>查看隐私说明</button>
   </div></details>
 </div>
-<div id="pv" role="dialog" aria-modal="true"><div class="ph"><b id="pvn"></b><button id="pvd">下载</button><button id="pvx">关闭</button></div><div class="pb" id="pvb"></div></div>
+<div id="pv" role="dialog" aria-modal="true" aria-labelledby="pvn"><div class="ph"><b id="pvn"></b><button id="pvr" class="rep">举报</button><button id="pvd">下载</button><button id="pvx">关闭</button></div><div class="pb" id="pvb"></div></div>
+<div id="rp" role="dialog" aria-modal="true" aria-labelledby="rpt" hidden><form class="rpbox glass" id="rpf">
+  <h3 id="rpt">举报文件</h3><p class="rpn" id="rpn"></p>
+  <label for="rpr">原因</label><select id="rpr" required><option value="">请选择…</option><option>违法违规</option><option>色情低俗</option><option>侵犯版权</option><option>侵犯隐私</option><option>恶意软件/病毒</option><option>垃圾广告</option><option>其他</option></select>
+  <label for="rpo">补充说明（可选）</label><textarea id="rpo" maxlength="300" rows="3" placeholder="最多 300 字"></textarea>
+  <p class="rpm" id="rpm" role="alert"></p>
+  <div class="rpa"><button type="button" id="rpc">取消</button><button type="submit" id="rps" class="pri">提交举报</button></div>
+</form></div>
 <script>
 /* incremental SHA-256 (for files too big to hash in one go) */
 class Sha256{constructor(){this.h=new Uint32Array([0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19]);this.buf=new Uint8Array(64);this.bl=0;this.len=0;this.w=new Uint32Array(64)}
@@ -170,6 +197,8 @@ class Sha256{constructor(){this.h=new Uint32Array([0x6a09e667,0xbb67ae85,0x3c6ef
  hex(){const L=this.len*8,p=new Uint8Array(((this.bl+9+63)>>6)*64-this.bl);p[0]=0x80;const hi=Math.floor(L/2**32),lo=L>>>0,n=p.length;p[n-8]=hi>>>24;p[n-7]=hi>>>16;p[n-6]=hi>>>8;p[n-5]=hi;p[n-4]=lo>>>24;p[n-3]=lo>>>16;p[n-2]=lo>>>8;p[n-1]=lo;this.len-=0;this.update(p);return[...this.h].map(x=>(x>>>0).toString(16).padStart(8,'0')).join('')}}
 (()=>{
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+let LIM={maxFile:2*1073741824,blocked:'exe msi msp mst apk xapk apks aab ipa bat cmd ps1 psm1 ps1xml scr com pif cpl vbs vbe jse wsf wsh hta jar dll sys drv ocx sh bash zsh csh ksh command run app dmg pkg mpkg deb rpm appx appxbundle msix msixbundle reg lnk gadget inf elf so dylib out'.split(' ')},shown=60;
+fetch('/api/limits').then(r=>r.ok&&r.json()).then(j=>{if(j&&j.maxFile)LIM=j}).catch(()=>{});
 let files=[],folders=[],cwd=sessionStorage.getItem('cwd')||'',tagF='',cat='',view=localStorage.getItem('driveView')||'grid';
 const fmt=n=>n<1024?n+' B':n<1048576?(n/1024).toFixed(1)+' KB':n<1073741824?(n/1048576).toFixed(1)+' MB':(n/1073741824).toFixed(2)+' GB';
 const say=(t,c='')=>{const m=$('#msg');m.textContent=t;m.className=c};
@@ -190,20 +219,26 @@ const catOf=n=>{const k=kindOf(n),e=ext(n);if(k==='img'||k==='video'||k==='audio
 const bigIcon=n=>{const e=ext(n);return ICON[kindOf(n)]||({zip:'🗜️',rar:'🗜️','7z':'🗜️',gz:'🗜️',apk:'🤖',exe:'🪟',dmg:'💿',iso:'💿',doc:'📘',docx:'📘',xls:'📗',xlsx:'📗',ppt:'📙',pptx:'📙'}[e])||'📦'};
 function fileTile(f,showDir){const k=kindOf(f.name),u='/api/files/raw/'+enc(f.path);let th;
  if(k==='img'&&ext(f.name)!=='heic')th=`<img loading="lazy" decoding="async" src="${u}" alt="">`;
- else if(k==='video')th=`<video preload="metadata" muted playsinline src="${u}#t=0.1"></video><div class="play"><span>▶</span></div>`;
+ else if(k==='video')th=`<video preload="none" muted playsinline data-src="${u}#t=0.1"></video><div class="play"><span>▶</span></div>`;
  else th=`<span class="big">${bigIcon(f.name)}</span>`;
  return `<li class="${k?'':'dl-only'}" data-p="${esc(f.path)}"><div class="th">${th}<span class="ext">${esc(ext(f.name).slice(0,5)||'file')}</span></div><div class="meta"><b title="${esc(f.name)}">${esc(f.name)}</b><small>${showDir&&f.dir?esc(f.dir)+' · ':''}${fmt(f.size)}</small>${tagHtml(f)}</div></li>`}
 function folderTile(d,label,sub){return `<li class="fd" data-d="${esc(d)}"><div class="th"><span class="big">${label==='..'?'↩︎':'📁'}</span></div><div class="meta"><b>${label==='..'?'返回上一级':esc(label)}</b><small>${sub}</small></div></li>`}
-function fileRow(f,showDir){if(view==='grid')return fileTile(f,showDir);return `<li><div class="ico">${{img:'🖼️',video:'🎬',audio:'🎵',pdf:'📕',text:'📄'}[kindOf(f.name)]||'📦'}</div><div class="n"><b title="${esc(f.name)}">${esc(f.name)}</b><small>${showDir&&f.dir?'📁 '+esc(f.dir)+' · ':''}${fmt(f.size)}${f.date?' · '+new Date(f.date).toLocaleDateString():''}</small>${tagHtml(f)}</div><div class="acts">${kindOf(f.name)?`<button class="v" data-p="${esc(f.path)}">查看</button>`:''}<a class="d" href="/api/files/raw/${enc(f.path)}?dl=1" data-p="${esc(f.path)}">下载</a></div></li>`}
+function fileRow(f,showDir){if(view==='grid')return fileTile(f,showDir);return `<li><div class="ico">${{img:'🖼️',video:'🎬',audio:'🎵',pdf:'📕',text:'📄'}[kindOf(f.name)]||'📦'}</div><div class="n"><b title="${esc(f.name)}">${esc(f.name)}</b><small>${showDir&&f.dir?'📁 '+esc(f.dir)+' · ':''}${fmt(f.size)}${f.date?' · '+new Date(f.date).toLocaleDateString():''}</small>${tagHtml(f)}</div><div class="acts">${kindOf(f.name)?`<button class="v" data-p="${esc(f.path)}">查看</button>`:''}<a class="d" href="/api/files/raw/${enc(f.path)}?dl=1" data-p="${esc(f.path)}">下载</a><button class="rp" data-p="${esc(f.path)}" aria-label="举报 ${esc(f.name)}">举报</button></div></li>`}
+/* 60 files per page; "显示更多" appends the next 60 */
+let pageKey='';function page(v){const k=cwd+'|'+cat+'|'+tagF+'|'+$('#q').value;if(k!==pageKey){pageKey=k;shown=60}const m=$('#more'),left=v.length-shown;m.innerHTML=left>0?`<button type="button" id="moreb">显示更多（还有 ${left} 个）</button>`:'';return v.slice(0,shown)}
+$('#more').onclick=e=>{if(e.target.id==='moreb'){shown+=60;render()}};
+const vio='IntersectionObserver'in window?new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){const v=e.target;vio.unobserve(v);v.preload='metadata';v.src=v.dataset.src}}),{rootMargin:'300px'}):null;
+const lazyV=()=>$$('#list video[data-src]:not([src])').forEach(v=>vio?vio.observe(v):(v.preload='metadata',v.src=v.dataset.src));
+new MutationObserver(()=>lazyV()).observe(document.getElementById('list'),{childList:true});
 function render(){crumb();const q=$('#q').value.trim().toLowerCase(),L=$('#list');L.classList.toggle('grid',view==='grid');$$('#vt button').forEach(b=>b.classList.toggle('on',b.dataset.v===view));$$('#cats button').forEach(b=>b.classList.toggle('on',b.dataset.c===cat));
  const fl=$('#filter');if(tagF){const f0=files.find(f=>f.tag===tagF);fl.innerHTML=`只看来源 ${f0&&f0.mine?'「我」':tagF} 上传的文件 · <button id="clr">显示全部</button>`;fl.classList.add('on')}else fl.classList.remove('on');
  if(q||tagF||cat){const v=files.filter(f=>(!q||f.name.toLowerCase().includes(q)||f.dir.toLowerCase().includes(q))&&(!tagF||f.tag===tagF)&&(!cat||catOf(f.name)===cat));
   const fd=q?folders.filter(x=>x.toLowerCase().includes(q)):[];
-  L.innerHTML=(fd.map(d=>view==='grid'?folderTile(d,d.split('/').pop(),countIn(d)+' 个文件'):`<li class="fd" data-d="${esc(d)}"><div class="ico f">📁</div><div class="n"><b>${esc(d.split('/').pop())}</b><small>${esc(d)} · ${countIn(d)} 个文件</small></div></li>`).join('')+v.map(f=>fileRow(f,true)).join(''))||'<li class="empty">没有匹配的文件</li>';return}
+  L.innerHTML=(fd.map(d=>view==='grid'?folderTile(d,d.split('/').pop(),countIn(d)+' 个文件'):`<li class="fd" data-d="${esc(d)}"><div class="ico f">📁</div><div class="n"><b>${esc(d.split('/').pop())}</b><small>${esc(d)} · ${countIn(d)} 个文件</small></div></li>`).join('')+page(v).map(f=>fileRow(f,true)).join(''))||'<li class="empty">没有匹配的文件</li>';return}
  const sub=kids(cwd),v=files.filter(f=>inDir(f,cwd));
  const G=view==='grid';
  const up=cwd&&G?folderTile(cwd.includes('/')?cwd.slice(0,cwd.lastIndexOf('/')):'','..',''):cwd?`<li class="fd" data-d="${esc(cwd.includes('/')?cwd.slice(0,cwd.lastIndexOf('/')):'')}"><div class="ico">↩︎</div><div class="n"><b>返回上一级</b></div></li>`:'';
- const h=sub.map(d=>G?folderTile(d,d.split('/').pop(),countIn(d)+' 个文件'):`<li class="fd" data-d="${esc(d)}"><div class="ico f">📁</div><div class="n"><b>${esc(d.split('/').pop())}</b><small>${countIn(d)} 个文件</small></div></li>`).join('')+v.map(f=>fileRow(f,false)).join('');
+ const h=sub.map(d=>G?folderTile(d,d.split('/').pop(),countIn(d)+' 个文件'):`<li class="fd" data-d="${esc(d)}"><div class="ico f">📁</div><div class="n"><b>${esc(d.split('/').pop())}</b><small>${countIn(d)} 个文件</small></div></li>`).join('')+page(v).map(f=>fileRow(f,false)).join('');
  L.innerHTML=up+(h||'<li class="empty"><div class="eu"><svg viewBox="0 0 24 24"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H10l2 2h6.5A2.5 2.5 0 0 1 21 9.5v7a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 16.5z"/><path d="M12 15.5v-5M9.5 13l2.5-2.5 2.5 2.5"/></svg><span>'+(q?'没有找到匹配的文件':cwd?'这个文件夹还是空的':'还没有文件')+'</span>'+(q?'':'<button type="button" data-pick>上传文件到这里</button>')+'</div></li>')}
 function cd(d,pop){if(!pop&&d!==cwd)history.pushState({cwd:d,pv:0},'');cwd=d;sessionStorage.setItem('cwd',d);$('#q').value='';render();window.scrollTo({top:Math.max(0,$('.bar2').offsetTop-20),behavior:'smooth'})}
 $('#crumb').onclick=e=>{const b=e.target.closest('button[data-d]');if(b)cd(b.dataset.d)};
@@ -213,7 +248,11 @@ $('#filter').onclick=e=>{if(e.target.id==='clr'){tagF='';render()}};
 $('#mk').onclick=async()=>{const n=prompt('新文件夹名称'+(cwd?'（建在「'+cwd+'」里）':''));if(!n||!n.trim())return;
  const r=await fetch('/api/folders',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({path:(cwd?cwd+'/':'')+n.trim()})});const j=await r.json().catch(()=>({}));
  if(!r.ok){say(j.error||'创建失败','err');return}say('已创建文件夹 '+j.path.split('/').pop(),'ok');if(!folders.includes(j.path))folders.push(j.path);cd(j.path);load()};
-async function load(){try{const r=await fetch('/api/files',{cache:'no-store'});const j=await r.json();if(!r.ok)throw new Error(j.error);files=j.files;folders=j.folders||[];if(cwd&&!folders.includes(cwd)&&!files.some(f=>f.dir===cwd||f.dir.startsWith(cwd+'/')))cwd='';$('#quota').textContent='已用 '+fmt(j.used)+' / '+j.cap;render()}catch(e){$('#list').innerHTML='<li class="empty">加载失败：'+esc(e.message||'')+'</li>'}}
+let loaded=false;
+async function load(){const L=$('#list');L.setAttribute('aria-busy','true');const ac=new AbortController(),to=setTimeout(()=>ac.abort(),10000);
+ try{const r=await fetch('/api/files',{cache:'no-store',signal:ac.signal});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'服务器返回 '+r.status);files=j.files;folders=j.folders||[];if(cwd&&!folders.includes(cwd)&&!files.some(f=>f.dir===cwd||f.dir.startsWith(cwd+'/')))cwd='';$('#quota').textContent='已用 '+fmt(j.used)+' / '+j.cap;loaded=true;render()}
+ catch(e){if(loaded){say('刷新列表失败，稍后再试','err');return}$('#more').innerHTML='';L.classList.remove('grid');L.innerHTML='<li class="empty errbox"><span>'+(e.name==='AbortError'?'加载超时（10 秒），网络可能不太好':'文件列表加载失败：'+esc(e.message||'网络错误'))+'</span><button type="button" class="retry" data-retry>重试</button></li>'}
+ finally{clearTimeout(to);L.setAttribute('aria-busy','false')}}
 const sig=async p=>{const r=await fetch('/api/files/url/'+enc(p),{cache:'no-store'});const j=await r.json();if(!r.ok)throw new Error(j.error||'获取链接失败');return j};
 
 /* ---------- upload: hash in browser, PUT straight to Hugging Face storage ---------- */
@@ -221,8 +260,8 @@ async function hashFile(f,prog){
  if(f.size<=256*1048576&&crypto.subtle){prog(0,'计算校验…');const b=await f.arrayBuffer();const d=await crypto.subtle.digest('SHA-256',b);return[...new Uint8Array(d)].map(x=>x.toString(16).padStart(2,'0')).join('')}
  const h=new Sha256(),CH=8*1048576;for(let o=0;o<f.size;o+=CH){h.update(new Uint8Array(await f.slice(o,o+CH).arrayBuffer()));prog(o/f.size,'计算校验 '+Math.round(o/f.size*100)+'%');await new Promise(r=>setTimeout(r))}return h.hex()}
 let relay=false;
-function xput(url,body,headers,onp,viaRelay,ctl){return new Promise((res,rej)=>{if(ctl&&ctl.cx)return rej(Object.assign(new Error('已取消'),{cx:1}));const x=new XMLHttpRequest();ctl&&ctl.xs.add(x);x.open('PUT',viaRelay?'/api/up/part':url);for(const k in headers||{})x.setRequestHeader(k,headers[k]);if(viaRelay)x.setRequestHeader('x-target',url);
- x.upload.onprogress=e=>onp&&onp(e.loaded);const end=()=>ctl&&ctl.xs.delete(x);x.onload=()=>{end();if(x.status>=300)return rej(new Error('存储返回 '+x.status));res(viaRelay?JSON.parse(x.responseText).etag:x.getResponseHeader('ETag'))};x.onerror=()=>{end();rej(Object.assign(new Error('网络错误'),{net:1}))};x.onabort=()=>{end();rej(Object.assign(new Error('已取消'),{cx:1}))};x.send(body)})}
+function xput(url,body,headers,onp,viaRelay,ctl){return new Promise((res,rej)=>{if(ctl&&ctl.cx)return rej(Object.assign(new Error('已取消'),{cx:1}));const x=new XMLHttpRequest();ctl&&ctl.xs.add(x);x.open('PUT',viaRelay?'/api/up/part':url);for(const k in headers||{})x.setRequestHeader(k,headers[k]);if(viaRelay){x.setRequestHeader('x-target',url);x.setRequestHeader('x-up',ctl&&ctl.path||'')}
+ x.upload.onprogress=e=>onp&&onp(e.loaded);const end=()=>ctl&&ctl.xs.delete(x);x.onload=()=>{end();if(x.status>=300){let m='';try{m=JSON.parse(x.responseText).error}catch(e){}const er=new Error(m||('网络失败：存储返回 '+x.status));if(!m&&!viaRelay&&x.status>=400&&x.status!==413)er.net=1;return rej(er)}res(viaRelay?JSON.parse(x.responseText).etag:x.getResponseHeader('ETag'))};x.onerror=()=>{end();rej(Object.assign(new Error('网络失败：连接中断，请检查网络后重试'),{net:1}))};x.onabort=()=>{end();rej(Object.assign(new Error('已取消'),{cx:1}))};x.send(body)})}
 async function put(url,body,headers,onp,ctl){if(!relay){try{return await xput(url,body,headers,onp,false,ctl)}catch(e){if(!e.net)throw e;relay=true}}return xput(url,body,headers,onp,true,ctl)}
 const jobs=new Set();
 function cancelJob(ctl){if(ctl.done)return;ctl.cx=true;ctl.xs.forEach(x=>{try{x.abort()}catch(e){}});ctl.row.className='up cx';ctl.txt.textContent='已取消';ctl.rt.textContent='';ctl.done=true;jobs.delete(ctl);upAll();setTimeout(()=>ctl.row.remove(),2500)}
@@ -233,13 +272,18 @@ function mkJob(f){const row=document.createElement('div');row.className='up wait
  row.querySelector('.un').textContent=f.name;$('#ups').append(row);
  const ctl={f,row,xs:new Set(),cx:false,done:false,txt:row.querySelector('.ut'),rt:row.querySelector('.ur'),bar:row.querySelector('i')};
  row.querySelector('.ux').setAttribute('aria-label','取消上传 '+f.name);row.querySelector('.ux').onclick=()=>cancelJob(ctl);jobs.add(ctl);upAll();return ctl}
+const api=(u,b)=>fetch(u,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(b)}).catch(()=>{throw new Error('网络失败：连不上服务器，请检查网络后重试')});
 async function up(ctl){const f=ctl.f,row=ctl.row,chk=()=>{if(ctl.cx)throw Object.assign(new Error('已取消'),{cx:1})};
  if(ctl.cx)return;row.className='up';
  const set=(p,t,r)=>{if(ctl.cx)return;ctl.bar.style.width=(p*100).toFixed(1)+'%';ctl.txt.textContent=t;ctl.rt.textContent=r||''};
  try{
   if(!f.size)throw new Error('空文件');
+  // quick client-side checks (the server enforces the same rules)
+  if(f.size>LIM.maxFile)throw new Error('文件太大：单个文件最大 '+fmt(LIM.maxFile));
+  if(LIM.blocked.includes(ext(f.name))&&f.name.includes('.'))throw new Error('类型不支持：不能上传可执行文件、安装包或脚本（.'+ext(f.name)+'）');
+  const hb=new Uint8Array(await f.slice(0,4096).arrayBuffer());let head='';for(const x of hb)head+=String.fromCharCode(x);head=btoa(head);
   const oid=await hashFile(f,(p,t)=>{chk();set(p*.1,t)});chk();
-  let r=await fetch('/api/up/init',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({name:f.name,size:f.size,oid,dir:cwd})});let pl=await r.json();if(!r.ok)throw new Error(pl.error);chk();
+  let r=await api('/api/up/init',{name:f.name,size:f.size,oid,dir:cwd,head});let pl=await r.json().catch(()=>({}));if(!r.ok)throw new Error(pl.error||'网络失败：服务器返回 '+r.status);chk();ctl.path=pl.path;
   const t0=performance.now(),prog=l=>{const el=(performance.now()-t0)/1000||.001,sp=l/el,pc=l/f.size;set(.1+.88*pc,'上传中 '+Math.round(pc*100)+'% · '+fmt(l)+' / '+fmt(f.size),fmt(sp)+'/s'+(sp>0&&pc<1?' · 剩 '+eta((f.size-l)/sp):''))};
   const fin={path:pl.path,oid,size:f.size,verify:pl.verify};
   if(pl.mode==='basic'){await put(pl.href,f,pl.header,prog,ctl)}
@@ -249,9 +293,9 @@ async function up(ctl){const f=ctl.f,row=ctl.row,chk=()=>{if(ctl.cx)throw Object
    await Promise.all(Array.from({length:Math.min(4,n)},worker));
    fin.complete=pl.complete;fin.parts=etags.map((e,i)=>({partNumber:i+1,etag:e}))}
   chk();set(.99,'保存中…');row.querySelector('.ux').disabled=true;
-  r=await fetch('/api/up/finish',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(fin)});const j=await r.json();if(!r.ok)throw new Error(j.error);
+  r=await api('/api/up/finish',fin);const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'网络失败：服务器返回 '+r.status);
   ctl.done=true;jobs.delete(ctl);upAll();set(1,'上传成功 ✓ · '+fmt(f.size));row.className='up ok';load();setTimeout(()=>row.remove(),6000);
- }catch(e){if(e.cx||ctl.cx)return;ctl.done=true;jobs.delete(ctl);upAll();row.className='up err';ctl.txt.textContent='失败：'+e.message;ctl.rt.textContent=''}}
+ }catch(e){if(e.cx||ctl.cx)return;ctl.done=true;jobs.delete(ctl);upAll();row.className='up err';ctl.txt.textContent='上传失败 · '+e.message;ctl.rt.textContent=''}}
 const many=fl=>{const cs=[...fl].map(mkJob);cs.reduce((p,c)=>p.then(()=>up(c)),Promise.resolve())};
 $('#file').onchange=e=>{many(e.target.files);e.target.value=''};
 const d=$('#drop');['dragenter','dragover'].forEach(t=>d.addEventListener(t,e=>{e.preventDefault();d.classList.add('over')}));
@@ -281,16 +325,30 @@ async function view2(f){cur=f;if(!(history.state&&history.state.pv))history.push
  }catch(e){pvb.innerHTML='<div class="na">'+esc(e.message)+'</div>'}}
 
 $('#list').onclick=e=>{const t=e.target;
+ if(t.closest('[data-retry]')){$('#list').innerHTML='<li class="empty">加载中…</li>';load();return}
  if(t.closest('[data-pick]')){$('#file').click();return}
  const tg=t.closest('.tag');if(tg){tagF=tg.dataset.tag;render();return}
  const fd=t.closest('li.fd');if(fd){cd(fd.dataset.d);return}
- if(view==='grid'){const li=t.closest('li[data-p]');if(li){const f=files.find(x=>x.path===li.dataset.p);if(!f)return;kindOf(f.name)?view_(f):download(f.path,f.name);return}}
+ if(view==='grid'){const li=t.closest('li[data-p]');if(li){const f=files.find(x=>x.path===li.dataset.p);if(!f)return;view_(f);return}}
  const p=t.dataset&&t.dataset.p;if(!p)return;const f=files.find(x=>x.path===p);
  if(t.matches('button.v')){view2(f);return}
- if(t.matches('a.d')){e.preventDefault();download(p,f.name);return}};
+ if(t.matches('a.d')){e.preventDefault();download(p,f.name);return}
+ if(t.matches('button.rp')){openRp(f);return}};
+/* ---------- report a file ---------- */
+const rp=$('#rp');let rpf=null,rpFocus=null;
+function openRp(f){rpf=f;rpFocus=document.activeElement;$('#rpn').textContent=f.name;$('#rpr').value='';$('#rpo').value='';$('#rpm').textContent='';$('#rpm').className='rpm';$('#rps').disabled=false;rp.hidden=false;window.__post&&__post({type:'bar',show:false});setTimeout(()=>$('#rpr').focus(),30)}
+function closeRp(){if(rp.hidden)return;rp.hidden=true;if(!pv.classList.contains('open'))window.__post&&__post({type:'bar',show:true});rpFocus&&rpFocus.focus&&rpFocus.focus()}
+$('#pvr').onclick=()=>cur&&openRp(cur);$('#rpc').onclick=closeRp;rp.addEventListener('click',e=>{if(e.target===rp)closeRp()});
+rp.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();closeRp()}});
+$('#rpf').onsubmit=async e=>{e.preventDefault();const m=$('#rpm');if(!$('#rpr').value){m.textContent='请选择举报原因';return}
+ $('#rps').disabled=true;m.className='rpm';m.textContent='提交中…';
+ try{const r=await api('/api/report',{path:rpf.path,reason:$('#rpr').value,note:$('#rpo').value});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'提交失败');
+  m.className='rpm ok';m.textContent='已收到举报，谢谢！站长会尽快处理。';setTimeout(closeRp,1400)}
+ catch(err){m.textContent=err.message;$('#rps').disabled=false}};
 load();
 })();
 
 </script>
+<script src="/shared.js?v=__V__" defer></script>
 </body>
 </html>
