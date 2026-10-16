@@ -39,6 +39,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","M
 /* same liquid glass as the top navigation pill (.lg/.lg-rim on the home page) */
 .lg{--lg-bg:rgba(255,255,255,.035);background:var(--lg-bg);-webkit-backdrop-filter:blur(7px) saturate(170%) brightness(1.06);backdrop-filter:blur(7px) saturate(170%) brightness(1.06);box-shadow:inset 1.5px 1.5px 1px -1px rgba(255,255,255,.45),inset -1px -1px 1px -.5px rgba(255,255,255,.18),inset 0 0 12px rgba(255,255,255,.04),inset 0 -14px 24px -18px rgba(255,255,255,.07),0 8px 28px -8px rgba(0,0,0,.5)}
 #bar.hide{opacity:0;transform:translateX(-50%) translateY(30px) scale(.9);pointer-events:none}
+#bar *{touch-action:none;-webkit-touch-callout:none}
 #glass{position:absolute;inset:0;border-radius:inherit;pointer-events:none}
 /* the glass lives in its own layer (not on #bar) so #bar is NOT a backdrop root: the moving lens can then sample the page + bar under it */
 #glass.lg{--lg-bg:rgba(24,24,28,.34);-webkit-backdrop-filter:blur(14px) saturate(185%) brightness(.92);backdrop-filter:blur(14px) saturate(185%) brightness(.92)}
@@ -186,22 +187,30 @@ function settle(){const prevI=idx;idx=target;show(target);const t=TABS[idx];
 
 /* ---------- tab bar: tap & drag the glass ---------- */
 let dg=null;
+const ts=e=>e&&e.timeStamp>0&&e.timeStamp<1e10?e.timeStamp:performance.now();   // event time (hi-res); robust to delayed/coalesced delivery
 const posAt=x=>{const {bw,iw}=geom(),r=bar.getBoundingClientRect();return ((x-r.left)*bw/r.width-4)/iw-.5};
 bar.addEventListener('pointerdown',e=>{const pos=posAt(e.clientX);
-  dg={id:e.pointerId,x0:e.clientX,off:0,moved:false,start:p,lt:0,onLens:Math.abs(pos-p)<.6,hist:[[performance.now(),pos]]};
+  dg={id:e.pointerId,x0:e.clientX,off:0,moved:false,start:p,lt:0,onLens:Math.abs(pos-p)<.6,hist:[[ts(e),p]]};
   bar.setPointerCapture(e.pointerId);bar.classList.add('press');
   if(dg.onLens){dragging=true;dg.off=p-pos;kick()}});      // press on the lens lifts it right away
+const follow=e=>{const pos=posAt(e.clientX),now=ts(e);dg.off*=Math.exp(-(now-(dg.lt||now))/90);dg.lt=now;goal=clamp(pos+dg.off,0,N-1);   // follow the finger, ease out the grab offset
+  dg.hist.push([now,goal]);while(dg.hist.length>8)dg.hist.shift()};
 bar.addEventListener('pointermove',e=>{if(!dg||e.pointerId!==dg.id)return;
   if(Math.abs(e.clientX-dg.x0)>5)dg.moved=true;if(!dg.moved)return;
   if(!dragging){dragging=true;dg.off=0;kick()}
-  const pos=posAt(e.clientX),now0=performance.now();dg.off*=Math.exp(-(now0-(dg.lt||now0))/90);dg.lt=now0;goal=clamp(pos+dg.off,0,N-1);   // follow the finger, ease out the grab offset
-  const now=performance.now();dg.hist.push([now,pos]);while(dg.hist.length>5)dg.hist.shift()});
-const endBar=e=>{if(!dg||e.pointerId!==dg.id)return;bar.classList.remove('press');dragging=false;
-  if(!dg.moved){go(clamp(Math.floor(posAt(e.clientX)+.5),0,N-1))}
-  else{const h=dg.hist,a=h[0],b=h[h.length-1],vel=(b[1]-a[1])/Math.max(.016,(b[0]-a[0])/1000);   // flick velocity in tabs/s
-    go(clamp(Math.round(goal+clamp(vel*.12,-.6,.6)),Math.round(dg.start)-1,Math.round(dg.start)+1))}
+  follow(e)});
+/* release: the lens settles on the tab under its centre (no limit on how far it was dragged).
+   A real flick (finger still moving fast in the last ~90 ms) may add at most one tab in its direction;
+   pointercancel / lost capture (Android taking the gesture) = release at the last position, no flick, never a revert. */
+const endBar=e=>{if(!dg||e.pointerId!==dg.id)return;const cancel=e.type!=='pointerup';bar.classList.remove('press');dragging=false;
+  if(!dg.moved){if(!cancel)go(clamp(Math.floor(posAt(e.clientX)+.5),0,N-1));else if(dg.onLens)go(target)}
+  else{if(!cancel)follow(e);
+    const now=ts(e),h=dg.hist.filter(s=>now-s[0]<=90);let vel=0;
+    if(h.length>1){const a=h[0],b=h[h.length-1];vel=(b[1]-a[1])/Math.max(.03,(b[0]-a[0])/1000)}   // lens velocity in tabs/s, recent samples only
+    const base=Math.round(goal),flick=!cancel&&Math.abs(vel)>3?clamp(vel*.1,-.45,.45):0;    // ≤.45: a flick needs the lens already past the tab centre
+    go(clamp(Math.round(goal+flick),base-1,base+1))}
   dg=null;kick()};
-bar.addEventListener('pointerup',endBar);bar.addEventListener('pointercancel',endBar);
+bar.addEventListener('pointerup',endBar);bar.addEventListener('pointercancel',endBar);bar.addEventListener('lostpointercapture',endBar);bar.addEventListener('contextmenu',e=>e.preventDefault());
 row.addEventListener('keydown',e=>{if(e.key==='ArrowRight')go(Math.round(target)+1);if(e.key==='ArrowLeft')go(Math.round(target)-1)});
 row.querySelectorAll('.it').forEach(b=>b.addEventListener('click',e=>{if(e.detail===0)go(+b.dataset.i)}));  // keyboard activation
 
