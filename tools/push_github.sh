@@ -18,4 +18,4 @@ put site/shared.css site/shared.css
 put site/shared.js site/shared.js
 put worker/worker.js worker/worker.js
 put deploy/deploy_worker.sh deploy/deploy_worker.sh
-for t in lproxy.py scroll_perf.py bar_refr.py lens_sharp.py orb_shots.py page_shots.py sec_test.py unit_test.mjs ui_check.py mobile_check.py link_check.py chat_test.py a11y_check.py stage_deploy.sh routes_check.sh push_github.sh; do put tools/$t tools/$t; done
+for t in lproxy.py scroll_perf.py bar_refr.py lens_sharp.py lens_drag_test.py orb_shots.py page_shots.py sec_test.py unit_test.mjs ui_check.py mobile_check.py link_check.py chat_test.py a11y_check.py stage_deploy.sh routes_check.sh push_github.sh; do put tools/$t tools/$t; done
