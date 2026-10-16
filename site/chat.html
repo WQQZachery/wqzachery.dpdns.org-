@@ -18,6 +18,7 @@ document.addEventListener('focusin',function(e){if(touch&&e.target.matches&&e.ta
 document.addEventListener('focusout',function(e){if(touch&&e.target.matches&&e.target.matches(ti))post({type:'bar',show:true})});
 })();
 </script>
+<link rel="stylesheet" href="/shared.css?v=__V__">
 <style>
 :root{--fg:#f5f5f7;--mut:#8e8e93;--line:rgba(255,255,255,.09);--a1:#6ee7b7;--a2:#60a5fa;--pb:calc(env(safe-area-inset-bottom) + 12px)}
 html.embed{--pb:100px}
@@ -112,6 +113,8 @@ form{flex:none;padding:2px max(14px,env(safe-area-inset-right)) var(--pb) max(14
 .box .ib[aria-expanded="true"]{color:var(--a1)}
 textarea{flex:1;min-width:0;resize:none;border:0;outline:0;background:none;color:var(--fg);font:16px/1.45 inherit;font-family:inherit;max-height:120px;padding:8px 0;min-height:24px}
 textarea::placeholder{color:#6e6e73}
+.pvn{max-width:760px;margin:4px auto 0;text-align:center;font-size:11px;line-height:16px;color:#6e6e73}.pvn .wz-link{font-size:11px;color:#8e8e93}
+html.embed.kb .pvn{display:none}
 .cnt{position:absolute;right:max(76px,calc(env(safe-area-inset-right) + 62px));top:-14px;font-size:11px;color:#fbbf24}
 #send{flex:none;width:40px;height:40px;border-radius:50%;border:0;background:var(--fg);color:#000;display:grid;place-items:center;cursor:pointer;transition:opacity .2s,transform .2s}
 #send:disabled{opacity:.35}
@@ -154,7 +157,7 @@ textarea::placeholder{color:#6e6e73}
     <button class="ib" id="clr" type="button" aria-label="清屏（仅自己）" title="清屏（仅自己可见）"><svg viewBox="0 0 24 24"><path d="M5 7h14M10 7V4.8h4V7M7 7l1 12.2h8L17 7"/></svg></button>
     <button class="me" id="me" type="button" aria-label="修改昵称" title="修改昵称"></button>
   </div>
-  <div id="status" role="status"></div>
+  <div id="status" role="status" aria-live="polite"></div>
 </header>
 <div id="dmbar" class="glass"><button id="dmback" type="button">‹ 大厅</button><span>与 <b id="dmname"></b> 的私信</span><i id="pubn"></i></div>
 <div id="log" aria-live="polite"><div class="inner" id="inner"></div></div>
@@ -166,6 +169,7 @@ textarea::placeholder{color:#6e6e73}
   <textarea id="in" rows="1" placeholder="说点什么…" maxlength="500" aria-label="消息"></textarea>
   <button id="send" type="submit" aria-label="发送" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg></button></div>
   <span class="cnt" id="cnt"></span>
+  <p class="pvn">消息和 IP 会被记录，站长可见 · <button type="button" class="wz-link" data-privacy>隐私说明</button></p>
 </form>
 <div id="sheet"><div class="pan" id="pan"></div></div>
 <div id="toast" role="alert"></div>
@@ -249,9 +253,10 @@ function connect(){clearTimeout(rt);if(ws&&ws.readyState<2)return;
   setStatus('wait','正在连接…');
   const u=(location.protocol==='https:'?'wss://':'ws://')+location.host+'/api/chat/ws?key='+encodeURIComponent(key)+'&nick='+encodeURIComponent(me.nick);
   let s;try{s=new WebSocket(u)}catch(e){return retry()}ws=s;
-  s.onopen=()=>{tries=0;clearInterval(pingT);pingT=setInterval(()=>{if(s.readyState===1)s.send('ping')},25000)};
+  const cto=setTimeout(()=>{if(s.readyState===0){tries=Math.max(tries,1);try{s.close()}catch(e){}}},10000);   // no answer in 10 s → treat as failed, show retry
+  s.onopen=()=>{clearTimeout(cto);tries=0;clearInterval(pingT);pingT=setInterval(()=>{if(s.readyState===1)s.send('ping')},25000)};
   s.onmessage=e=>{if(e.data==='pong')return;let m;try{m=JSON.parse(e.data)}catch(_){return}on(m)};
-  s.onclose=e=>{clearInterval(pingT);if(ws!==s)return;ws=null;pending.forEach(p=>failMsg(p.cid));pending.clear();
+  s.onclose=e=>{clearTimeout(cto);clearInterval(pingT);if(ws!==s)return;ws=null;pending.forEach(p=>failMsg(p.cid));pending.clear();
     if(e.code===4029||fatal){fatal=true;setStatus('bad','连接数太多，已停止重连');return}retry()};
   s.onerror=()=>{}}
 function retry(){const d=Math.min(30000,1000*2**tries)*(0.75+Math.random()*.5);tries++;
@@ -365,5 +370,6 @@ meBtn();render();grow();connect();
 window.__chat={get ws(){return ws},get pub(){return pub},get me(){return me},get online(){return online}};
 })();
 </script>
+<script src="/shared.js?v=__V__" defer></script>
 </body>
 </html>
