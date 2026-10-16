@@ -16,6 +16,7 @@ document.addEventListener('focusin',function(e){if(touch&&e.target.matches&&e.ta
 document.addEventListener('focusout',function(e){if(touch&&e.target.matches&&e.target.matches(ti))post({type:'bar',show:true})});
 })();
 </script>
+<link rel="stylesheet" href="/shared.css?v=__V__">
 <style>html.embed .no-embed,html.embed #cue{display:none!important}html.embed body{padding-bottom:100px}</style>
 
 <meta name="description" content="吴谦（Zachery Wu）的个人主页：开发、AI 工具与自动化。">
@@ -54,10 +55,10 @@ button{font:inherit;color:inherit}
 /* ---------- hero ---------- */
 .hero{position:relative;height:180vh}
 .hero-stage{position:sticky;top:0;height:100vh;height:100svh;display:grid;place-items:center;overflow:hidden;text-align:center}
-.orb{position:absolute;border-radius:50%;filter:blur(70px);opacity:.55;will-change:transform;pointer-events:none}
-.orb.o1{width:52vmax;height:52vmax;background:radial-gradient(circle,var(--a1) 0,transparent 62%);top:-18vmax;left:-14vmax}
-.orb.o2{width:46vmax;height:46vmax;background:radial-gradient(circle,var(--a2) 0,transparent 62%);bottom:-20vmax;right:-12vmax}
-.orb.o3{width:30vmax;height:30vmax;background:radial-gradient(circle,var(--a3) 0,transparent 62%);top:40%;left:55%;opacity:.35}
+.orb{position:absolute;border-radius:50%;opacity:.55;will-change:transform;pointer-events:none;contain:strict}
+.orb.o1{width:60vmax;height:60vmax;background:radial-gradient(circle closest-side,color-mix(in srgb,var(--a1) 76%,transparent) 0,color-mix(in srgb,var(--a1) 60%,transparent) 22%,color-mix(in srgb,var(--a1) 37%,transparent) 44%,color-mix(in srgb,var(--a1) 16%,transparent) 66%,color-mix(in srgb,var(--a1) 5%,transparent) 84%,transparent 100%);margin:-4vmax 0 0 -4vmax;top:-18vmax;left:-14vmax}
+.orb.o2{width:54vmax;height:54vmax;background:radial-gradient(circle closest-side,color-mix(in srgb,var(--a2) 76%,transparent) 0,color-mix(in srgb,var(--a2) 60%,transparent) 22%,color-mix(in srgb,var(--a2) 37%,transparent) 44%,color-mix(in srgb,var(--a2) 16%,transparent) 66%,color-mix(in srgb,var(--a2) 5%,transparent) 84%,transparent 100%);margin:0 -4vmax -4vmax 0;bottom:-20vmax;right:-12vmax}
+.orb.o3{width:36vmax;height:36vmax;background:radial-gradient(circle closest-side,color-mix(in srgb,var(--a3) 76%,transparent) 0,color-mix(in srgb,var(--a3) 60%,transparent) 22%,color-mix(in srgb,var(--a3) 37%,transparent) 44%,color-mix(in srgb,var(--a3) 16%,transparent) 66%,color-mix(in srgb,var(--a3) 5%,transparent) 84%,transparent 100%);margin:-3vmax 0 0 -3vmax;top:40%;left:55%;opacity:.35}
 .grain{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 0,rgba(0,0,0,.65) 75%);pointer-events:none}
 .hero-inner{position:relative;z-index:2;padding:0 24px;will-change:transform,opacity}
 .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--mut);letter-spacing:.4px;margin-bottom:28px}
@@ -73,6 +74,15 @@ button{font:inherit;color:inherit}
 .h-lead{font-size:clamp(17px,2.2vw,22px);color:var(--mut);max-width:620px;margin:28px auto 0;opacity:0;transform:translate3d(0,18px,0);transition:opacity .9s var(--ease) .3s,transform .9s var(--ease) .3s}
 .btns{margin-top:40px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap;opacity:0;transform:translate3d(0,18px,0);transition:opacity .9s var(--ease) .42s,transform .9s var(--ease) .42s}
 .loaded .h-lead,.loaded .btns{opacity:1;transform:none}
+/* four entry cards in the hero (tab switches inside the app shell) */
+.entry{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;max-width:680px;margin-left:auto;margin-right:auto}
+.ent{display:flex;flex-direction:column;align-items:center;gap:3px;min-height:44px;padding:16px 10px 14px;border-radius:22px;color:var(--fg);text-decoration:none;transition:transform .25s var(--ease)}
+.ent .ei{font-size:20px;line-height:1;margin-bottom:4px;color:var(--a1)}.ent:nth-child(2) .ei{color:var(--a2)}.ent:nth-child(3) .ei{color:#7dd3fc}.ent:nth-child(4) .ei{color:var(--a3)}
+.ent b{font-size:15.5px;font-weight:600}.ent small{font-size:12px;color:var(--mut)}
+.ent:hover{transform:translateY(-2px)}.ent:focus-visible{outline:2px solid var(--a2);outline-offset:3px}
+@media (max-width:560px){.entry{grid-template-columns:1fr 1fr;gap:10px}.ent{padding:14px 8px 12px}}
+.card .prob{display:block;margin-top:10px;color:var(--fg);font-size:14px;line-height:1.55}.card .prob em{font-style:normal;color:var(--mut)}
+.stat small{display:block;margin-top:4px;color:var(--mut);font-size:11.5px;opacity:.8}
 .btn{display:inline-flex;align-items:center;gap:6px;padding:13px 26px;border-radius:999px;font-size:16px;font-weight:500;transition:transform .3s var(--ease),background-color .25s,box-shadow .3s var(--ease)}
 .btn:active{transform:scale(.97)}
 .btn.p{background:var(--fg);color:#000}
@@ -205,7 +215,7 @@ section.blk{padding:140px 0}
 .cb .tx{min-width:0}
 .cb small{display:block;font-size:11.5px;line-height:1.3;color:var(--mut)}
 .cb strong{display:block;font-size:14.5px;line-height:1.35;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cp{flex:none;width:40px;height:40px;margin-right:10px;border:0;border-radius:12px;display:grid;place-items:center;background:rgba(255,255,255,.07);color:var(--fg);cursor:pointer;transition:background-color .2s,transform .2s var(--ease)}
+.cp{flex:none;width:44px;height:44px;margin-right:10px;border:0;border-radius:12px;display:grid;place-items:center;background:rgba(255,255,255,.07);color:var(--fg);cursor:pointer;transition:background-color .2s,transform .2s var(--ease)}
 .cp:hover{background:rgba(255,255,255,.14)}
 .cp:active{transform:scale(.92)}
 .cp svg{width:17px;height:17px}
@@ -233,7 +243,6 @@ footer .wrap{display:flex;justify-content:space-between;align-items:center;flex-
   .nav nav a{margin-left:18px}
   .hero{height:150vh}
   .statement{height:180vh}
-  .orb{filter:blur(50px)}
 }
 
 
@@ -270,9 +279,7 @@ footer .wrap{display:flex;justify-content:space-between;align-items:center;flex-
 /* ---------- iOS 26-style liquid glass ---------- */
 .lg{--lg-bg:rgba(255,255,255,.035);background:var(--lg-bg)!important;-webkit-backdrop-filter:blur(7px) saturate(170%) brightness(1.06);backdrop-filter:blur(7px) saturate(170%) brightness(1.06);border:0!important;box-shadow:inset 1.5px 1.5px 1px -1px rgba(255,255,255,.45),inset -1px -1px 1px -.5px rgba(255,255,255,.18),inset 0 0 12px rgba(255,255,255,.04),inset 0 -14px 24px -18px rgba(255,255,255,.07),0 8px 28px -8px rgba(0,0,0,.5)}
 /* Chromium: real lens refraction (per-element displacement map set by JS) */
-.lg.lens{-webkit-backdrop-filter:var(--lens) blur(.6px) saturate(165%) brightness(1.08);backdrop-filter:var(--lens) blur(.6px) saturate(165%) brightness(1.08);--lg-bg:rgba(255,255,255,.015)}
 .lg-rim{position:relative}
-.lg-rim::after{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;background:linear-gradient(135deg,rgba(255,255,255,.5),rgba(255,255,255,.08) 22%,rgba(255,255,255,0) 48%,rgba(255,255,255,.03) 70%,rgba(255,255,255,.28));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;z-index:2}
 /* floating glass nav pill */
 .nav,.nav.solid{inset:12px 0 auto 0;height:auto;background:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border:0!important;pointer-events:none}
 .nav .wrap{pointer-events:auto;height:52px;max-width:640px;margin:0 auto;padding:0 22px;border-radius:999px;transition:transform .3s var(--ease),box-shadow .3s var(--ease)}
@@ -289,10 +296,12 @@ footer .wrap{display:flex;justify-content:space-between;align-items:center;flex-
 /* color behind the glass so the refraction shows */
 .lg-field{position:relative;isolation:isolate;overflow:hidden;overflow:clip}
 .lg-field::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background-image:radial-gradient(rgba(255,255,255,.13) 1px,transparent 1.4px);background-size:22px 22px;-webkit-mask:radial-gradient(ellipse 80% 70% at 50% 55%,#000 30%,transparent 80%);mask:radial-gradient(ellipse 80% 70% at 50% 55%,#000 30%,transparent 80%)}
-.lg-field>.blob{position:absolute;z-index:-1;border-radius:50%;filter:blur(60px);opacity:.5;pointer-events:none;animation:lgdrift 18s ease-in-out infinite alternate}
-.lg-field>.b1{width:420px;height:420px;background:radial-gradient(circle,var(--a1),transparent 65%);left:-6%;top:28%}
-.lg-field>.b2{width:380px;height:380px;background:radial-gradient(circle,var(--a2),transparent 65%);right:-4%;top:42%;animation-duration:22s}
-.lg-field>.b3{width:300px;height:300px;background:radial-gradient(circle,#76b900,transparent 65%);left:42%;top:60%;opacity:.35;animation-duration:26s}
+.lg-field>.blob{position:absolute;z-index:-1;border-radius:50%;opacity:.5;pointer-events:none;animation:lgdrift 18s ease-in-out infinite alternate;will-change:transform;contain:strict}
+.lg-field>.b1{width:500px;height:500px;background:radial-gradient(circle closest-side,color-mix(in srgb,var(--a1) 76%,transparent) 0,color-mix(in srgb,var(--a1) 60%,transparent) 22%,color-mix(in srgb,var(--a1) 37%,transparent) 44%,color-mix(in srgb,var(--a1) 16%,transparent) 66%,color-mix(in srgb,var(--a1) 5%,transparent) 84%,transparent 100%);margin:-40px 0 0 -40px;left:-6%;top:28%}
+.lg-field>.b2{width:460px;height:460px;background:radial-gradient(circle closest-side,color-mix(in srgb,var(--a2) 76%,transparent) 0,color-mix(in srgb,var(--a2) 60%,transparent) 22%,color-mix(in srgb,var(--a2) 37%,transparent) 44%,color-mix(in srgb,var(--a2) 16%,transparent) 66%,color-mix(in srgb,var(--a2) 5%,transparent) 84%,transparent 100%);margin:-40px -40px 0 0;right:-4%;top:42%;animation-duration:22s}
+.lg-field>.b3{width:380px;height:380px;background:radial-gradient(circle closest-side,color-mix(in srgb,#76b900 76%,transparent) 0,color-mix(in srgb,#76b900 60%,transparent) 22%,color-mix(in srgb,#76b900 37%,transparent) 44%,color-mix(in srgb,#76b900 16%,transparent) 66%,color-mix(in srgb,#76b900 5%,transparent) 84%,transparent 100%);margin:-40px 0 0 -40px;left:42%;top:60%;opacity:.35;animation-duration:26s}
+/* off-screen sections: pause the drifting blobs */
+.lg-field.off>.blob{animation-play-state:paused}
 @keyframes lgdrift{to{transform:translate3d(60px,-40px,0) scale(1.12)}}
 
 /* ---------- multi-device ---------- */
@@ -301,7 +310,7 @@ body{overflow-x:clip;max-width:100%}
 .nav,.nav.solid{top:max(12px,env(safe-area-inset-top))}
 .wrap{padding-left:max(24px,env(safe-area-inset-left));padding-right:max(24px,env(safe-area-inset-right))}
 @media (min-width:821px) and (max-width:1100px){.cards{grid-template-columns:1fr 1fr}.cards>.rv:last-child{grid-column:1/-1}}
-@media (max-width:820px){.lg-field>.blob{width:260px;height:260px;filter:blur(45px)}}
+@media (max-width:820px){.lg-field>.blob{width:330px;height:330px}}
 @media (max-width:480px){
   .nav .wrap{height:46px;padding:0 16px}
   .nav b{font-size:15px}
@@ -392,7 +401,7 @@ footer{padding-bottom:calc(max(40px,env(safe-area-inset-bottom)) + 56px)!importa
 <button id="aiBtn" class="lg lg-rim no-embed" aria-controls="aiPanel" aria-expanded="false" aria-label="打开 AI 聊天"><i></i>问 AI</button>
 <div id="aiPanel" class="lg lg-rim no-embed" role="dialog" aria-label="AI 聊天">
   <header><span>AI 助手<small id="aiModel">GPT-6 Astra</small></span><button id="aiX" aria-label="关闭">×</button></header>
-  <div id="aiLog"><div class="msg a">你好！我是 GPT-6 Astra，有什么想聊的？</div><div class="msg e" style="color:var(--mut)">对话内容会被站长记录，请勿发送隐私信息。</div></div>
+  <div id="aiLog"><div class="msg a">你好！我是 GPT-6 Astra，有什么想聊的？</div><div class="msg e" style="color:var(--mut)">对话内容会被站长记录，请勿发送隐私信息。<button type="button" class="wz-link" data-privacy>隐私说明</button></div></div>
   <form id="aiForm"><input id="aiIn" maxlength="1000" placeholder="输入消息…" autocomplete="off" enterkeyhint="send" aria-label="输入消息"><button id="aiSend">发送</button></form>
 </div>
 <canvas id="spark" aria-hidden="true"></canvas>
@@ -408,8 +417,13 @@ footer{padding-bottom:calc(max(40px,env(safe-area-inset-bottom)) + 56px)!importa
     <div class="hero-inner" id="heroInner">
       <div class="eyebrow"><i></i>在线 · wqzachery.dpdns.org</div>
       <h1 class="h-title"><span class="line"><span>你好，我是</span></span><span class="line"><span><span class="grad">吴谦</span> Zachery。</span></span></h1>
-      <p class="h-lead">喜欢折腾代码、AI 工具和自动化。这里是我的个人站点，记录正在做的项目和学到的东西。</p>
-      <div class="btns"><a class="btn p" href="https://github.com/WQQZachery" target="_blank" rel="noopener" aria-label="打开我的 GitHub 主页（新标签页）">GitHub →</a><a class="btn s lg lg-rim" href="#projects" aria-label="滚动到项目">看看项目 ›</a></div>
+      <p class="h-lead">一个喜欢写代码、玩 AI、搞自动化的个人开发者。这个网站就是我的作品，下面四个功能都跑在一个免费的 Cloudflare Worker 上。</p>
+      <nav class="btns entry" aria-label="主要入口">
+        <a class="ent lg lg-rim" href="#projects"><span class="ei" aria-hidden="true">◆</span><b>项目</b><small>我在做什么</small></a>
+        <a class="ent lg lg-rim" href="/ai"><span class="ei" aria-hidden="true">✦</span><b>AI 助手</b><small>多模型对话</small></a>
+        <a class="ent lg lg-rim" href="/drive"><span class="ei" aria-hidden="true">☁</span><b>网盘</b><small>公开上传和下载</small></a>
+        <a class="ent lg lg-rim" href="/chat"><span class="ei" aria-hidden="true">💬</span><b>聊天室</b><small>匿名实时聊天</small></a>
+      </nav>
     </div>
     <div class="scroll-cue" id="cue" aria-hidden="true"></div>
   </div>
@@ -429,10 +443,10 @@ footer{padding-bottom:calc(max(40px,env(safe-area-inset-bottom)) + 56px)!importa
         <p class="rv" style="--d:.22s">还给自己搭了一套<b>小型基础设施</b>：一个自有域名 + <b>Cloudflare Workers</b>，跑着这个主页、公共网盘、AI 助手和管理后台。</p>
       </div>
       <div class="stat" role="list" aria-label="一些数字">
-        <div class="lg lg-rim rv fo" role="listitem" style="--d:.1s"><strong>5</strong><span>常用 AI 助手</span></div>
-        <div class="lg lg-rim rv fo" role="listitem" style="--d:.16s"><strong>$0</strong><span>基础设施月成本</span></div>
-        <div class="lg lg-rim rv fo" role="listitem" style="--d:.22s"><strong>300+</strong><span>全球边缘节点</span></div>
-        <div class="lg lg-rim rv fo" role="listitem" style="--d:.28s"><strong>24/7</strong><span>定时任务在线</span></div>
+        <div class="lg lg-rim rv fo" role="listitem" style="--d:.1s"><strong id="stDays">—</strong><span>天，上线至今</span><small>2026-10-11 上线</small></div>
+        <div class="lg lg-rim rv fo" role="listitem" style="--d:.16s"><strong id="stFeat">4</strong><span>个功能</span><small>主页 · 网盘 · AI · 聊天室</small></div>
+        <div class="lg lg-rim rv fo" role="listitem" style="--d:.22s"><strong id="stFiles">—</strong><span>个网盘公开文件</span><small>实时统计</small></div>
+        <div class="lg lg-rim rv fo" role="listitem" style="--d:.28s"><strong>$0</strong><span>月成本</span><small>Cloudflare / Hugging Face 免费套餐内</small></div>
       </div>
     </div>
   </div>
@@ -448,20 +462,23 @@ footer{padding-bottom:calc(max(40px,env(safe-area-inset-bottom)) + 56px)!importa
         <span class="top"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#6ee7b7" stroke-width="1.7" stroke-linecap="round"><rect x="3.5" y="4" width="17" height="6.5" rx="2"/><rect x="3.5" y="13.5" width="17" height="6.5" rx="2"/><path d="M7 7.25h.01M7 16.75h.01M11 7.25h6M11 16.75h6"/></svg></span><span class="badge ok"><i></i>运行中</span></span>
         <span class="ttl">个人服务器</span>
         <span class="desc">自有域名 + Cloudflare DNS &amp; Workers，零成本运行主页、网盘、AI 和后台。</span>
+        <span class="prob"><em>解决：</em>不花钱也能有自己的网站、文件分享和 AI 入口。</span>
         <span class="pills"><span class="pill">Workers</span><span class="pill">Durable Objects</span><span class="pill">Hugging Face</span><span class="pill">JavaScript</span></span>
         <span class="more" aria-hidden="true">查看详情 ›</span>
       </button></div>
-      <div class="rv" style="--d:.12s"><button type="button" class="card lg lg-rim tilt" data-open="p-pipe" aria-haspopup="dialog" aria-label="数据清洗流水线：开发中，查看详情">
-        <span class="top"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 4.5h17l-6.5 8v6l-4 2v-8z"/></svg></span><span class="badge dev"><i></i>开发中</span></span>
+      <div class="rv" style="--d:.12s"><button type="button" class="card lg lg-rim tilt" data-open="p-pipe" aria-haspopup="dialog" aria-label="数据清洗流水线：本地原型，查看详情">
+        <span class="top"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 4.5h17l-6.5 8v6l-4 2v-8z"/></svg></span><span class="badge dev"><i></i>本地原型</span></span>
         <span class="ttl">数据清洗流水线</span>
         <span class="desc">Python worker 批量清洗、校验数据，配合定时任务。</span>
+        <span class="prob"><em>解决：</em>把杂乱的表格数据自动整理成可用的格式。</span>
         <span class="pills"><span class="pill">Python</span><span class="pill">Cron</span><span class="pill">Linux</span></span>
         <span class="more" aria-hidden="true">查看详情 ›</span>
       </button></div>
-      <div class="rv" style="--d:.19s"><button type="button" class="card lg lg-rim tilt" data-open="p-ai" aria-haspopup="dialog" aria-label="AI 工作流：运行中，查看详情">
-        <span class="top"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.7" stroke-linejoin="round"><path d="M12 3c.5 4.4 2.6 6.5 7 7-4.4.5-6.5 2.6-7 7-.5-4.4-2.6-6.5-7-7 4.4-.5 6.5-2.6 7-7z"/><path d="M18.5 15.5c.2 1.6 1 2.4 2.5 2.5-1.5.2-2.3 1-2.5 2.5-.2-1.5-1-2.3-2.5-2.5 1.5-.1 2.3-.9 2.5-2.5z"/></svg></span><span class="badge ok"><i></i>运行中</span></span>
+      <div class="rv" style="--d:.19s"><button type="button" class="card lg lg-rim tilt" data-open="p-ai" aria-haspopup="dialog" aria-label="AI 工作流：日常在用，查看详情">
+        <span class="top"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.7" stroke-linejoin="round"><path d="M12 3c.5 4.4 2.6 6.5 7 7-4.4.5-6.5 2.6-7 7-.5-4.4-2.6-6.5-7-7 4.4-.5 6.5-2.6 7-7z"/><path d="M18.5 15.5c.2 1.6 1 2.4 2.5 2.5-1.5.2-2.3 1-2.5 2.5-.2-1.5-1-2.3-2.5-2.5 1.5-.1 2.3-.9 2.5-2.5z"/></svg></span><span class="badge ok"><i></i>日常在用</span></span>
         <span class="ttl">AI 工作流</span>
         <span class="desc">多模型串联处理写作、研究和编程。</span>
+        <span class="prob"><em>解决：</em>按任务挑最合适的模型，少走弯路。</span>
         <span class="pills"><span class="pill">Claude</span><span class="pill">ChatGPT</span><span class="pill">Gemini</span><span class="pill">OpenRouter</span></span>
         <span class="more" aria-hidden="true">查看详情 ›</span>
       </button></div>
@@ -473,22 +490,26 @@ footer{padding-bottom:calc(max(40px,env(safe-area-inset-bottom)) + 56px)!importa
 <template id="p-server">
   <div class="top"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#6ee7b7" stroke-width="1.7" stroke-linecap="round"><rect x="3.5" y="4" width="17" height="6.5" rx="2"/><rect x="3.5" y="13.5" width="17" height="6.5" rx="2"/><path d="M7 7.25h.01M7 16.75h.01M11 7.25h6M11 16.75h6"/></svg></span><div><h3 id="sheetT">个人服务器</h3><span class="badge ok"><i></i>运行中</span></div></div>
   <p>自有域名 + Cloudflare DNS &amp; Workers，零成本运行主页、网盘、AI 和后台。</p>
+  <span class="lbl">解决的问题</span><p>不花钱也能有自己的网站、文件分享和 AI 入口。</p>
   <span class="lbl">包含</span>
-  <ul class="pts"><li>个人主页（就是你正在看的这一页）</li><li>公共网盘</li><li>AI 助手</li><li>管理后台</li></ul>
+  <ul class="pts"><li>个人主页（就是你正在看的这一页）</li><li>公共网盘</li><li>AI 助手</li><li>实时聊天室</li><li>管理后台（仅站长）</li></ul>
   <span class="lbl">技术</span>
   <div class="pills" style="margin-top:0"><span class="pill">Workers</span><span class="pill">Durable Objects</span><span class="pill">Hugging Face</span><span class="pill">JavaScript</span></div>
+  <p class="note">源码仓库目前未公开。</p>
   <div class="acts"><a class="act" href="/drive" aria-label="打开公共网盘">打开网盘 ›</a><a class="act g" href="/ai" aria-label="打开网站 AI 助手">和 AI 聊聊 ›</a></div>
 </template>
 <template id="p-pipe">
-  <div class="top"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 4.5h17l-6.5 8v6l-4 2v-8z"/></svg></span><div><h3 id="sheetT">数据清洗流水线</h3><span class="badge dev"><i></i>开发中</span></div></div>
+  <div class="top"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 4.5h17l-6.5 8v6l-4 2v-8z"/></svg></span><div><h3 id="sheetT">数据清洗流水线</h3><span class="badge dev"><i></i>本地原型</span></div></div>
   <p>Python worker 批量清洗、校验数据，配合定时任务。</p>
+  <span class="lbl">解决的问题</span><p>把杂乱的表格数据自动整理成可用的格式。</p>
   <span class="lbl">技术</span>
   <div class="pills" style="margin-top:0"><span class="pill">Python</span><span class="pill">Cron</span><span class="pill">Linux</span></div>
-  <p class="note">还在开发中，暂无公开入口。</p>
+  <p class="note">目前只在本地运行，暂无公开入口和源码。</p>
 </template>
 <template id="p-ai">
-  <div class="top"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.7" stroke-linejoin="round"><path d="M12 3c.5 4.4 2.6 6.5 7 7-4.4.5-6.5 2.6-7 7-.5-4.4-2.6-6.5-7-7 4.4-.5 6.5-2.6 7-7z"/><path d="M18.5 15.5c.2 1.6 1 2.4 2.5 2.5-1.5.2-2.3 1-2.5 2.5-.2-1.5-1-2.3-2.5-2.5 1.5-.1 2.3-.9 2.5-2.5z"/></svg></span><div><h3 id="sheetT">AI 工作流</h3><span class="badge ok"><i></i>运行中</span></div></div>
+  <div class="top"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.7" stroke-linejoin="round"><path d="M12 3c.5 4.4 2.6 6.5 7 7-4.4.5-6.5 2.6-7 7-.5-4.4-2.6-6.5-7-7 4.4-.5 6.5-2.6 7-7z"/><path d="M18.5 15.5c.2 1.6 1 2.4 2.5 2.5-1.5.2-2.3 1-2.5 2.5-.2-1.5-1-2.3-2.5-2.5 1.5-.1 2.3-.9 2.5-2.5z"/></svg></span><div><h3 id="sheetT">AI 工作流</h3><span class="badge ok"><i></i>日常在用</span></div></div>
   <p>多模型串联处理写作、研究和编程。</p>
+  <span class="lbl">解决的问题</span><p>按任务挑最合适的模型，少走弯路。</p>
   <span class="lbl">技术</span>
   <div class="pills" style="margin-top:0"><span class="pill">Claude</span><span class="pill">ChatGPT</span><span class="pill">Gemini</span><span class="pill">OpenRouter</span></div>
   <div class="acts"><a class="act" href="/ai" aria-label="打开网站 AI 助手">试试网站 AI ›</a></div>
@@ -496,6 +517,7 @@ footer{padding-bottom:calc(max(40px,env(safe-area-inset-bottom)) + 56px)!importa
 <template id="changelog">
   <div class="top"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#6ee7b7" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span><div><h3 id="sheetT">更新日志</h3></div></div>
   <ol class="clog">
+    <li><time datetime="2026-10-16">2026-10-16</time><span>网盘上传限额与举报、隐私说明、首页入口卡片、滚动更流畅</span></li>
     <li><time datetime="2026-10-15">2026-10-15</time><span>实时聊天室、返回手势、主页改版、国产 AI 模型</span></li>
     <li><time datetime="2026-10-14">2026-10-14</time><span>管理后台、液态玻璃标签栏</span></li>
     <li><time datetime="2026-10-13">2026-10-13</time><span>公共网盘、AI 助手上线</span></li>
@@ -532,14 +554,14 @@ footer{padding-bottom:calc(max(40px,env(safe-area-inset-bottom)) + 56px)!importa
     <p class="sub rv" style="--d:.16s">代码、AI 或者任何好玩的点子，都欢迎在 GitHub 或邮箱找我。</p>
     <div class="cbtns rv" style="--d:.24s">
       <div class="cb lg lg-rim"><a href="https://github.com/WQQZachery" target="_blank" rel="noopener" aria-label="GitHub @WQQZachery（新标签页）"><span class="ci" aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="#f5f5f7" d="M12 .3a12 12 0 00-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1-.7.1-.7.1-.7 1.2 0 1.9 1.2 1.9 1.2 1 1.8 2.8 1.3 3.5 1 0-.8.4-1.3.7-1.6-2.7-.3-5.5-1.3-5.5-6 0-1.2.5-2.3 1.3-3.1-.2-.4-.6-1.6 0-3.2 0 0 1-.3 3.4 1.2a11.5 11.5 0 016 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.6.2 2.8 0 3.2.9.8 1.3 1.9 1.3 3.2 0 4.6-2.8 5.6-5.5 5.9.5.4.9 1 .9 2.2v3.3c0 .3.1.7.8.6A12 12 0 0012 .3"/></svg></span><span class="tx"><small>GitHub</small><strong>@WQQZachery</strong></span></a></div>
-      <div class="cb lg lg-rim"><a href="mailto:zacherywu0914@gmail.com" aria-label="发邮件到 Gmail：zacherywu0914@gmail.com"><span class="ci" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#f5f5f7" stroke-width="1.7" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M4 7l8 6 8-6" stroke="#EA4335"/></svg></span><span class="tx"><small>Gmail</small><strong>zacherywu0914@gmail.com</strong></span></a><button type="button" class="cp" data-copy="zacherywu0914@gmail.com" aria-label="复制 Gmail 地址"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><rect x="8.5" y="8.5" width="12" height="12" rx="2.5"/><path d="M15.5 8.5V6a2.5 2.5 0 00-2.5-2.5H6A2.5 2.5 0 003.5 6v7A2.5 2.5 0 006 15.5h2.5"/></svg></button></div>
-      <div class="cb lg lg-rim"><a href="mailto:15112479050@163.com" aria-label="发邮件到 163 邮箱：15112479050@163.com"><span class="ci" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#f5f5f7" stroke-width="1.7" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M4 7l8 6 8-6" stroke="#6ee7b7"/></svg></span><span class="tx"><small>163 邮箱</small><strong>15112479050@163.com</strong></span></a><button type="button" class="cp" data-copy="15112479050@163.com" aria-label="复制 163 邮箱地址"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><rect x="8.5" y="8.5" width="12" height="12" rx="2.5"/><path d="M15.5 8.5V6a2.5 2.5 0 00-2.5-2.5H6A2.5 2.5 0 003.5 6v7A2.5 2.5 0 006 15.5h2.5"/></svg></button></div>
+      <div class="cb lg lg-rim"><a class="em" data-u="zacherywu0914" data-d="gmail.com" data-keep="1" href="#contact" aria-label="发邮件到 Gmail"><span class="ci" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#f5f5f7" stroke-width="1.7" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M4 7l8 6 8-6" stroke="#EA4335"/></svg></span><span class="tx"><small>Gmail</small><strong data-em>zacherywu0914 [at] gmail.com</strong></span></a><button type="button" class="cp" data-cu="zacherywu0914" data-cd="gmail.com" aria-label="复制 Gmail 地址"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><rect x="8.5" y="8.5" width="12" height="12" rx="2.5"/><path d="M15.5 8.5V6a2.5 2.5 0 00-2.5-2.5H6A2.5 2.5 0 003.5 6v7A2.5 2.5 0 006 15.5h2.5"/></svg></button></div>
+      <div class="cb lg lg-rim"><a class="em" data-u="15112479050" data-d="163.com" data-keep="1" href="#contact" aria-label="发邮件到 163 邮箱"><span class="ci" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#f5f5f7" stroke-width="1.7" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M4 7l8 6 8-6" stroke="#6ee7b7"/></svg></span><span class="tx"><small>163 邮箱</small><strong data-em>15112479050 [at] 163.com</strong></span></a><button type="button" class="cp" data-cu="15112479050" data-cd="163.com" aria-label="复制 163 邮箱地址"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><rect x="8.5" y="8.5" width="12" height="12" rx="2.5"/><path d="M15.5 8.5V6a2.5 2.5 0 00-2.5-2.5H6A2.5 2.5 0 003.5 6v7A2.5 2.5 0 006 15.5h2.5"/></svg></button></div>
     </div>
   </div>
 </section>
 </main>
 
-<footer><div class="wrap"><span>© 2026 吴谦 · Zachery Wu</span><span class="fr"><a class="fchip lg lg-rim" href="https://workers.cloudflare.com" target="_blank" rel="noopener" aria-label="Hosted on Cloudflare Workers（新标签页）"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#F38020" d="M17.5 19H7a5 5 0 01-.6-10A6 6 0 0118 9.5a4.75 4.75 0 01-.5 9.5z"/></svg>Hosted on Cloudflare</a><button type="button" class="fchip lg lg-rim" data-open="changelog" aria-haspopup="dialog" aria-label="查看更新日志"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>更新日志</button></span></div></footer>
+<footer><div class="wrap"><span>© 2026 吴谦 · Zachery Wu</span><span class="fr"><a class="fchip lg lg-rim" href="https://workers.cloudflare.com" target="_blank" rel="noopener" aria-label="Hosted on Cloudflare Workers（新标签页）"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#F38020" d="M17.5 19H7a5 5 0 01-.6-10A6 6 0 0118 9.5a4.75 4.75 0 01-.5 9.5z"/></svg>Hosted on Cloudflare</a><button type="button" class="fchip lg lg-rim" data-privacy aria-haspopup="dialog">隐私说明</button><button type="button" class="fchip lg lg-rim" data-open="changelog" aria-haspopup="dialog" aria-label="查看更新日志"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>更新日志</button></span></div></footer>
 
 <div class="sheet" id="sheet" aria-hidden="true">
   <div class="sheet-bd" data-close></div>
@@ -632,7 +654,7 @@ document.addEventListener('keydown',e=>{if(!sheet.classList.contains('open'))ret
 const toast=$('#toast');let toastT=0;
 const showToast=m=>{toast.textContent=m;toast.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>toast.classList.remove('show'),1600)};
 const legacyCopy=t=>{const ta=document.createElement('textarea');ta.value=t;ta.setAttribute('readonly','');ta.style.cssText='position:fixed;top:0;left:0;opacity:0;font-size:16px';document.body.appendChild(ta);ta.select();ta.setSelectionRange(0,t.length);let ok=false;try{ok=document.execCommand('copy')}catch(_){}ta.remove();return ok};
-$$('[data-copy]').forEach(b=>b.addEventListener('click',async()=>{const t=b.dataset.copy;let ok=false;
+$$('[data-cu]').forEach(b=>b.addEventListener('click',async()=>{const t=b.dataset.cu+'@'+b.dataset.cd;let ok=false;
   try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(t);ok=true}}catch(_){}
   if(!ok)ok=legacyCopy(t);showToast(ok?'已复制':'复制失败，请长按地址')}));
 
@@ -727,10 +749,13 @@ if(matchMedia('(hover:hover) and (pointer:fine)').matches){
       `<feColorMatrix in="db" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 1 0" result="b"/>`+
       `<feBlend in="r" in2="g" mode="screen" result="rg"/><feBlend in="rg" in2="b" mode="screen"/>`;
     defs.appendChild(f);
-    el.style.setProperty('--lens',`url(#${id})`);el.classList.add('lens');
+    el.style.setProperty('--lens',`url(#${id})`);if(el.__vis!==false)el.classList.add('lens');
   }
-  const els=[...document.querySelectorAll('.lg')];
+  // hero entry cards keep the frosted glass (4 more refracting layers in the first screen cost ~15 fps while scrolling on mid-range phones)
+  const els=[...document.querySelectorAll('.lg:not(.ent)')];
   const run=()=>els.forEach(build);
+  // refraction only for glass that is on screen; off-screen cards drop the SVG filter
+  if('IntersectionObserver'in window){const io=new IntersectionObserver(es=>es.forEach(e=>{const el=e.target;el.__vis=e.isIntersecting;if(el.dataset.lid)el.classList.toggle('lens',e.isIntersecting)}),{rootMargin:'120px'});els.forEach(e=>io.observe(e))}
   const ro=new ResizeObserver(()=>{clearTimeout(run.t);run.t=setTimeout(run,120)});
   els.forEach(e=>ro.observe(e));
   requestAnimationFrame(run);
@@ -764,5 +789,11 @@ f.onsubmit=async e=>{e.preventDefault();const t=inp.value.trim();if(!t||send.dis
  }catch(err){done=true;cancelAnimationFrame(timer);w.remove();add('e',err.message);hist.pop()}finally{send.disabled=false}};
 })();
 </script>
+<script>if('IntersectionObserver'in window){const io=new IntersectionObserver(es=>es.forEach(e=>e.target.classList.toggle('off',!e.isIntersecting)),{rootMargin:'200px'});document.querySelectorAll('.lg-field').forEach(el=>io.observe(el))}</script>
+<script src="/shared.js?v=__V__" defer></script>
+<script>(()=>{const set=(id,v)=>{const e=document.getElementById(id);if(e&&v!=null)e.textContent=v};
+const d0=Date.UTC(2026,9,10,16);set('stDays',Math.floor((Date.now()-d0)/864e5)+1);
+const ac=new AbortController();setTimeout(()=>ac.abort(),10000);
+fetch('/api/stats',{signal:ac.signal}).then(r=>r.ok?r.json():null).then(j=>{if(!j)return;set('stDays',j.days);set('stFeat',j.features);if(j.files!=null)set('stFiles',j.files)}).catch(()=>{});})()</script>
 </body>
 </html>
