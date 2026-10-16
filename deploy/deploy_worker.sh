@@ -1,5 +1,5 @@
 #!/bin/bash
-# Usage: [MIGRATE=1] HF_REPO=wqzachery/drive deploy_worker.sh <script-name>   (auth injected by the 'cloudflare' service)
+# Usage: [MIGRATE=1] [AI_DAILY_CAP=200] [UP_MAX_FILE=bytes] [UP_DAY_BYTES=bytes] [UP_DAY_FILES=50] HF_REPO=wqzachery/drive deploy_worker.sh <script-name>   (auth injected by the 'cloudflare' service)
 set -e
 N=${1:-wqzachery}; A=2bf233f73b71c343852e1bc2b2d1f190; D=$(cd "$(dirname "$0")/.." && pwd)
 MIG=""; [ "$MIGRATE" = "1" ] && MIG=',"migrations":{"new_tag":"v1","new_sqlite_classes":["Store"]}'
@@ -10,6 +10,10 @@ META='{"main_module":"worker.js","compatibility_date":"2026-10-01","keep_binding
 {"type":"plain_text","name":"GEMINI_MODELS","text":"'"${GEMINI_MODELS:-}"'"},
 {"type":"plain_text","name":"HF_REPO","text":"'"${HF_REPO:-wqzachery/drive}"'"},
 {"type":"plain_text","name":"CAP_LABEL","text":"100 GB"},
+{"type":"plain_text","name":"AI_DAILY_CAP","text":"'"${AI_DAILY_CAP:-200}"'"},
+{"type":"plain_text","name":"UP_MAX_FILE","text":"'"${UP_MAX_FILE:-2147483648}"'"},
+{"type":"plain_text","name":"UP_DAY_BYTES","text":"'"${UP_DAY_BYTES:-5368709120}"'"},
+{"type":"plain_text","name":"UP_DAY_FILES","text":"'"${UP_DAY_FILES:-50}"'"},
 {"type":"ratelimit","name":"CHAT_RL","namespace_id":"7101","simple":{"limit":15,"period":60}},
 {"type":"ratelimit","name":"UP_RL","namespace_id":"7102","simple":{"limit":30,"period":60}}]}'
 curl -s -X PUT "https://api.cloudflare.com/client/v4/accounts/$A/workers/scripts/$N" \
@@ -22,4 +26,7 @@ curl -s -X PUT "https://api.cloudflare.com/client/v4/accounts/$A/workers/scripts
  -F "app.html=@$D/site/app.html;type=text/plain" \
  -F "ai.html=@$D/site/ai.html;type=text/plain" \
  -F "chat.html=@$D/site/chat.html;type=text/plain" \
+ -F "privacy.html=@$D/site/privacy.html;type=text/plain" \
+ -F "shared.css=@$D/site/shared.css;type=text/plain" \
+ -F "shared.js=@$D/site/shared.js;type=text/plain" \
  -F "og.png=@$D/site/og.png;type=application/octet-stream" | python3 -c "import sys,json;d=json.load(sys.stdin);print('success',d['success'],d.get('errors'))"
