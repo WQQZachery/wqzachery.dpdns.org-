@@ -22,6 +22,7 @@
 <meta name="twitter:image" content="https://wqzachery.dpdns.org/og.png">
 <meta name="theme-color" content="#000000">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23000'/%3E%3Cpath d='M18 20h28L18 44h28' stroke='%2376b900' stroke-width='6' fill='none'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/shared.css?v=__V__">
 <style>
 :root{--fg:#f5f5f7;--mut:#8e8e93;--tint:#7cf0c2;--bar-h:62px;--bar-w:min(420px,calc(100vw - 42px))}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -37,13 +38,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","M
 #bar{position:fixed;z-index:50;left:50%;bottom:max(12px,calc(env(safe-area-inset-bottom) - 10px));width:var(--bar-w);height:var(--bar-h);transform:translateX(-50%);border-radius:999px;touch-action:none;user-select:none;-webkit-user-select:none;transition:opacity .35s ease,transform .3s cubic-bezier(.25,1.2,.4,1)}
 /* same liquid glass as the top navigation pill (.lg/.lg-rim on the home page) */
 .lg{--lg-bg:rgba(255,255,255,.035);background:var(--lg-bg);-webkit-backdrop-filter:blur(7px) saturate(170%) brightness(1.06);backdrop-filter:blur(7px) saturate(170%) brightness(1.06);box-shadow:inset 1.5px 1.5px 1px -1px rgba(255,255,255,.45),inset -1px -1px 1px -.5px rgba(255,255,255,.18),inset 0 0 12px rgba(255,255,255,.04),inset 0 -14px 24px -18px rgba(255,255,255,.07),0 8px 28px -8px rgba(0,0,0,.5)}
-.lg.lens{-webkit-backdrop-filter:var(--lens) blur(.6px) saturate(165%) brightness(1.08);backdrop-filter:var(--lens) blur(.6px) saturate(165%) brightness(1.08);--lg-bg:rgba(255,255,255,.015)}
-.lg-rim::after{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;background:linear-gradient(135deg,rgba(255,255,255,.5),rgba(255,255,255,.08) 22%,rgba(255,255,255,0) 48%,rgba(255,255,255,.03) 70%,rgba(255,255,255,.28));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;z-index:2}
 #bar.hide{opacity:0;transform:translateX(-50%) translateY(30px) scale(.9);pointer-events:none}
-#bar.lg{--lg-bg:rgba(24,24,28,.34);-webkit-backdrop-filter:blur(14px) saturate(185%) brightness(.92);backdrop-filter:blur(14px) saturate(185%) brightness(.92)}
-#bar.lg.lens{--lg-bg:rgba(24,24,28,.22);-webkit-backdrop-filter:blur(2px) var(--lens) saturate(185%) brightness(.95);backdrop-filter:blur(2px) var(--lens) saturate(185%) brightness(.95)}
+#glass{position:absolute;inset:0;border-radius:inherit;pointer-events:none}
+/* the glass lives in its own layer (not on #bar) so #bar is NOT a backdrop root: the moving lens can then sample the page + bar under it */
+#glass.lg{--lg-bg:rgba(24,24,28,.34);-webkit-backdrop-filter:blur(14px) saturate(185%) brightness(.92);backdrop-filter:blur(14px) saturate(185%) brightness(.92)}
+#glass.lg.lens{--lg-bg:rgba(24,24,28,.22);-webkit-backdrop-filter:blur(2px) var(--lens) saturate(185%) brightness(.95);backdrop-filter:blur(2px) var(--lens) saturate(185%) brightness(.95)}
 #lens.lens.refr{-webkit-backdrop-filter:var(--lens) blur(calc(2px * var(--a))) saturate(170%) brightness(1.08);backdrop-filter:var(--lens) blur(calc(2px * var(--a))) saturate(170%) brightness(1.08)}
-@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){#bar.lg{--lg-bg:rgba(28,28,32,.94)}}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){#glass.lg{--lg-bg:rgba(28,28,32,.94)}}
 #edge{position:fixed;left:0;right:0;bottom:0;height:calc(110px + env(safe-area-inset-bottom));z-index:49;pointer-events:none;background:linear-gradient(to top,rgba(0,0,0,.62),rgba(0,0,0,.28) 45%,rgba(0,0,0,0));transition:opacity .35s}
 #bar.hide+#edge,#edge.hide{opacity:0}
 #bar.press{transform:translateX(-50%) scale(1.012);transition:transform .12s ease-out}
@@ -67,16 +68,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","M
 #mag .it{color:var(--tint)}
 #mag .it svg{stroke-width:1.9;fill:currentColor;fill-opacity:.22}
 #mag .it{text-shadow:none}
-@media (prefers-reduced-transparency:reduce){#bar{--lg-bg:rgba(28,28,32,.94)}}
+@media (prefers-reduced-transparency:reduce){#glass.lg,#glass.lg.lens{--lg-bg:rgba(28,28,32,.94)}}
 @media (min-width:900px){:root{--bar-h:60px;--bar-w:400px}}
 .it{position:relative}
 .bd{position:absolute;top:5px;left:calc(50% + 8px);min-width:8px;height:8px;border-radius:999px;background:#ff453a;box-shadow:0 0 0 1.5px rgba(0,0,0,.55),0 0 8px rgba(255,69,58,.7)}
 .bd[hidden]{display:none}
-@media (prefers-contrast:more){#bar.lg{--lg-bg:rgba(20,20,24,.9)}.it{color:#fff}}
+@media (prefers-contrast:more){#glass.lg{--lg-bg:rgba(20,20,24,.9)}.it{color:#fff}}
 </style>
 </head>
 <body>
-<noscript><h1>吴谦 · Zachery Wu</h1><p>吴谦（Zachery Wu）的个人网站：<a href="/p/home">主页</a>、<a href="/p/drive">公共网盘</a>、<a href="/p/ai">AI 助手 GPT-6 Astra</a>、<a href="/p/chat">聊天室</a>。源码见 <a href="https://github.com/WQQZachery/wqzachery.dpdns.org-">GitHub</a>。</p></noscript>
+<noscript><h1>吴谦 · Zachery Wu</h1><p>吴谦（Zachery Wu）的个人网站：<a href="/p/home">主页</a>、<a href="/p/drive">公共网盘</a>、<a href="/p/ai">AI 助手 GPT-6 Astra</a>、<a href="/p/chat">聊天室</a>。作者 GitHub：<a href="https://github.com/WQQZachery">@WQQZachery</a>。<a href="/privacy">隐私说明</a>。</p></noscript>
 <div id="viewport"><div id="track">
   <section class="pane" data-tab="home" aria-label="主页"></section>
   <section class="pane" data-tab="drive" aria-label="网盘"></section>
@@ -85,7 +86,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","M
 </div></div>
 
 <svg id="lgdefs" width="0" height="0" style="position:absolute;width:0;height:0" aria-hidden="true"><defs></defs></svg>
-<nav id="bar" class="lg lg-rim hide" aria-label="切换页面">
+<nav id="bar" class="hide" aria-label="切换页面">
+  <div id="glass" class="lg lg-rim" aria-hidden="true"></div>
   <div class="row" id="row" role="tablist">
     <button class="it" role="tab" data-i="0"><svg viewBox="0 0 24 24"><path d="M3.5 10.6 12 3.8l8.5 6.8V20a.9.9 0 0 1-.9.9h-4.8v-6.1H9.2v6.1H4.4a.9.9 0 0 1-.9-.9z"/></svg>主页</button>
     <button class="it" role="tab" data-i="1"><svg viewBox="0 0 24 24"><path d="M7 18.5h10.5a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.6 9.1 4.75 4.75 0 0 0 7 18.5z"/><path d="M12 15.5v-6m-2.6 2.5L12 9.4l2.6 2.6"/></svg>网盘</button>
@@ -135,10 +137,14 @@ function render(){
   lens.style.width=iw+'px';
   lens.style.transform=`translate3d(${x.toFixed(2)}px,0,0) scale(${sx.toFixed(4)},${sy.toFixed(4)})`;
   lens.style.setProperty('--a',clamp(act,0,1).toFixed(3));
-  { const l0=x-4+iw*(ox/100)*(1-sx), r0=l0+iw*sx, lifted=act>.02||moving;
-    const m=lifted?`linear-gradient(90deg,#000 ${Math.max(0,l0+4)}px,transparent ${l0+6}px,transparent ${r0-6}px,#000 ${r0-4}px)`:'none';
+  { const l0=x-4+iw*(ox/100)*(1-sx), r0=l0+iw*sx, lifted=act>.02||moving, refr=lens.classList.contains('lens');
+    // Chromium: while the glass is lifted it refracts the real icons under it (warp + RGB fringes at its edges, visible even
+    // over a black page), so the plain row stays unmasked and the tinted copy fades out; elsewhere the row is masked under the lens.
+    const see=refr&&act>.05;
+    const m=lifted&&!see?`linear-gradient(90deg,#000 ${Math.max(0,l0+4)}px,transparent ${l0+6}px,transparent ${r0-6}px,#000 ${r0-4}px)`:'none';
     row.style.webkitMaskImage=m;row.style.maskImage=m;
-    if(lens.classList.contains('lens'))lens.classList.toggle('refr',act>.05); }   // refract only while lifted (at rest the icon under it would be warped)   // plain icons under the lens are hidden; the magnified copy shows instead
+    mag.style.opacity=see?Math.max(0,1-act*1.6).toFixed(3):'';
+    if(refr)lens.classList.toggle('refr',see); }   // refract only while lifted (at rest the icon under it would be warped)   // plain icons under the lens are hidden; the magnified copy shows instead
   mag.style.width=(bw-8)+'px';mag.style.transform=`translate3d(${-(x-4)}px,0,0)`;
   const cur=Math.round(cp);if(cur!==lastSel&&!dragging){lastSel=cur;row.querySelectorAll('.it').forEach((b,i)=>{b.setAttribute('aria-selected',i===cur);b.tabIndex=i===cur?0:-1})}
   if(!dragging&&shown!==target&&Math.abs(target-p)<.35)show(target);   // page swaps as the glass lands
@@ -213,7 +219,8 @@ render();
 /* ---------- liquid glass lens (Chromium only; Safari/Firefox keep frosted fallback) ---------- */
 (()=>{
   const ua=navigator.userAgent;
-  const chromium=/Chrome\/|Chromium\/|Edg\//.test(ua)&&!/CriOS|EdgiOS|FxiOS/.test(ua)&&!/Firefox\//.test(ua);
+  const brands=(navigator.userAgentData&&navigator.userAgentData.brands||[]).map(b=>b.brand).join(',');
+  const chromium=(/Chrome\/|Chromium\/|Edg\/|EdgA\//.test(ua)||/Chromium|Google Chrome|Microsoft Edge/.test(brands))&&!/CriOS|EdgiOS|FxiOS|Firefox\//.test(ua);
   if(!chromium||!CSS.supports('backdrop-filter','url(#x)'))return;
   const NS='http://www.w3.org/2000/svg',defs=document.querySelector('#lgdefs defs');
   let n=0;
@@ -242,7 +249,8 @@ render();
     const key=w+'x'+h;if(el.dataset.lk===key)return;el.dataset.lk=key;
     const cs=getComputedStyle(el),r=Math.min(parseFloat(cs.borderTopLeftRadius)||0,w/2,h/2);
     const bezel=Math.min(Math.max(h*.32,14),28,Math.min(w,h)/2);
-    const scale=Math.min(bezel*(el.id==='bar'?1.9:1.6),46),sp=el.id==='bar'?[.9,.8]:el.id==='lens'?[.96,.92]:[.975,.95];
+    const bar=el.id==='glass',ln=el.id==='lens';
+    const scale=Math.min(bezel*(bar?1.9:ln?2.1:1.6),46),sp=bar?[.9,.8]:ln?[.88,.76]:[.975,.95];   // R/G/B displacement ratios = dispersion strength
     const id=el.dataset.lid||('lgl'+(n++));el.dataset.lid=id;
     let f=document.getElementById(id);if(f)f.remove();
     f=document.createElementNS(NS,'filter');
@@ -266,5 +274,6 @@ render();
   requestAnimationFrame(run);
 })();
 </script>
+<script src="/shared.js?v=__V__" defer></script>
 </body>
 </html>
