@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <title>GPT-6 Astra · 吴谦</title>
+<meta name="description" content="GPT-6 Astra：吴谦个人网站上的 AI 助手，可切换多个模型、联网搜索和调节思考强度。">
 <link rel="canonical" href="https://wqzachery.dpdns.org/ai">
 <meta name="theme-color" content="#000000">
 <script>
@@ -17,6 +18,7 @@ document.addEventListener('focusin',function(e){if(touch&&e.target.matches&&e.ta
 document.addEventListener('focusout',function(e){if(touch&&e.target.matches&&e.target.matches(ti))post({type:'bar',show:true})});
 })();
 </script>
+<link rel="stylesheet" href="/shared.css?v=__V__">
 <style>html.embed .no-embed{display:none!important}html.embed body{padding-bottom:100px}</style>
 
 <style>
@@ -67,6 +69,8 @@ textarea::placeholder{color:#6e6e73}
 .opts .seg span{color:var(--mut);font-size:12px;padding:0 6px 0 9px}
 .opts .seg button{height:26px;padding:0 11px;background:none;box-shadow:none}
 .opts .seg button[aria-checked="true"]{color:var(--fg);background:rgba(255,255,255,.16)}
+.pvn{max-width:760px;margin:5px auto 0;text-align:center;font-size:11px;line-height:16px;color:#6e6e73}.pvn .wz-link{font-size:11px;color:#8e8e93;min-height:0}
+html.embed.kb .pvn{display:none}
 .opts button:focus-visible{outline:2px solid var(--a1);outline-offset:2px}
 .think{max-width:100%;margin:2px 0 8px;border-radius:16px;background:rgba(255,255,255,.04);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.1)}
 .think summary{cursor:pointer;list-style:none;padding:9px 13px;font-size:13px;color:var(--mut);display:flex;align-items:center;gap:2px;user-select:none}
@@ -117,8 +121,9 @@ textarea::placeholder{color:#6e6e73}
 <form id="f" autocomplete="off">
   <div class="opts"><button type="button" id="web" aria-pressed="false" aria-label="联网搜索"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>联网搜索</button>
   <div class="seg" role="radiogroup" aria-label="思考深度" id="eff"><span>思考</span><button type="button" role="radio" data-e="low" title="快速作答">迅捷</button><button type="button" role="radio" data-e="medium" title="先想一想再回答">均衡</button><button type="button" role="radio" data-e="high" title="一步步深入推理">深思</button><button type="button" role="radio" data-e="max" title="最大思考深度，较慢">极致</button></div></div>
-  <div class="box"><textarea id="in" rows="1" placeholder="给 GPT-6 Astra 发消息" maxlength="4000" enterkeyhint="send"></textarea>
+  <div class="box"><textarea id="in" rows="1" placeholder="给 GPT-6 Astra 发消息" maxlength="4000" enterkeyhint="send" aria-label="输入消息"></textarea>
   <button id="send" type="submit" aria-label="发送" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg></button></div>
+  <p class="pvn">对话会被站长记录 · <button type="button" class="wz-link" data-privacy>隐私说明</button></p>
 </form>
 <script>
 (()=>{
@@ -134,10 +139,14 @@ $('#eff').onclick=e=>{const b=e.target.closest('button');if(!b)return;effort=b.d
 function showModel(){const m=cur();$('#mn').textContent=m.name;inp.placeholder='给 '+m.name+' 发消息';const h=inner.querySelector('.hello p');if(h)h.textContent='我是 '+m.name+'，'+m.desc+'。'}
 const CATS=[['推荐','✦','默认与不限次数'],['旗舰','◆','参数最大、推理最强'],['编程','⌘','写代码、改 Bug'],['国产','中','DeepSeek · 通义千问 · 智谱']];
 const catOf=m=>m.cat||'推荐';
-function lvCats(back){const cur=MODELS.find(m=>m.id===model);const cs=CATS.filter(c=>MODELS.some(m=>catOf(m)===c[0]));const extra=[...new Set(MODELS.map(catOf))].filter(c=>!CATS.some(x=>x[0]===c)).map(c=>[c,'•','']);$('#pan').innerHTML=`<div class="lv${back?' back':''}" role="menu" aria-label="模型分类">`+[...cs,...extra].map(([c,ic,d])=>{const n=MODELS.filter(m=>catOf(m)===c).length,on=cur&&catOf(cur)===c;return `<button class="cat${on?' on':''}" data-cat="${esc(c)}" role="menuitem" aria-haspopup="true"><span class="ic" aria-hidden="true">${ic}</span><span class="tx"><b>${esc(c)}</b><small>${on?'当前：'+esc(cur.name):esc(d)}</small></span><span class="ct">${n} 个</span><span class="ar" aria-hidden="true">›</span></button>`}).join('')+'</div>';const f=$('#pan button.on')||$('#pan button');f&&f.focus({preventScroll:true})}
+function lvCats(back){const cur=MODELS.find(m=>m.id===model);const cs=CATS.filter(c=>MODELS.some(m=>catOf(m)===c[0]));const extra=[...new Set(MODELS.map(catOf))].filter(c=>!CATS.some(x=>x[0]===c)).map(c=>[c,'•','']);$('#pan').innerHTML=`<div class="lv${back?' back':''}" role="menu" aria-label="模型分类">`+[...cs,...extra].map(([c,ic,d])=>{const n=MODELS.filter(m=>catOf(m)===c).length,on=cur&&catOf(cur)===c;return `<button class="cat${on?' on':''}" data-cat="${esc(c)}" role="menuitem" aria-haspopup="true"><span class="ic" aria-hidden="true">${ic}</span><span class="tx"><b>${esc(c)}</b><small>${on?'当前：'+esc(cur.name):esc(d)}</small></span><span class="ct">${n} 个</span><span class="ar" aria-hidden="true">›</span></button>`}).join('')+(modelsState==='loading'?'<div class="wz-state" role="status">正在加载模型列表…</div>':modelsState==='err'?'<div class="wz-state err" role="alert">模型列表加载失败，目前只能用默认模型<button type="button" class="wz-btn" data-mretry>重试</button></div>':'')+'</div>';const f=$('#pan button.on')||$('#pan button');f&&f.focus({preventScroll:true})}
 function lvModels(c){$('#pan').innerHTML=`<div class="lv" role="menu" aria-label="${esc(c)}模型"><div class="hd"><button class="bk" data-back="1" aria-label="返回分类">‹ 分类</button><strong>${esc(c)}</strong></div>`+MODELS.filter(m=>catOf(m)===c).map(m=>`<button data-id="${m.id}" role="menuitemradio" aria-checked="${m.id===model}" class="${m.id===model?'on':''}"><span class="ck">${m.id===model?'✓':''}</span><span class="tx"><b>${esc(m.name)}</b><small>${esc(m.desc)}</small></span><i>${esc(m.tag)}</i></button>`).join('')+'</div>';$('#pan').scrollTop=0;const f=$('#pan button[data-id].on')||$('#pan button[data-id]');f&&f.focus({preventScroll:true})}
-function sheet(){lvCats();$('#sheet').classList.add('on')}
-fetch('/api/models').then(r=>r.json()).then(j=>{if(j.models&&j.models.length){MODELS=j.models;if(!MODELS.some(m=>m.id===model))model='astra';showModel()}}).catch(()=>{});
+function sheet(){if(modelsState==='err')loadModels();lvCats();$('#sheet').classList.add('on')}
+let modelsState='loading';
+function loadModels(){modelsState='loading';const ac=new AbortController(),to=setTimeout(()=>ac.abort(),10000);
+ fetch('/api/models',{signal:ac.signal}).then(r=>{if(!r.ok)throw 0;return r.json()}).then(j=>{if(j.models&&j.models.length){MODELS=j.models;if(!MODELS.some(m=>m.id===model))model='astra';showModel()}modelsState='ok'})
+ .catch(()=>{modelsState='err'}).finally(()=>{clearTimeout(to);if($('#sheet').classList.contains('on'))lvCats()})}
+loadModels();
 const newId=()=>crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(36).slice(2);
 const esc=s=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const md=t=>esc(t).split(/```/).map((x,i)=>i%2?'<pre><code>'+x.replace(/^[\w+-]*\n/,'')+'</code></pre>':x.replace(/`([^`\n]+)`/g,'<code>$1</code>').replace(/\*\*([^*\n]+)\*\*/g,'<b>$1</b>').replace(/^#{1,6} (.*)$/gm,'<b>$1</b>').replace(/^\s*[-*] /gm,'• ')).join('');
@@ -151,7 +160,7 @@ function reset(){sid=newId();hist=[];save();hello()}
 try{const s=JSON.parse(sessionStorage.getItem('astra')||'null');if(s&&s.sid){sid=s.sid;hist=s.hist||[]}}catch(e){}
 if(!sid)reset();else if(!hist.length)hello();else{inner.innerHTML='';hist.forEach(m=>m.role==='user'?add('u',m.content):add('a',md(m.content),true))}
 $('#mb').onclick=sheet;
-$('#sheet').onclick=e=>{const c=e.target.closest('button[data-cat]');if(c){lvModels(c.dataset.cat);return}if(e.target.closest('button[data-back]')){lvCats(true);return}if(e.target.closest('.pan')&&!e.target.closest('button[data-id]'))return;const b=e.target.closest('button[data-id]');if(b){model=b.dataset.id;localStorage.setItem('aiModel',model);showModel()}$('#sheet').classList.remove('on');$('#mb').focus({preventScroll:true})};
+$('#sheet').onclick=e=>{if(e.target.closest('[data-mretry]')){loadModels();lvCats();return}const c=e.target.closest('button[data-cat]');if(c){lvModels(c.dataset.cat);return}if(e.target.closest('button[data-back]')){lvCats(true);return}if(e.target.closest('.pan')&&!e.target.closest('button[data-id]'))return;const b=e.target.closest('button[data-id]');if(b){model=b.dataset.id;localStorage.setItem('aiModel',model);showModel()}$('#sheet').classList.remove('on');$('#mb').focus({preventScroll:true})};
 document.addEventListener('keydown',e=>{if(!$('#sheet').classList.contains('on'))return;if(e.key==='Escape'){if($('#pan .hd'))lvCats(true);else{$('#sheet').classList.remove('on');$('#mb').focus()}}});
 $('#new').onclick=()=>{if(ctrl)ctrl.abort();reset();inp.focus()};
 const grow=()=>{inp.style.height='auto';inp.style.height=Math.min(140,inp.scrollHeight)+'px';send.disabled=!busy&&!inp.value.trim()};
@@ -196,5 +205,6 @@ inp.addEventListener('blur',()=>document.documentElement.classList.remove('kb'))
 addEventListener('message',e=>{if(e.data&&e.data.type==='tab-shown'&&matchMedia('(hover:hover)').matches)inp.focus()});
 })();
 </script>
+<script src="/shared.js?v=__V__" defer></script>
 </body>
 </html>
