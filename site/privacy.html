@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>隐私说明 · 吴谦</title>
+<meta name="description" content="wqzachery.dpdns.org 记录哪些数据、发送给哪些第三方服务、保存多久，以及如何删除。">
+<link rel="canonical" href="https://wqzachery.dpdns.org/privacy">
+<meta name="theme-color" content="#000000">
+<link rel="stylesheet" href="/shared.css?v=__V__">
+<style>
+body{background:#000;color:var(--fg);font:15px/1.7 -apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Microsoft YaHei",sans-serif;-webkit-font-smoothing:antialiased;margin:0}
+main{max-width:720px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 28px) max(20px,env(safe-area-inset-right)) calc(env(safe-area-inset-bottom) + 60px) max(20px,env(safe-area-inset-left))}
+h1{font-size:28px;letter-spacing:-.02em;margin:0 0 6px}h2{font-size:17px;margin:26px 0 8px;color:var(--a1)}
+p,li{color:var(--mut2)}ul{padding-left:20px;margin:6px 0}li{margin:4px 0}b{color:var(--fg);font-weight:600}
+.upd{color:var(--mut);font-size:13px}
+.box{padding:16px 18px;border-radius:18px;margin:14px 0;background:rgba(255,255,255,.05);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.12)}
+table{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0}th,td{text-align:left;vertical-align:top;padding:8px 6px;border-top:1px solid var(--line)}th{color:var(--fg);font-weight:600;white-space:nowrap}td{color:var(--mut2)}
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+a{color:var(--a2)}
+html.embed main{padding-top:18px}
+</style>
+</head>
+<body>
+<script>if(/[?&]embed=1/.test(location.search))document.documentElement.classList.add('embed')</script>
+<main>
+<h1>隐私说明</h1>
+<p class="upd">适用于 wqzachery.dpdns.org 的主页、网盘、AI 助手和聊天室 · 最后更新 2026-10-16</p>
+
+<div class="box">这是吴谦个人维护的小网站，<b>没有广告、没有第三方统计脚本、不设 Cookie</b>。下面列出的就是网站代码实际会保存和转发的全部内容。只有站长（持有后台密钥的人）能查看这些记录。</div>
+
+<h2>AI 助手</h2>
+<ul>
+<li><b>会保存：</b>你发出的每条消息原文、AI 的回答（含"思考过程"文字和联网搜索的来源链接）、时间、所选模型/思考强度/是否联网、一个随机会话 ID（存在你浏览器里），以及你的 <b>IP 地址和大致位置</b>（Cloudflare 提供的国家和城市）。</li>
+<li><b>会发送给：</b>你选的模型所在的服务商。GPT-6 Astra、Llama、DeepSeek、Qwen、GLM 等由 <b>Cloudflare Workers AI</b> 处理；Nemotron、Laguna、Gemma、North 等免费模型经 <b>OpenRouter</b> 转给对应的模型提供方（如 NVIDIA、Poolside、Google、Cohere），这些免费模型的提供方可能按各自政策保存或使用请求内容。每次会发送最近最多 16 条对话。</li>
+<li><b>联网搜索（开启时）：</b>你的问题会被整理成搜索词（中文问题会先由 Workers AI 翻译成英文），由本站服务器发给 <b>Bing</b> 和 <b>中文维基百科</b>，并抓取前几条结果网页。这些网站看到的是 Cloudflare 服务器，而不是你的 IP。</li>
+<li><b>站长分析：</b>站长可以在后台用 Workers AI 为对话生成标题和摘要，结果和对话一起保存。</li>
+<li><b>限制：</b>每个 IP 同时只能生成一条回答，每天最多 200 次提问；为此会按"IP + 日期"计数，约 7 天后清理。</li>
+</ul>
+
+<h2>公共网盘</h2>
+<ul>
+<li><b>所有文件对所有访客公开。</b>文件存放在 <b>Hugging Face</b> 的私有数据集里，上传时你的浏览器会直接连接 Hugging Face 的存储服务器（Amazon S3），失败时改由本站服务器中转。</li>
+<li><b>会保存：</b>文件名、大小、上传时间、上传者 IP 和大致位置（国家/省份/城市）。公开列表里只显示由 IP 计算出的一个颜色标记，不显示 IP 本身。</li>
+<li><b>上传额度：</b>为执行每天的额度，会按"IP + 日期"记录上传的大小和数量（约 3 天后清理）。</li>
+<li><b>举报：</b>提交举报时会保存文件、原因、你填写的说明和你的 IP。</li>
+</ul>
+
+<h2>聊天室</h2>
+<ul>
+<li><b>会保存：</b>昵称、匿名 ID（由你浏览器里的随机密钥计算，不含个人信息）、消息内容、时间和 <b>IP 地址</b>。大厅只保留最近 100 条，每段私信只保留最近 50 条，更早的会自动删除。</li>
+<li><b>私信</b>只有对话双方能在聊天室里看到，但站长在后台可以查看（用于处理骚扰和违规）。</li>
+</ul>
+
+<h2>访问统计</h2>
+<ul>
+<li>打开主页、网盘、AI、聊天页面时，会记录时间、IP、页面、大致位置、设备和浏览器类型（如"Android · Chrome"）、来源网站域名。搜索引擎爬虫不记录。</li>
+<li>后台密钥输错时，会把 IP 和错误密钥的哈希保存 15 分钟，用于防止暴力破解。</li>
+</ul>
+
+<h2>保存多久、怎么删除</h2>
+<div class="tw"><table>
+<tr><th>数据</th><th>保存期限</th></tr>
+<tr><td>AI 对话及分析、访问统计、上传记录、举报</td><td>目前<b>不会自动删除</b>，可联系站长删除</td></tr>
+<tr><td>网盘文件</td><td>不会自动过期；违规文件或站长清理时删除，删除时一并清除它的上传记录和举报</td></tr>
+<tr><td>聊天室消息</td><td>大厅最近 100 条、每段私信最近 50 条</td></tr>
+<tr><td>AI 次数计数 / 上传额度 / 密钥错误记录</td><td>约 7 天 / 约 3 天 / 15 分钟</td></tr>
+</table></div>
+<p>网站目前没有"删除我的对话"按钮。想删除你的 AI 对话、聊天消息或上传记录，请发邮件给站长（<span class="em" data-u="zacherywu0914" data-d="gmail.com">邮箱需要 JavaScript 才能显示</span>），说明大致时间和内容即可。</p>
+
+<h2>你的浏览器里存了什么</h2>
+<p>本站只用浏览器本地存储（localStorage / sessionStorage）保存：AI 会话 ID 和当前对话、模型与思考强度偏好、网盘视图偏好、聊天室匿名密钥和昵称。清除浏览器网站数据即可全部删除。</p>
+
+<h2>基础设施</h2>
+<p>整个网站运行在 <b>Cloudflare</b> 上，所有请求都会经过 Cloudflare 的网络，按 Cloudflare 的政策处理。</p>
+</main>
+<script src="/shared.js?v=__V__"></script>
+</body>
+</html>
