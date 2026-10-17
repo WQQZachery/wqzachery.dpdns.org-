@@ -8,8 +8,8 @@
 
 - **主页**：开场动画、滚动动效、iOS 26 风格液态玻璃（Chromium 上用 SVG 位移贴图做真实折射与色散，Safari / Firefox 用磨砂兜底）；首屏四个入口卡片；首页数字来自 `/api/stats`（上线天数、功能数、网盘文件数）。
 - **底部液态玻璃标签栏**（`site/app.html`）：主页 / 网盘 / AI / 聊天四个页面（同源 iframe）。透镜可拖动，弹簧 + 果冻形变；透镜到位后页面才切换。玻璃层 `#glass` 与透镜 `#lens` 是兄弟元素，这样透镜的 backdrop 能取到页面内容（嵌套在带 backdrop-filter 的元素里会变成 "backdrop root"，看不到页面）。
-- **公共网盘**：浏览器算 SHA-256 → `/api/up/init` → 直传 Hugging Face S3（16 MB 分片 ×4 并发，失败走 Worker 中转）→ `/api/up/finish`。单文件 ≤ 2 GB；每个 IP 每天（北京时间）≤ 5 GB / 50 个；按扩展名 + 文件头（MZ、ELF、Mach-O、#!、deb/rpm、APK/JAR/IPA）拒绝可执行文件、安装包和脚本，服务端在 init、中转和 finish（读取已上传对象的前 64 KB）三处检查。举报、在线预览（图片/视频/音频/PDF/文本，HTML/SVG 一律按纯文本显示）、文件夹、分页（每页 60 个）、懒加载缩略图。
-- **AI 助手**：默认 GPT-6 Astra（Workers AI），可切换 OpenRouter 免费模型和 Workers AI 上的其他模型；SSE 流式输出；可联网搜索（Bing + 中文维基）；思考强度四档。服务端白名单校验模型和思考强度；每个 IP 同时只能生成一条；每 IP 每天默认 200 次。
+- **公共网盘**：浏览器算 SHA-256 → `/api/up/init` → 直传 Hugging Face S3（16 MB 分片 ×4 并发，失败走 Worker 中转）→ `/api/up/finish`。单文件 ≤ 2 GB；每个 IP 每天（北京时间）≤ 5 GB / 50 个；按扩展名 + 文件头（MZ、ELF、Mach-O、#!、deb/rpm、APK/JAR/IPA）拒绝可执行文件、安装包和脚本，服务端在 init、中转和 finish（读取已上传对象的前 64 KB）三处检查。举报、在线预览（图片/视频/音频/PDF/文本，HTML/SVG 一律按纯文本显示）、文件夹、分页（每页 60 个）、懒加载缩略图。多文件最多 3 个同时上传，单个失败可单独重试；上传按钮可用键盘操作；新建文件夹用站内对话框。
+- **AI 助手**：默认 GPT-6 Astra（Workers AI），可切换 OpenRouter 免费模型和 Workers AI 上的其他模型；SSE 流式输出；可联网搜索（Bing + 中文维基）；思考强度四档。服务端白名单校验模型和思考强度；每个 IP 同时只能生成一条；每 IP 每天默认 200 次。对话历史只保存在本机浏览器（最多 50 段，可在「历史」里删除，不跨设备）；回答可复制、失败可重试、最后一条可重新生成。
 - **聊天室**：WebSocket + Durable Object（Hibernation API）。大厅保留最近 100 条，每段私信最近 50 条；私信只推送给双方。
 - **管理后台** `/admin`（noindex）：访问 / 上传统计、文件管理、AI 对话、聊天室、待处理举报（删除文件 / 忽略）。后台密钥常数时间比较；同一 IP 15 分钟内输错 5 个不同密钥即锁定 15 分钟。
 
@@ -67,6 +67,14 @@ HF_REPO=<hf用户>/<数据集> [AI_DAILY_CAP=200] [UP_DAY_FILES=50] deploy/deplo
 | `python3 tools/mobile_check.py` | 360–1280 宽度横向溢出、触控目标、可访问名称 |
 | `python3 tools/ui_check.py` | 网盘错误/重试、上传拒绝、举报、隐私弹窗、首页入口与统计 |
 | `python3 tools/link_check.py <base>` | 全站链接检查 |
+| `python3 tools/syntax_check.py` | 所有内联脚本与 worker.js 语法检查（node --check） |
+| `MPORT=8768 python3 tools/mock_api.py` + `PORT=8767 UP=http://127.0.0.1:8768 python3 tools/lproxy.py` | 本地模拟 API（不调用真实 AI / 存储），供下面的浏览器测试使用 |
+| `python3 tools/ai_persist_test.py` | AI 本地历史（关闭重开、多会话、删除）、复制、重试、重新生成、中断、保存失败提示、读屏 |
+| `python3 tools/drive_test.py [up\|mk]` | 网盘纯键盘上传、≤3 并发、单个失败与重试、拖放、新建文件夹对话框 |
+| `python3 tools/tab_test.py` | 标签切换：慢加载提示、失败与重新加载、快速切换无重复请求 |
+| `python3 tools/boot_timing.py <base>` | 开场动画：首次 / 7 天内回访 / 减少动态效果 / 点击跳过 的耗时 |
+| `python3 tools/favicon_check.py` | 各页面图标声明与 /favicon.* 响应 |
+| `python3 tools/contrast_check.py` | 实际渲染文字与背景的 WCAG 对比度 |
 
 ## 常见问题
 
