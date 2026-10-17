@@ -1,6 +1,7 @@
 #!/bin/bash
 # Usage: [MIGRATE=1] [AI_DAILY_CAP=200] [UP_MAX_FILE=bytes] [UP_DAY_BYTES=bytes] [UP_DAY_FILES=50] HF_REPO=wqzachery/drive deploy_worker.sh <script-name>   (auth injected by the 'cloudflare' service)
 set -e
+python3 -c "import json,sys;json.load(open(sys.argv[1]))" "$(cd "$(dirname "$0")/.." && pwd)/site/announcements.json"   # broken JSON must never ship
 N=${1:-wqzachery}; A=2bf233f73b71c343852e1bc2b2d1f190; D=$(cd "$(dirname "$0")/.." && pwd)
 MIG=""; [ "$MIGRATE" = "1" ] && MIG=',"migrations":{"new_tag":"v1","new_sqlite_classes":["Store"]}'
 META='{"main_module":"worker.js","compatibility_date":"2026-10-01","keep_bindings":["secret_text"]'"$MIG"',"bindings":[
@@ -29,4 +30,5 @@ curl -s -X PUT "https://api.cloudflare.com/client/v4/accounts/$A/workers/scripts
  -F "privacy.html=@$D/site/privacy.html;type=text/plain" \
  -F "shared.css=@$D/site/shared.css;type=text/plain" \
  -F "shared.js=@$D/site/shared.js;type=text/plain" \
+ -F "announcements.json=@$D/site/announcements.json;type=text/plain" \
  -F "og.png=@$D/site/og.png;type=application/octet-stream" | python3 -c "import sys,json;d=json.load(sys.stdin);print('success',d['success'],d.get('errors'))"

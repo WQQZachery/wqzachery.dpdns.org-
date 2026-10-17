@@ -11,6 +11,7 @@
 - **公共网盘**：浏览器算 SHA-256 → `/api/up/init` → 直传 Hugging Face S3（16 MB 分片 ×4 并发，失败走 Worker 中转）→ `/api/up/finish`。单文件 ≤ 2 GB；每个 IP 每天（北京时间）≤ 5 GB / 50 个；按扩展名 + 文件头（MZ、ELF、Mach-O、#!、deb/rpm、APK/JAR/IPA）拒绝可执行文件、安装包和脚本，服务端在 init、中转和 finish（读取已上传对象的前 64 KB）三处检查。举报、在线预览（图片/视频/音频/PDF/文本，HTML/SVG 一律按纯文本显示）、文件夹、分页（每页 60 个）、懒加载缩略图。多文件最多 3 个同时上传，单个失败可单独重试；上传按钮可用键盘操作；新建文件夹用站内对话框。
 - **AI 助手**：默认 GPT-6 Astra（Workers AI），可切换 OpenRouter 免费模型和 Workers AI 上的其他模型；SSE 流式输出；可联网搜索（Bing + 中文维基）；思考强度四档。服务端白名单校验模型和思考强度；每个 IP 同时只能生成一条；每 IP 每天默认 200 次。对话历史只保存在本机浏览器（最多 50 段，可在「历史」里删除，不跨设备）；回答可复制、失败可重试、最后一条可重新生成。
 - **聊天室**：WebSocket + Durable Object（Hibernation API）。大厅保留最近 100 条，每段私信最近 50 条；私信只推送给双方。
+- **更新公告 / 更新日志**：数据只有一个文件 `site/announcements.json`（Worker 以 `/announcements.json` 提供，`/api/announcements` 同内容）。外壳 `app.html` 在开场动画结束后弹出最新一条 `popup: true` 的公告，读过的 id 记在 localStorage `wqzAnnSeen`，同一条只弹一次，新 id 会再弹；主页底部「更新日志」查看全部历史（在外壳里打开时盖住整个窗口）。版本号从 1.0.0（2026-10-17）开始：大改动升第二位，小修复升第三位；之前的记录没有版本号，只按日期标注。发新公告：在 `entries` 最前面加一条（`id` 唯一、`date`、`version`、`title`、`items`、`popup: true`），推送即可；构建脚本会先校验 JSON。
 - **管理后台** `/admin`（noindex）：访问 / 上传统计、文件管理、AI 对话、聊天室、待处理举报（删除文件 / 忽略）。后台密钥常数时间比较；同一 IP 15 分钟内输错 5 个不同密钥即锁定 15 分钟。
 
 ## 目录
@@ -23,6 +24,7 @@
 | `site/privacy.html` | 隐私说明（也以弹窗形式嵌入各页） |
 | `site/shared.css` / `shared.js` | 公共设计变量、液态玻璃、隐私弹窗、JS 拼装邮箱；Worker 以 `?v=<内容哈希>` 长缓存 |
 | `site/404.html`、`site/og.png` | 404 页、分享图 |
+| `site/announcements.json` | 更新公告与更新日志数据（唯一数据源） |
 | `worker/worker.js` | Worker：路由、AI、网盘 API、统计、Durable Object `Store` |
 | `wrangler.jsonc` / `package.json` / `tools/build_worker.sh` | Workers Builds 自动部署配置与构建脚本 |
 | `deploy/deploy_worker.sh` | 通过 Cloudflare API 手动部署（multipart 上传脚本 + 文本模块） |
@@ -30,9 +32,9 @@
 
 ## 路由
 
-页面：`/` `/drive` `/ai` `/chat`（外壳）、`/p/home` `/p/drive` `/p/ai` `/p/chat`（单页）、`/privacy`、`/admin`、`/robots.txt`、`/sitemap.xml`、`/llms.txt`、`/og.png`、`/shared.css`、`/shared.js`。
+页面：`/` `/drive` `/ai` `/chat`（外壳）、`/p/home` `/p/drive` `/p/ai` `/p/chat`（单页）、`/privacy`、`/admin`、`/robots.txt`、`/sitemap.xml`、`/llms.txt`、`/og.png`、`/shared.css`、`/shared.js`、`/announcements.json`。
 
-公开 API：`GET /api/models`、`GET /api/stats`、`GET /api/limits`、`POST /api/chat`、`GET /api/files`、`POST /api/folders`、`POST /api/up/init`、`PUT /api/up/part`、`POST /api/up/finish`、`GET /api/files/raw/<path>[?dl=1]`、`GET /api/files/url/<path>`、`POST /api/report`、`GET /api/chat/ws`（WebSocket）。
+公开 API：`GET /api/announcements`、`GET /api/models`、`GET /api/stats`、`GET /api/limits`、`POST /api/chat`、`GET /api/files`、`POST /api/folders`、`POST /api/up/init`、`PUT /api/up/part`、`POST /api/up/finish`、`GET /api/files/raw/<path>[?dl=1]`、`GET /api/files/url/<path>`、`POST /api/report`、`GET /api/chat/ws`（WebSocket）。
 
 管理 API（请求头 `x-admin-key`）：`/api/admin/check|stats|sessions|session|analyze|chat|reports`、`DELETE /api/files/dl/<path>`、`DELETE /api/folders`、`POST /api/move`、`POST /api/rename`、`DELETE /api/chat/msg`、`GET /api/search`。
 
@@ -77,6 +79,7 @@ HF_REPO=<hf用户>/<数据集> [AI_DAILY_CAP=200] [UP_DAY_FILES=50] deploy/deplo
 | `python3 tools/ai_persist_test.py` | AI 本地历史（关闭重开、多会话、删除）、复制、重试、重新生成、中断、保存失败提示、读屏 |
 | `python3 tools/drive_test.py [up\|mk]` | 网盘纯键盘上传、≤3 并发、单个失败与重试、拖放、新建文件夹对话框 |
 | `python3 tools/tab_test.py` | 标签切换：慢加载提示、失败与重新加载、快速切换无重复请求 |
+| `python3 tools/ann_test.py [base] [shell\|more]` | 更新公告：开场动画后才弹、只弹一次、新公告再弹、焦点陷阱 / Esc / 焦点返回、更新日志、手机布局、减少动态效果、对比度（其他浏览器测试会把 `wqzAnnSeen` 设为 `*`，不弹公告） |
 | `python3 tools/boot_timing.py <base>` | 开场动画：首次 / 7 天内回访 / 减少动态效果 / 点击跳过 的耗时 |
 | `python3 tools/favicon_check.py` | 各页面图标声明与 /favicon.* 响应 |
 | `python3 tools/contrast_check.py` | 实际渲染文字与背景的 WCAG 对比度 |

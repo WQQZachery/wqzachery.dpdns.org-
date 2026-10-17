@@ -12,6 +12,7 @@ async def main():
         b = await pw.chromium.launch(executable_path='/usr/bin/chromium')
         for w in [390, 1280]:
             ctx = await b.new_context(viewport={'width': w, 'height': 900}, user_agent=UA if w < 500 else None, is_mobile=w < 500, has_touch=w < 500)
+            await ctx.add_init_script("try{localStorage.getItem('wqzAnnSeen')||localStorage.setItem('wqzAnnSeen','*')}catch(e){}")   # no update popup during tests (tools/ann_test.py covers it)
             await ctx.route('**/api/**', lambda r: r.fulfill(status=200, content_type='application/json', body='{"files":[],"folders":[],"used":0,"cap":"100 GB","models":[]}'))
             await ctx.add_init_script("document.addEventListener('DOMContentLoaded',()=>{const s=document.createElement('style');s.textContent=%r;document.head.appendChild(s)})" % FREEZE)
             p = await ctx.new_page()

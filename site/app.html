@@ -245,15 +245,24 @@ function hook(f,i){let d;try{d=f.contentDocument}catch(e){return}if(!d)return;
   d.addEventListener('keydown',e=>{if(e.altKey&&e.key==='ArrowRight')go(idx+1);if(e.altKey&&e.key==='ArrowLeft')go(idx-1)})}
 addEventListener('message',e=>{if(e.origin!==location.origin)return;const m=e.data||{};
   if(m.type==='go'){const i=TABS.findIndex(t=>t.k===m.tab);if(i>=0)go(i)}
-  if(m.type==='bar'){bar.classList.toggle('hide',!m.show);edge.classList.toggle('hide',!m.show)}
-  if(m.type==='booted'&&bar.dataset.wait)showBar();
+  if(m.type==='bar'){bar.classList.toggle('hide',!m.show);edge.classList.toggle('hide',!m.show);if(m.show&&annWait)annSoon(600)}
+  if(m.type==='booted'){booted=true;if(bar.dataset.wait)showBar();annSoon(700)}
+  if(m.type==='changelog'&&window.wqzChangelog)wqzChangelog(e.source);
   if(m.type==='badge'){const i=TABS.findIndex(t=>t.k===m.tab);if(i>=0)[row,mag].forEach(r=>{const b=r.querySelectorAll('.it')[i]?.querySelector('.bd');if(b)b.hidden=!(m.n>0)})}
 });
 window.__st=()=>({p,v,goal,target,d,act,dragging,moving});
 const edge=$('#edge');function showBar(){delete bar.dataset.wait;bar.classList.remove('hide');edge.classList.remove('hide')}
+/* update announcement (shared.js wqzAnnounce): once per page load, only AFTER the boot animation (home: waits for 'booted',
+   fallback 8 s) and never while a page sheet has the tab bar hidden; it retries when the bar comes back. */
+let booted=false,annDone=false,annWait=false,annT=0;
+function annSoon(ms){if(annDone)return;clearTimeout(annT);annT=setTimeout(()=>{if(annDone)return;
+  if(bar.classList.contains('hide')||bar.dataset.wait||(idx===0&&shown===0&&!booted)||document.hidden){annWait=true;return}
+  if(!window.wqzAnnounce){annSoon(1000);return}
+  annDone=true;annWait=false;wqzAnnounce()},ms)}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&annWait)annSoon(600)});
 /* home: the bar appears when the boot animation says 'booted'; fallback = full boot 2.6 s, short boot (returning visitor / reduced motion) 1.2 s */
 let fast=false;try{fast=Date.now()-(+localStorage.getItem('wqzBootSeen')||0)<7*864e5||matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){}
-if(idx===0){bar.dataset.wait=1;setTimeout(showBar,fast?1200:2600)}else setTimeout(showBar,150);
+if(idx===0){bar.dataset.wait=1;setTimeout(showBar,fast?1200:2600);setTimeout(()=>{booted=true;annSoon(0)},8000)}else{setTimeout(showBar,150);setTimeout(()=>annSoon(0),900)}
 addEventListener('resize',render);
 render();
 })();

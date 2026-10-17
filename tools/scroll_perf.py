@@ -29,6 +29,7 @@ VARIANTS = dict(x for x in {
 async def run(pw, path, vname, opts):
     b = await pw.chromium.launch(executable_path='/usr/bin/chromium', args=['--enable-gpu-rasterization', '--ignore-gpu-blocklist'])
     ctx = await b.new_context(viewport={'width': 402, 'height': 874}, device_scale_factor=3, is_mobile=True, has_touch=True, user_agent=UA)
+    await ctx.add_init_script("try{localStorage.getItem('wqzAnnSeen')||localStorage.setItem('wqzAnnSeen','*')}catch(e){}")   # no update popup during tests (tools/ann_test.py covers it)
     if 'nojs' in opts: await ctx.add_init_script(DROP_SCROLL)
     css = ''.join(CSS[o] for o in opts if o in CSS)
     if css: await ctx.add_init_script(f"document.addEventListener('DOMContentLoaded',()=>{{const s=document.createElement('style');s.textContent={json.dumps(css)};document.head.appendChild(s)}})")

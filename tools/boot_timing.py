@@ -30,6 +30,7 @@ async def main():
         b = await pw.chromium.launch(executable_path='/usr/bin/chromium')
         for mode in ('first', 'return', 'reduced', 'skip'):
             ctx = await b.new_context(viewport={'width': 1280, 'height': 800}, reduced_motion='reduce' if mode == 'reduced' else 'no-preference')
+            await ctx.add_init_script("try{localStorage.getItem('wqzAnnSeen')||localStorage.setItem('wqzAnnSeen','*')}catch(e){}")   # no update popup during tests (tools/ann_test.py covers it)
             if mode in ('first', 'reduced', 'skip'):
                 # every run is a fresh visitor: clear the "seen" stamp before each page
                 await ctx.add_init_script("try{if(!sessionStorage.getItem('keep'))localStorage.removeItem('wqzBootSeen')}catch(e){}")

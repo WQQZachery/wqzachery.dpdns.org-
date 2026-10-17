@@ -28,6 +28,7 @@ async def main():
         for w in WIDTHS:
             mob = w < 768
             ctx = await b.new_context(viewport={'width': w, 'height': 800 if mob else 900}, device_scale_factor=2 if mob else 1, is_mobile=mob, has_touch=w <= 768, user_agent=UA if mob else None, reduced_motion='reduce')
+            await ctx.add_init_script("try{localStorage.getItem('wqzAnnSeen')||localStorage.setItem('wqzAnnSeen','*')}catch(e){}")   # no update popup during tests (tools/ann_test.py covers it)
             p = await ctx.new_page()
             for path in PATHS:
                 await p.goto(BASE + path, wait_until='load'); await p.wait_for_timeout(2600 if path == '/' else 1500)

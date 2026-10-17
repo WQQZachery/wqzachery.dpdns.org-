@@ -181,15 +181,6 @@ section.blk{padding:140px 0}
   .sheet-body{padding:26px 28px 28px}
 }
 
-/* changelog list */
-.clog{list-style:none;position:relative;margin-top:6px}
-.clog li{position:relative;padding:0 0 18px 22px}
-.clog li::before{content:"";position:absolute;left:4px;top:.55em;width:7px;height:7px;border-radius:50%;background:var(--dim);box-shadow:0 0 0 3px rgba(255,255,255,.04)}
-.clog li:first-child::before{background:var(--a1);box-shadow:0 0 10px var(--a1)}
-.clog li::after{content:"";position:absolute;left:7px;top:calc(.55em + 12px);bottom:2px;width:1px;background:rgba(255,255,255,.1)}
-.clog li:last-child::after{display:none}
-.clog time{display:block;font-size:12.5px;color:var(--mut);font-variant-numeric:tabular-nums;letter-spacing:.02em}
-.clog span{display:block;font-size:15.5px;color:var(--fg);margin-top:2px}
 
 /* tools grid */
 .tools{padding:100px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--bg2)}
@@ -525,16 +516,6 @@ html.boot-still #boot .word{opacity:1;background-position:-50% 0}html.boot-still
   <div class="pills" style="margin-top:0"><span class="pill">Claude</span><span class="pill">ChatGPT</span><span class="pill">Gemini</span><span class="pill">OpenRouter</span></div>
   <div class="acts"><a class="act" href="/ai" aria-label="打开网站 AI 助手">试试网站 AI ›</a></div>
 </template>
-<template id="changelog">
-  <div class="top"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#6ee7b7" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span><div><h3 id="sheetT">更新日志</h3></div></div>
-  <ol class="clog">
-    <li><time datetime="2026-10-16">2026-10-16</time><span>网盘上传限额与举报、隐私说明、首页入口卡片、滚动更流畅</span></li>
-    <li><time datetime="2026-10-15">2026-10-15</time><span>实时聊天室、返回手势、主页改版、国产 AI 模型</span></li>
-    <li><time datetime="2026-10-14">2026-10-14</time><span>管理后台、液态玻璃标签栏</span></li>
-    <li><time datetime="2026-10-13">2026-10-13</time><span>公共网盘、AI 助手上线</span></li>
-    <li><time datetime="2026-10-11">2026-10-11</time><span>网站上线（自有域名 + Cloudflare Workers）</span></li>
-  </ol>
-</template>
 
 <section class="tools" aria-labelledby="toolsT">
   <div class="wrap">
@@ -572,7 +553,7 @@ html.boot-still #boot .word{opacity:1;background-position:-50% 0}html.boot-still
 </section>
 </main>
 
-<footer><div class="wrap"><span>© 2026 吴谦 · Zachery Wu</span><span class="fr"><a class="fchip lg lg-rim" href="https://workers.cloudflare.com" target="_blank" rel="noopener" aria-label="Hosted on Cloudflare Workers（新标签页）"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#F38020" d="M17.5 19H7a5 5 0 01-.6-10A6 6 0 0118 9.5a4.75 4.75 0 01-.5 9.5z"/></svg>Hosted on Cloudflare</a><button type="button" class="fchip lg lg-rim" data-privacy aria-haspopup="dialog">隐私说明</button><button type="button" class="fchip lg lg-rim" data-open="changelog" aria-haspopup="dialog" aria-label="查看更新日志"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>更新日志</button></span></div></footer>
+<footer><div class="wrap"><span>© 2026 吴谦 · Zachery Wu</span><span class="fr"><a class="fchip lg lg-rim" href="https://workers.cloudflare.com" target="_blank" rel="noopener" aria-label="Hosted on Cloudflare Workers（新标签页）"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#F38020" d="M17.5 19H7a5 5 0 01-.6-10A6 6 0 0118 9.5a4.75 4.75 0 01-.5 9.5z"/></svg>Hosted on Cloudflare</a><button type="button" class="fchip lg lg-rim" data-privacy aria-haspopup="dialog">隐私说明</button><button type="button" class="fchip lg lg-rim" data-changelog aria-haspopup="dialog" aria-label="查看更新日志"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>更新日志</button></span></div></footer>
 
 <div class="sheet" id="sheet" aria-hidden="true">
   <div class="sheet-bd" data-close></div>
@@ -654,7 +635,7 @@ const secIO=new IntersectionObserver(es=>{es.forEach(e=>e.isIntersecting?vis.add
 navLinks.forEach((a,k)=>{const s=document.getElementById(k);s&&secIO.observe(s)});
 addEventListener('scroll',()=>{if(innerHeight+scrollY>=document.documentElement.scrollHeight-4)setActive('contact')},{passive:true});
 
-/* ---- bottom-sheet modal (projects + changelog) ---- */
+/* ---- bottom-sheet modal (projects; the changelog dialog lives in /shared.js) ---- */
 const sheet=$('#sheet'),panel=$('.sheet-panel',sheet),body=$('#sheetBody');let lastFocus=null,closeT=0;
 const FOC='a[href],button:not([disabled]),[tabindex]:not([tabindex="-1"])';
 function openSheet(id,from){const tpl=document.getElementById(id);if(!tpl)return;clearTimeout(closeT);

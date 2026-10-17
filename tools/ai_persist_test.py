@@ -24,6 +24,7 @@ async def main():
     async with async_playwright() as pw:
         b = await pw.chromium.launch(executable_path='/usr/bin/chromium')
         ctx = await b.new_context(viewport={'width': 1200, 'height': 900})
+        await ctx.add_init_script("try{localStorage.getItem('wqzAnnSeen')||localStorage.setItem('wqzAnnSeen','*')}catch(e){}")   # no update popup during tests (tools/ann_test.py covers it)
         await ctx.grant_permissions(['clipboard-read', 'clipboard-write'], origin=BASE)
         p = await ctx.new_page(); errs = []; p.on('pageerror', lambda e: errs.append(str(e)))
         rej = []; p.on('console', lambda m: rej.append(m.text) if 'Unhandled' in m.text or m.type == 'error' else None)

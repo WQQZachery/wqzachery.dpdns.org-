@@ -11,6 +11,7 @@ import PRIVACY0 from './privacy.html';
 import SHARED_CSS from './shared.css';
 import SHARED_JS from './shared.js';
 import OG from './og.png';
+import ANNOUNCEMENTS from './announcements.json';   // text module: update announcements + changelog (site/announcements.json)
 import { DurableObject } from 'cloudflare:workers';
 
 const HF = 'https://huggingface.co';
@@ -101,6 +102,7 @@ export default {
       if (p === '/favicon.ico') return new Response(b64bin(FAVICON_ICO), { headers: { ...SEC, 'content-type': 'image/x-icon', 'cache-control': 'public, max-age=604800' } });
       if (p === '/favicon.svg') return new Response(FAVICON_SVG, { headers: { ...SEC, 'content-type': 'image/svg+xml', 'cache-control': 'public, max-age=604800' } });
       if (p === '/apple-touch-icon.png' || p === '/apple-touch-icon-precomposed.png') return new Response(b64bin(APPLE_ICON), { headers: { ...SEC, 'content-type': 'image/png', 'cache-control': 'public, max-age=604800' } });
+      if (p === '/announcements.json' || p === '/api/announcements') return new Response(ANNOUNCEMENTS, { headers: { ...SEC, 'content-type': 'application/json; charset=utf-8', 'cache-control': 'public, max-age=300', ...(p.startsWith('/api/') ? NOIDX : {}) } });
       if (p === '/og.png') return new Response(OG, { headers: { ...SEC, 'content-type': 'image/png', 'cache-control': 'public, max-age=86400' } });
       if (p === '/p/home' || p === '/index.html') return page(INDEX);
       if (p === '/p/drive' || p === '/drive.html') return page(DRIVE);

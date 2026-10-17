@@ -18,6 +18,7 @@ async def main():
     async with async_playwright() as pw:
         b = await pw.chromium.launch(executable_path='/usr/bin/chromium')
         ctx = await b.new_context(viewport={'width': 390, 'height': 844}, device_scale_factor=2, is_mobile=True, has_touch=True, user_agent=UA)
+        await ctx.add_init_script("try{localStorage.getItem('wqzAnnSeen')||localStorage.setItem('wqzAnnSeen','*')}catch(e){}")   # no update popup during tests (tools/ann_test.py covers it)
         p = await ctx.new_page()
         errs = []; p.on('pageerror', lambda e: errs.append(str(e)))
         # ---------- drive ----------
