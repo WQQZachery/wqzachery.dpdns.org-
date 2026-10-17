@@ -2,6 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="wqz-page" content="drive">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>公共网盘 · 吴谦</title>
 <link rel="canonical" href="https://wqzachery.dpdns.org/drive">
@@ -126,8 +127,16 @@ h1 span{background:linear-gradient(90deg,var(--a1),var(--a2));-webkit-background
 /* report dialog, pagination, retry */
 .lnk{background:none;border:0;padding:0 2px;color:var(--a1);font:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:3px;min-height:24px}
 #pv .ph .rep{color:#ffb4a8}
-#rp{position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.6);overflow-y:auto}
-#rp[hidden]{display:none}
+#rp,#mkd{position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.6);overflow-y:auto}
+#rp[hidden],#mkd[hidden]{display:none}
+.rpbox input{font:inherit;font-size:16px;color:var(--fg);background:rgba(255,255,255,.07);border:0;border-radius:12px;padding:11px 12px;box-shadow:inset 0 0 0 .5px rgba(255,255,255,.12);min-height:44px;outline:none}
+.rpbox input:focus-visible{outline:2px solid var(--a2)}.rpbox input[aria-invalid="true"]{box-shadow:inset 0 0 0 1px #ff6b5a}
+.mkh{font-size:12px;color:var(--mut)}.rpa .ok{background:var(--a1);color:#04150e}
+.btn:focus-visible,.pill:focus-visible,.cats button:focus-visible,.vt button:focus-visible,.up .rt:focus-visible,.crumb button:focus-visible{outline:2px solid var(--a1);outline-offset:3px}
+#pick{min-height:44px}
+#drop:focus-within{box-shadow:inset 0 0 0 1px rgba(110,231,183,.5),inset 1px 1px 0 rgba(255,255,255,.12)}
+.vh{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
+.up .rt{display:none;flex:none;border:0;border-radius:999px;padding:5px 11px;font:inherit;font-size:12px;font-weight:600;color:#04150e;background:var(--a1);cursor:pointer}.up.err .rt{display:inline-block}.up.err.nort .rt{display:none}
 .rpbox{width:min(420px,100%);padding:22px;border-radius:22px;display:flex;flex-direction:column;gap:8px;background:rgba(28,28,32,.96)!important;max-height:calc(100dvh - 40px);overflow:auto}
 .rpbox h3{font-size:18px}.rpbox .rpn{color:var(--mut);font-size:13px;word-break:break-all}
 .rpbox label{font-size:13px;color:var(--mut);margin-top:6px}
@@ -149,14 +158,15 @@ h1 span{background:linear-gradient(90deg,var(--a1),var(--a2));-webkit-background
     <b>点击选择文件，或拖到这里</b>
     <small id="limtxt">单个文件最大 2 GB · 每个网络每天最多 5 GB / 50 个 · 不支持可执行文件、安装包和脚本 · 可多选</small>
     <small id="dest">上传到：全部文件</small>
-    <span class="btn">选择文件</span>
+    <button type="button" class="btn" id="pick" aria-describedby="limtxt dest">选择文件上传</button>
     <input id="file" type="file" multiple hidden>
   </label>
   <div class="upall" id="upall"><button type="button" id="cxall">全部取消</button></div>
-  <div class="ups" id="ups" aria-live="polite"></div>
+  <div class="ups" id="ups" aria-label="上传队列"></div>
+  <div class="vh" id="upsr" role="status" aria-live="polite" aria-atomic="true"></div>
   <div id="msg" role="status" aria-live="polite"></div>
 
-  <div class="bar2"><h2 id="h2">全部文件</h2><div class="tools"><input id="q" type="search" placeholder="搜索" aria-label="搜索文件"><button class="pill" id="mk">＋ 文件夹</button></div></div>
+  <div class="bar2"><h2 id="h2">全部文件</h2><div class="tools"><input id="q" type="search" placeholder="搜索" aria-label="搜索文件"><button type="button" class="pill" id="mk" aria-haspopup="dialog">＋ 文件夹</button></div></div>
   <div class="crumb" id="crumb"></div>
   <div class="vbar"><div class="cats" id="cats"><button data-c="" class="on">全部</button><button data-c="img">图片</button><button data-c="video">视频</button><button data-c="audio">音频</button><button data-c="doc">文档</button><button data-c="other">其他</button></div>
    <div class="vt" id="vt"><button data-v="grid" aria-label="网格"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg></button><button data-v="list" aria-label="列表"><svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg></button></div></div>
@@ -182,6 +192,13 @@ h1 span{background:linear-gradient(90deg,var(--a1),var(--a2));-webkit-background
   <label for="rpo">补充说明（可选）</label><textarea id="rpo" maxlength="300" rows="3" placeholder="最多 300 字"></textarea>
   <p class="rpm" id="rpm" role="alert"></p>
   <div class="rpa"><button type="button" id="rpc">取消</button><button type="submit" id="rps" class="pri">提交举报</button></div>
+</form></div>
+<div id="mkd" role="dialog" aria-modal="true" aria-labelledby="mkt" hidden><form class="rpbox glass" id="mkf" novalidate>
+  <h3 id="mkt">新建文件夹</h3><p class="rpn" id="mkw"></p>
+  <label for="mkn">文件夹名称</label><input id="mkn" type="text" maxlength="60" autocomplete="off" enterkeyhint="done" aria-describedby="mkh mkm">
+  <p class="mkh" id="mkh">最多 60 个字，不能包含 / \ : * ? " &lt; &gt; | # %，不能以点开头</p>
+  <p class="rpm" id="mkm" role="alert"></p>
+  <div class="rpa"><button type="button" id="mkc">取消</button><button type="submit" id="mks" class="ok">创建</button></div>
 </form></div>
 <script>
 /* incremental SHA-256 (for files too big to hash in one go) */
@@ -245,11 +262,32 @@ $('#crumb').onclick=e=>{const b=e.target.closest('button[data-d]');if(b)cd(b.dat
 $('#cats').onclick=e=>{const b=e.target.closest('button[data-c]');if(b){cat=b.dataset.c;render()}};
 $('#vt').onclick=e=>{const b=e.target.closest('button[data-v]');if(b){view=b.dataset.v;localStorage.setItem('driveView',view);render()}};
 $('#filter').onclick=e=>{if(e.target.id==='clr'){tagF='';render()}};
-$('#mk').onclick=async()=>{const n=prompt('新文件夹名称'+(cwd?'（建在「'+cwd+'」里）':''));if(!n||!n.trim())return;
- const r=await fetch('/api/folders',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({path:(cwd?cwd+'/':'')+n.trim()})});const j=await r.json().catch(()=>({}));
- if(!r.ok){say(j.error||'创建失败','err');return}say('已创建文件夹 '+j.path.split('/').pop(),'ok');if(!folders.includes(j.path))folders.push(j.path);cd(j.path);load()};
-let loaded=false;
-async function load(){const L=$('#list');L.setAttribute('aria-busy','true');const ac=new AbortController(),to=setTimeout(()=>ac.abort(),10000);
+/* ---------- new folder: in-page dialog (validates, shows waiting/error, no double submit) ---------- */
+const mkd=$('#mkd'),mkn=$('#mkn'),mkm=$('#mkm'),mks=$('#mks');let mkFocus=null,mkBusy=false;
+const depth=d=>d?d.split('/').length:0;
+function vName(raw){const n=raw.trim();if(!n)return'请输入文件夹名称';
+ if(/[\/\\:*?"<>|#%\x00-\x1f\x7f\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/.test(n))return'名称不能包含 / \\ : * ? " < > | # % 等字符';
+ if(/^\./.test(n))return'名称不能以点开头';if(/\.$/.test(n))return'名称不能以点结尾';if([...n].length>60)return'名称最多 60 个字';
+ if(depth(cwd)>=4)return'文件夹最多 4 层，这里不能再新建子文件夹';
+ const full=(cwd?cwd+'/':'')+n;if(folders.some(x=>x.toLowerCase()===full.toLowerCase()))return'这里已经有同名文件夹「'+n+'」';return''}
+const mkErr=t=>{mkm.textContent=t;mkn.setAttribute('aria-invalid',t?'true':'false')};
+function openMk(){mkFocus=document.activeElement;$('#mkw').textContent='建在：'+(cwd||'全部文件');mkn.value='';mkErr('');mkBusy=false;mks.disabled=false;mks.textContent='创建';mkd.hidden=false;window.__post&&__post({type:'bar',show:false});setTimeout(()=>mkn.focus(),30)}
+function closeMk(){if(mkd.hidden||mkBusy)return;mkd.hidden=true;window.__post&&__post({type:'bar',show:true});mkFocus&&mkFocus.focus&&mkFocus.focus()}
+$('#mk').onclick=openMk;$('#mkc').onclick=closeMk;mkd.addEventListener('click',e=>{if(e.target===mkd)closeMk()});
+mkn.addEventListener('input',()=>{if(mkm.textContent)mkErr('')});
+mkd.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();closeMk();return}
+ if(e.key==='Tab'){const fs=[...mkd.querySelectorAll('input,button:not([disabled])')],a=fs[0],z=fs[fs.length-1];if(e.shiftKey&&document.activeElement===a){e.preventDefault();z.focus()}else if(!e.shiftKey&&document.activeElement===z){e.preventDefault();a.focus()}}});
+$('#mkf').onsubmit=async e=>{e.preventDefault();if(mkBusy)return;const er=vName(mkn.value);if(er){mkErr(er);mkn.focus();return}
+ const n=mkn.value.trim(),ac=new AbortController(),to=setTimeout(()=>ac.abort(),15000);mkBusy=true;mks.disabled=true;mks.textContent='创建中…';mkErr('');
+ try{const r=await fetch('/api/folders',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({path:(cwd?cwd+'/':'')+n}),signal:ac.signal});const j=await r.json().catch(()=>({}));
+  if(!r.ok||!j.path)throw new Error(j.error||('创建失败（服务器返回 '+r.status+'）'));
+  mkBusy=false;closeMk();say('已创建文件夹「'+j.path.split('/').pop()+'」','ok');if(!folders.includes(j.path))folders.push(j.path);cd(j.path);load()}
+ catch(err){mkBusy=false;mks.disabled=false;mks.textContent='创建';mkErr(err.name==='AbortError'?'创建超时，请检查网络后重试':err.message||'创建失败，请重试');mkn.focus()}
+ finally{clearTimeout(to)}};
+let loaded=false,inflight=null,again=false;
+function load(){if(inflight){again=true;return inflight}inflight=load1().finally(()=>{inflight=null;if(again){again=false;load()}});return inflight}
+let lt=0;const loadSoon=()=>{clearTimeout(lt);lt=setTimeout(load,700)};
+async function load1(){const L=$('#list');L.setAttribute('aria-busy','true');const ac=new AbortController(),to=setTimeout(()=>ac.abort(),10000);
  try{const r=await fetch('/api/files',{cache:'no-store',signal:ac.signal});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'服务器返回 '+r.status);files=j.files;folders=j.folders||[];if(cwd&&!folders.includes(cwd)&&!files.some(f=>f.dir===cwd||f.dir.startsWith(cwd+'/')))cwd='';$('#quota').textContent='已用 '+fmt(j.used)+' / '+j.cap;loaded=true;render()}
  catch(e){if(loaded){say('刷新列表失败，稍后再试','err');return}$('#more').innerHTML='';L.classList.remove('grid');L.innerHTML='<li class="empty errbox"><span>'+(e.name==='AbortError'?'加载超时（10 秒），网络可能不太好':'文件列表加载失败：'+esc(e.message||'网络错误'))+'</span><button type="button" class="retry" data-retry>重试</button></li>'}
  finally{clearTimeout(to);L.setAttribute('aria-busy','false')}}
@@ -264,39 +302,57 @@ function xput(url,body,headers,onp,viaRelay,ctl){return new Promise((res,rej)=>{
  x.upload.onprogress=e=>onp&&onp(e.loaded);const end=()=>ctl&&ctl.xs.delete(x);x.onload=()=>{end();if(x.status>=300){let m='';try{m=JSON.parse(x.responseText).error}catch(e){}const er=new Error(m||('网络失败：存储返回 '+x.status));if(!m&&!viaRelay&&x.status>=400&&x.status!==413)er.net=1;return rej(er)}res(viaRelay?JSON.parse(x.responseText).etag:x.getResponseHeader('ETag'))};x.onerror=()=>{end();rej(Object.assign(new Error('网络失败：连接中断，请检查网络后重试'),{net:1}))};x.onabort=()=>{end();rej(Object.assign(new Error('已取消'),{cx:1}))};x.send(body)})}
 async function put(url,body,headers,onp,ctl){if(!relay){try{return await xput(url,body,headers,onp,false,ctl)}catch(e){if(!e.net)throw e;relay=true}}return xput(url,body,headers,onp,true,ctl)}
 const jobs=new Set();
-function cancelJob(ctl){if(ctl.done)return;ctl.cx=true;ctl.xs.forEach(x=>{try{x.abort()}catch(e){}});ctl.row.className='up cx';ctl.txt.textContent='已取消';ctl.rt.textContent='';ctl.done=true;jobs.delete(ctl);upAll();setTimeout(()=>ctl.row.remove(),2500)}
+function cancelJob(ctl){if(ctl.done)return;ctl.cx=true;active.delete(ctl.key);ctl.xs.forEach(x=>{try{x.abort()}catch(e){}});ctl.row.className='up cx';ctl.txt.textContent='已取消';ctl.rt.textContent='';ctl.done=true;jobs.delete(ctl);upAll();setTimeout(()=>ctl.row.remove(),2500)}
 const upAll=()=>$('#upall').classList.toggle('on',jobs.size>1);
 $('#cxall').onclick=()=>[...jobs].forEach(cancelJob);
 const eta=s=>s<60?Math.max(1,Math.round(s))+' 秒':s<3600?Math.round(s/60)+' 分钟':(s/3600).toFixed(1)+' 小时';
-function mkJob(f){const row=document.createElement('div');row.className='up wait';row.innerHTML=`<div class="uh"><span class="un"></span><button type="button" class="ux">取消</button></div><div class="bar3"><i></i></div><div class="us"><span class="ut">等待上传…</span><span class="ur"></span></div>`;
+function mkJob(f){const row=document.createElement('div');row.className='up wait';row.innerHTML=`<div class="uh"><span class="un"></span><button type="button" class="ux">取消</button><button type="button" class="rt">重试</button></div><div class="bar3"><i></i></div><div class="us"><span class="ut">等待上传…</span><span class="ur"></span></div>`;
  row.querySelector('.un').textContent=f.name;$('#ups').append(row);
- const ctl={f,row,xs:new Set(),cx:false,done:false,txt:row.querySelector('.ut'),rt:row.querySelector('.ur'),bar:row.querySelector('i')};
- row.querySelector('.ux').setAttribute('aria-label','取消上传 '+f.name);row.querySelector('.ux').onclick=()=>cancelJob(ctl);jobs.add(ctl);upAll();return ctl}
+ const ctl={f,row,xs:new Set(),cx:false,done:false,dir:cwd,key:jobKey(f,cwd),txt:row.querySelector('.ut'),rt:row.querySelector('.ur'),bar:row.querySelector('i')};
+ row.querySelector('.ux').setAttribute('aria-label','取消上传 '+f.name);row.querySelector('.ux').onclick=e=>{if(e.detail>1||performance.now()-(ctl.rtAt||0)<600)return;cancelJob(ctl)};   // a double click on 重试 must not land on 取消 (same spot)
+ row.querySelector('.rt').setAttribute('aria-label','重试上传 '+f.name);row.querySelector('.rt').onclick=()=>retryJob(ctl);
+ active.add(ctl.key);jobs.add(ctl);upAll();return ctl}
+const jobKey=(f,d)=>[d,f.name,f.size,f.lastModified].join('|');
+const active=new Set();   // keys of files queued/uploading → the same file can't be queued twice
+const sr=t=>{const e=$('#upsr');e.textContent='';setTimeout(()=>{e.textContent=t},50)};
+/* pool: at most UPC files at once (each multipart file also uploads up to 4 (alone) or 2 (with others) parts in parallel) */
+const UPC=3,queue=[];let running=0;
+function pumpQ(){while(running<UPC&&queue.length){const c=queue.shift();if(c.cx||c.done)continue;running++;up(c).finally(()=>{running--;pumpQ()})}}
+function retryJob(ctl){if(!ctl.row.classList.contains('err')||ctl.row.classList.contains('nort')||active.has(ctl.key))return;ctl.rtAt=performance.now();ctl.cx=false;ctl.done=false;ctl.xs=new Set();ctl.row.className='up wait';ctl.txt.textContent=ctl.fin?'等待重新保存…':'等待重试…';ctl.rt.textContent='';ctl.bar.style.width='0';ctl.row.querySelector('.ux').disabled=false;active.add(ctl.key);jobs.add(ctl);upAll();queue.push(ctl);pumpQ();ctl.row.querySelector('.ux').focus()}
 const api=(u,b)=>fetch(u,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(b)}).catch(()=>{throw new Error('网络失败：连不上服务器，请检查网络后重试')});
 async function up(ctl){const f=ctl.f,row=ctl.row,chk=()=>{if(ctl.cx)throw Object.assign(new Error('已取消'),{cx:1})};
  if(ctl.cx)return;row.className='up';
  const set=(p,t,r)=>{if(ctl.cx)return;ctl.bar.style.width=(p*100).toFixed(1)+'%';ctl.txt.textContent=t;ctl.rt.textContent=r||''};
  try{
-  if(!f.size)throw new Error('空文件');
+  const F=m=>Object.assign(new Error(m),{fatal:1});   // deterministic rejections: no retry button
+  if(!f.size)throw F('空文件');
   // quick client-side checks (the server enforces the same rules)
-  if(f.size>LIM.maxFile)throw new Error('文件太大：单个文件最大 '+fmt(LIM.maxFile));
-  if(LIM.blocked.includes(ext(f.name))&&f.name.includes('.'))throw new Error('类型不支持：不能上传可执行文件、安装包或脚本（.'+ext(f.name)+'）');
+  if(f.size>LIM.maxFile)throw F('文件太大：单个文件最大 '+fmt(LIM.maxFile));
+  if(LIM.blocked.includes(ext(f.name))&&f.name.includes('.'))throw F('类型不支持：不能上传可执行文件、安装包或脚本（.'+ext(f.name)+'）');
   const hb=new Uint8Array(await f.slice(0,4096).arrayBuffer());let head='';for(const x of hb)head+=String.fromCharCode(x);head=btoa(head);
+  let r,fin=ctl.fin;
+  if(!fin){   // a retry after a failed "save" step only repeats /api/up/finish (bytes are already stored)
   const oid=await hashFile(f,(p,t)=>{chk();set(p*.1,t)});chk();
-  let r=await api('/api/up/init',{name:f.name,size:f.size,oid,dir:cwd,head});let pl=await r.json().catch(()=>({}));if(!r.ok)throw new Error(pl.error||'网络失败：服务器返回 '+r.status);chk();ctl.path=pl.path;
+  r=await api('/api/up/init',{name:f.name,size:f.size,oid,dir:ctl.dir,head});let pl=await r.json().catch(()=>({}));if(!r.ok)throw Object.assign(new Error(pl.error||'网络失败：服务器返回 '+r.status),{fatal:['big','type','quota'].includes(pl.code)});chk();ctl.path=pl.path;
   const t0=performance.now(),prog=l=>{const el=(performance.now()-t0)/1000||.001,sp=l/el,pc=l/f.size;set(.1+.88*pc,'上传中 '+Math.round(pc*100)+'% · '+fmt(l)+' / '+fmt(f.size),fmt(sp)+'/s'+(sp>0&&pc<1?' · 剩 '+eta((f.size-l)/sp):''))};
-  const fin={path:pl.path,oid,size:f.size,verify:pl.verify};
+  fin={path:pl.path,oid,size:f.size,verify:pl.verify};
   if(pl.mode==='basic'){await put(pl.href,f,pl.header,prog,ctl)}
   else if(pl.mode==='multipart'){const n=pl.parts.length,done=new Array(n).fill(0),etags=new Array(n);let next=0;
    const worker=async()=>{for(;;){chk();const i=next++;if(i>=n)return;const a=i*pl.chunk,b=Math.min(f.size,a+pl.chunk);let tries=0;
      for(;;){try{etags[i]=await put(pl.parts[i],f.slice(a,b),{},l=>{done[i]=l;prog(done.reduce((x,y)=>x+y,0))},ctl);break}catch(e){if(e.cx||++tries>=3)throw e}}}};
-   await Promise.all(Array.from({length:Math.min(4,n)},worker));
+   await Promise.all(Array.from({length:Math.min(running>1?2:4,n)},worker));
    fin.complete=pl.complete;fin.parts=etags.map((e,i)=>({partNumber:i+1,etag:e}))}
+  ctl.fin=fin}
   chk();set(.99,'保存中…');row.querySelector('.ux').disabled=true;
-  r=await api('/api/up/finish',fin);const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'网络失败：服务器返回 '+r.status);
-  ctl.done=true;jobs.delete(ctl);upAll();set(1,'上传成功 ✓ · '+fmt(f.size));row.className='up ok';load();setTimeout(()=>row.remove(),6000);
- }catch(e){if(e.cx||ctl.cx)return;ctl.done=true;jobs.delete(ctl);upAll();row.className='up err';ctl.txt.textContent='上传失败 · '+e.message;ctl.rt.textContent=''}}
-const many=fl=>{const cs=[...fl].map(mkJob);cs.reduce((p,c)=>p.then(()=>up(c)),Promise.resolve())};
+  r=await api('/api/up/finish',fin);const j=await r.json().catch(()=>({}));if(!r.ok){if(r.status>=400&&r.status<500)ctl.fin=null;throw new Error(j.error||'网络失败：服务器返回 '+r.status)}
+  ctl.fin=null;ctl.done=true;active.delete(ctl.key);jobs.delete(ctl);upAll();set(1,'上传成功 ✓ · '+fmt(f.size));row.className='up ok';sr(f.name+' 上传成功');loadSoon();setTimeout(()=>row.remove(),6000);
+ }catch(e){if(e.cx||ctl.cx)return;ctl.done=true;active.delete(ctl.key);jobs.delete(ctl);upAll();row.className='up err'+(e.fatal?' nort':'');ctl.txt.textContent='上传失败 · '+e.message;ctl.rt.textContent='';sr(f.name+' 上传失败：'+e.message)}}
+/* several files upload in parallel (pool of UPC); one failure never stops the others */
+const many=fl=>{const list=[...fl],dup=[];const cs=[];
+ for(const f of list){if(active.has(jobKey(f,cwd))){dup.push(f.name);continue}cs.push(mkJob(f))}
+ if(dup.length)say('已在上传队列中，已跳过：'+dup.join('、'),'err');
+ if(!cs.length)return;sr('开始上传 '+cs.length+' 个文件');queue.push(...cs);pumpQ()};
+$('#pick').onclick=e=>{e.preventDefault();$('#file').click()};
 $('#file').onchange=e=>{many(e.target.files);e.target.value=''};
 const d=$('#drop');['dragenter','dragover'].forEach(t=>d.addEventListener(t,e=>{e.preventDefault();d.classList.add('over')}));
 ['dragleave','drop'].forEach(t=>d.addEventListener(t,e=>{e.preventDefault();d.classList.remove('over')}));d.addEventListener('drop',e=>many(e.dataTransfer.files));
