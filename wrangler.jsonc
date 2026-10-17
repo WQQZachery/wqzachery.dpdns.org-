@@ -1,0 +1,36 @@
+// Cloudflare Workers Builds: build = `bash tools/build_worker.sh`, deploy = `npx wrangler deploy`.
+// Mirrors deploy/deploy_worker.sh. Secrets (HF_TOKEN, ADMIN_KEY, OPENROUTER_KEY, GEMINI_KEY) live in the dashboard and are kept on deploy.
+// Custom domains (wqzachery.dpdns.org, www) are not declared here, so wrangler leaves them alone.
+{
+  "name": "wqzachery",
+  "main": "dist/worker.js",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": true,
+  "preview_urls": false,
+  "no_bundle": true,
+  "find_additional_modules": true,
+  "base_dir": "dist",
+  "rules": [
+    { "type": "ESModule", "globs": ["worker.js"] },
+    { "type": "Text", "globs": ["**/*.html", "**/*.css", "shared.js"], "fallthrough": false },
+    { "type": "Data", "globs": ["**/*.png"], "fallthrough": false }
+  ],
+  "ai": { "binding": "AI" },
+  "durable_objects": { "bindings": [{ "name": "STORE", "class_name": "Store" }] },
+  // v1 is already applied on wqzachery and wqz-test — never add a new migration here.
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Store"] }],
+  "ratelimits": [
+    { "name": "CHAT_RL", "namespace_id": "7101", "simple": { "limit": 15, "period": 60 } },
+    { "name": "UP_RL", "namespace_id": "7102", "simple": { "limit": 30, "period": 60 } }
+  ],
+  "vars": {
+    "AI_MODELS": "@cf/openai/gpt-oss-120b,@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+    "GEMINI_MODELS": "",
+    "HF_REPO": "wqzachery/drive",
+    "CAP_LABEL": "100 GB",
+    "AI_DAILY_CAP": "200",
+    "UP_MAX_FILE": "2147483648",
+    "UP_DAY_BYTES": "5368709120",
+    "UP_DAY_FILES": "50"
+  }
+}
