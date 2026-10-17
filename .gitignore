@@ -1,0 +1,5 @@
+node_modules/
+dist/
+.wrangler/
+worker/.admin_key
+.dev.vars
