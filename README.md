@@ -24,7 +24,8 @@
 | `site/shared.css` / `shared.js` | 公共设计变量、液态玻璃、隐私弹窗、JS 拼装邮箱；Worker 以 `?v=<内容哈希>` 长缓存 |
 | `site/404.html`、`site/og.png` | 404 页、分享图 |
 | `worker/worker.js` | Worker：路由、AI、网盘 API、统计、Durable Object `Store` |
-| `deploy/deploy_worker.sh` | 通过 Cloudflare API 部署（multipart 上传脚本 + 文本模块） |
+| `wrangler.jsonc` / `package.json` / `tools/build_worker.sh` | Workers Builds 自动部署配置与构建脚本 |
+| `deploy/deploy_worker.sh` | 通过 Cloudflare API 手动部署（multipart 上传脚本 + 文本模块） |
 | `tools/` | 本地预览与测试脚本（见下） |
 
 ## 路由
@@ -47,6 +48,10 @@
 - 绑定：Workers AI `AI`、Durable Object `STORE`（类 `Store`）、rate limit `CHAT_RL`、`UP_RL`。
 
 ## 部署
+
+**自动部署**：推送到 `main` 分支后，Cloudflare Workers Builds 自动构建并部署 Worker `wqzachery`（构建命令 `npm run build` → `tools/build_worker.sh` 把 `worker/worker.js` 和页面文件平铺复制到 `dist/`；部署命令 `npx wrangler deploy`，配置见 `wrangler.jsonc`）。Secrets 只在 Cloudflare 后台设置，部署时保留；自定义域名不在配置里声明，wrangler 不会改动。只构建 `main`，其他分支不生成预览。
+
+**手动部署（备用）**：
 
 ```bash
 HF_REPO=<hf用户>/<数据集> [AI_DAILY_CAP=200] [UP_DAY_FILES=50] deploy/deploy_worker.sh <worker名>
