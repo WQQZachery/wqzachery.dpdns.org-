@@ -118,11 +118,11 @@
     fill(o, '更新公告', x.title || '网站更新', [meta(x), items(x)], [btn('更新日志', 'wz-an2', 'data-log'), btn('我知道了', 'wz-an1', 'data-x')], '.wz-an1');
   }
   function history() {
+    // changelog alone never marks the newest announcement read (seenId only set by announce())
     var o = shell(); o.querySelector('.wz-anp').removeAttribute('aria-describedby');
     var st = el('div', 'wz-state', '正在加载…'); st.setAttribute('role', 'status');
     fill(o, '全部更新', '更新日志', [st], [btn('关闭', 'wz-an1', 'data-x')], '.wz-anx');
     load().then(function (list) {
-      var n = newest(list); if (n) seenId = n.id;
       var ol = el('ol', 'wz-anl');
       list.forEach(function (x) { var li = el('li'); li.appendChild(meta(x)); li.appendChild(el('h3', null, x.title || '')); li.appendChild(items(x)); ol.appendChild(li) });
       var b = o.querySelector('.wz-anb'); b.replaceChildren(ol);

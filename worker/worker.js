@@ -525,7 +525,6 @@ async function chat(req, env, ctx) {
 
   const mm0 = MODELS.find(x => x.id === body.model) || MODELS[0];
   const mm = { ...mm0, effort };
-  EFFORT.v = effort;
   ctx.waitUntil((async () => { try {
     const question = msgs[msgs.length - 1].content;
     // thinking level also steers models without a native reasoning knob
@@ -567,7 +566,7 @@ async function chat(req, env, ctx) {
       if (isAdmin(req)) await send({ debug: lastAIError });
       if (full) { model = 'gemini (cut)'; }
       else {
-        try { model = await workersAI(env, msgs, t => { full += t; return send({ t }); }, null, onThink); }
+        try { model = await workersAI(env, msgs, t => { full += t; return send({ t }); }, null, onThink, effort); }
         catch (e2) {
           const m = String(e2 && e2.message || e2);
           await send({ error: /4006|neuron|quota|limit/i.test(m) ? '今天的免费 AI 额度用完了，明天再来吧' : 'AI 暂时不可用，请稍后再试' });
@@ -588,7 +587,6 @@ async function chat(req, env, ctx) {
 }
 
 /* ---------------- web search (no API key): Bing RSS → DuckDuckGo HTML → Wikipedia, then read the top pages ---------------- */
-const EFFORT = { v: 'low' };
 const UA = { 'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15', 'accept-language': 'zh-CN,zh;q=0.9,en;q=0.6' };
 const unent = s => String(s || '').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;|&#x27;/g, "'").replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(+n)).replace(/\s+/g, ' ').trim();
 const tfetch = (u, o = {}, ms = 5000) => fetch(u, { ...o, signal: AbortSignal.timeout(ms) });
@@ -717,13 +715,13 @@ async function gemini(env, msgs, emit) {
   throw lastErr;
 }
 
-async function workersAI(env, msgs, emit, mm, onThink) {
+async function workersAI(env, msgs, emit, mm, onThink, effort) {
   let lastErr;
   for (const model of (mm ? [mm.model, ...(mm.fb || [])] : (env.AI_MODELS || env.CHAT_MODEL).split(','))) {
     let got = false;
     try {
       const opts = { messages: [{ role: 'system', content: mm ? sysFor(mm) : SYS }, ...msgs], max_tokens: 3000, stream: true };
-      const ef = (mm && mm.effort) || EFFORT.v || 'low';
+      const ef = (mm && mm.effort) || effort || 'low';
       if (/gpt-oss/.test(model)) opts.reasoning_effort = ef === 'max' ? 'high' : ef;
       if (ef === 'max') opts.max_tokens = 8000;
       if (/deepseek-r1|qwq|qwen3/.test(model)) opts.max_tokens = ef === 'max' ? 8000 : ef === 'high' ? 6000 : ef === 'medium' ? 4000 : 2500;
