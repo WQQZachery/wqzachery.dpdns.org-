@@ -2,6 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="wqz-page" content="privacy">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>隐私说明 · 吴谦</title>
 <meta name="description" content="wqzachery.dpdns.org 记录哪些数据、发送给哪些第三方服务、保存多久，以及如何删除。">
@@ -69,7 +70,14 @@ html.embed main{padding-top:18px}
 <p>网站目前没有"删除我的对话"按钮。想删除你的 AI 对话、聊天消息或上传记录，请发邮件给站长（<span class="em" data-u="zacherywu0914" data-d="gmail.com">邮箱需要 JavaScript 才能显示</span>），说明大致时间和内容即可。</p>
 
 <h2>你的浏览器里存了什么</h2>
-<p>本站只用浏览器本地存储（localStorage / sessionStorage）保存：AI 会话 ID 和当前对话、模型与思考强度偏好、网盘视图偏好、聊天室匿名密钥和昵称。清除浏览器网站数据即可全部删除。</p>
+<p>本站只用浏览器本地存储（localStorage / sessionStorage）保存以下内容，不用 Cookie 跟踪你：</p>
+<ul>
+<li><b>AI 对话历史</b>：最近最多 50 段对话（问题、回答、所选模型），只存在你这台设备的这个浏览器里，用来在关闭页面后恢复；不会同步到其他设备。在 AI 页面顶部的「历史」里可以逐条删除。注意：发送时对话内容仍会传到服务器生成回答，并按上文被站长记录——删除本机历史不会删除服务器上的记录。</li>
+<li>模型与思考强度偏好、网盘视图偏好和当前所在文件夹。</li>
+<li>聊天室匿名密钥和昵称。</li>
+<li>是否已看过开场动画（7 天内再次访问时播放短版）。</li>
+</ul>
+<p>清除浏览器的网站数据即可全部删除。</p>
 
 <h2>基础设施</h2>
 <p>整个网站运行在 <b>Cloudflare</b> 上，所有请求都会经过 Cloudflare 的网络，按 Cloudflare 的政策处理。</p>
