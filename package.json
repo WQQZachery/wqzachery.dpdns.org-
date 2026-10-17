@@ -1,0 +1,11 @@
+{
+  "name": "wqzachery",
+  "private": true,
+  "scripts": {
+    "build": "bash tools/build_worker.sh",
+    "deploy": "bash tools/build_worker.sh && wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.151.1"
+  }
+}
