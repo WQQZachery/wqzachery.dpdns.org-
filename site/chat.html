@@ -2,6 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="wqz-page" content="chat">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <title>聊天室 · 吴谦</title>
 <meta name="description" content="吴谦个人网站的实时公共聊天室：匿名昵称、在线人数、私信与 @提及。">
@@ -72,13 +73,13 @@ header{flex:none;display:flex;align-items:center;justify-content:space-between;g
 .meta b{font-weight:600;color:#c7c7cc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
 .row.cont .meta{display:none}
 .bub{padding:9px 13px;border-radius:19px;font-size:15px;line-height:1.55;word-break:break-word;overflow-wrap:anywhere;white-space:pre-wrap;background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.08);border-bottom-left-radius:6px}
-.row.mine .bub{background:linear-gradient(135deg,#25a07a,#2f6fd6);border-bottom-left-radius:19px;border-bottom-right-radius:6px;box-shadow:none}
+.row.mine .bub{background:linear-gradient(135deg,#1d7d60,#2f6fd6);border-bottom-left-radius:19px;border-bottom-right-radius:6px;box-shadow:none}
 .bub.ment{box-shadow:inset 0 0 0 1.5px rgba(251,191,36,.75),0 0 18px -4px rgba(251,191,36,.45);background:rgba(251,191,36,.12)}
 .bub code{background:rgba(0,0,0,.3);border-radius:5px;padding:1px 5px;font:13.5px ui-monospace,Menlo,monospace}
 .bub a{color:#a5f3fc;text-decoration:underline;text-underline-offset:2px}
 .row.mine .bub a{color:#fff}
 .bub .at{color:#fcd34d;font-weight:600}
-.row.mine .bub .at{color:#fef3c7}
+.row.mine .bub .at{color:#fffbeb}
 .tick{font-size:10.5px;color:var(--mut);margin:3px 6px 0}
 .row.pend .bub{opacity:.6}
 .row.fail .bub{opacity:.6;box-shadow:inset 0 0 0 1px #f87171}
@@ -112,8 +113,8 @@ form{flex:none;padding:2px max(14px,env(safe-area-inset-right)) var(--pb) max(14
 .box .ib svg{width:23px;height:23px}
 .box .ib[aria-expanded="true"]{color:var(--a1)}
 textarea{flex:1;min-width:0;resize:none;border:0;outline:0;background:none;color:var(--fg);font:16px/1.45 inherit;font-family:inherit;max-height:120px;padding:8px 0;min-height:24px}
-textarea::placeholder{color:#6e6e73}
-.pvn{max-width:760px;margin:4px auto 0;text-align:center;font-size:11px;line-height:16px;color:#6e6e73}.pvn .wz-link{font-size:11px;color:#8e8e93}
+textarea::placeholder{color:#8e8e93}
+.pvn{max-width:760px;margin:4px auto 0;text-align:center;font-size:11px;line-height:16px;color:#8e8e93}.pvn .wz-link{font-size:11px;color:#8e8e93}
 html.embed.kb .pvn{display:none}
 .cnt{position:absolute;right:max(76px,calc(env(safe-area-inset-right) + 62px));top:-14px;font-size:11px;color:#fbbf24}
 #send{flex:none;width:40px;height:40px;border-radius:50%;border:0;background:var(--fg);color:#000;display:grid;place-items:center;cursor:pointer;transition:opacity .2s,transform .2s}
@@ -188,7 +189,7 @@ let pub=[],online={n:0,users:[]},dms={},view=null,pubUnread=0,mentions=0,clearTs
 let seen={};try{seen=JSON.parse(LS.get('chatSeen','{}'))||{}}catch(e){}
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const hue=id=>{let h=0;for(const c of String(id))h=(h*31+c.charCodeAt(0))>>>0;return h%360};
-const avc=id=>`background:linear-gradient(135deg,hsl(${hue(id)} 62% 52%),hsl(${(hue(id)+40)%360} 62% 40%))`;
+const avc=id=>`background:linear-gradient(135deg,hsl(${hue(id)} 58% 30%),hsl(${(hue(id)+40)%360} 58% 24%))`;
 const ini=n=>[...String(n||'?')].find(c=>c.trim())||'?';
 function md(t){return esc(t).split(/(`[^`\n]+`)/).map((x,i)=>i%2?'<code>'+x.slice(1,-1)+'</code>':x.replace(/(?<!\*)\*\*(?!\*)([^*\n]+?)(?<!\*)\*\*(?!\*)/g,'<b>$1</b>').replace(/https?:\/\/[^\s<>"']+[^\s<>"'.,;:!?，。！？)）]/g,u=>`<a href="${u}" target="_blank" rel="noopener noreferrer nofollow">${u}</a>`).replace(/(^|[\s>])@([^\s@<]{1,16})/g,(m,p,n)=>p+'<span class="at">@'+n+'</span>')).join('')}
 const mentionsMe=m=>m.uid!==me.uid&&me.nick&&(' '+m.text).includes('@'+me.nick);
