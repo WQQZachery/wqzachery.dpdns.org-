@@ -2,6 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="wqz-page" content="ai">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <title>GPT-6 Astra · 吴谦</title>
 <meta name="description" content="GPT-6 Astra：吴谦个人网站上的 AI 助手，可切换多个模型、联网搜索和调节思考强度。">
@@ -46,9 +47,9 @@ header small{display:block;color:var(--mut);font-size:12px;margin-top:1px}
 .msg.a code{background:rgba(255,255,255,.1);border-radius:5px;padding:1px 5px;font:13.5px ui-monospace,Menlo,monospace}
 .msg.a pre{background:rgba(0,0,0,.45);border-radius:12px;padding:12px;overflow-x:auto;margin:6px 0;white-space:pre;-webkit-overflow-scrolling:touch}
 .msg.a pre code{background:none;padding:0}
-.msg.a.typing::after{content:'▍';animation:blink 1s steps(1) infinite;color:var(--a1)}
+.msg.a.typing::after{content:'▍';content:'▍'/'';animation:blink 1s steps(1) infinite;color:var(--a1)}
 .msg.a.wait{color:var(--mut)}
-.msg.a.wait::after{content:'';display:inline-block;width:1.4em;text-align:left;animation:dots 1.2s steps(4) infinite}
+.msg.a.wait::after{content:'';content:''/'';display:inline-block;width:1.4em;text-align:left;animation:dots 1.2s steps(4) infinite}
 @keyframes blink{50%{opacity:0}}
 @keyframes dots{0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}}
 .hello{margin:auto 0;text-align:center;padding:20px 6px}
@@ -60,7 +61,7 @@ header small{display:block;color:var(--mut);font-size:12px;margin-top:1px}
 form{flex:none;padding:8px max(14px,env(safe-area-inset-right)) var(--pb) max(14px,env(safe-area-inset-left));transition:padding .25s}
 .box{max-width:760px;margin:0 auto;display:flex;align-items:flex-end;gap:8px;padding:6px 6px 6px 16px;border-radius:26px;background:rgba(255,255,255,.07);-webkit-backdrop-filter:blur(18px) saturate(170%);backdrop-filter:blur(18px) saturate(170%);box-shadow:inset 1.5px 1.5px 1px -1px rgba(255,255,255,.45),inset -1px -1px 1px -.5px rgba(255,255,255,.15),0 8px 26px -10px rgba(0,0,0,.6)}
 textarea{flex:1;resize:none;border:0;outline:0;background:none;color:var(--fg);font:16px/1.45 inherit;font-family:inherit;max-height:140px;padding:8px 0;min-height:24px}
-textarea::placeholder{color:#6e6e73}
+textarea::placeholder{color:#8e8e93}
 .opts{max-width:760px;margin:0 auto 7px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .opts button{font:inherit;border:0;cursor:pointer;color:var(--mut);font-size:12.5px;font-weight:600;height:30px;padding:0 12px;border-radius:999px;background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.12);display:inline-flex;align-items:center;gap:5px;transition:background .2s,color .2s}
 .opts button svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
@@ -69,7 +70,7 @@ textarea::placeholder{color:#6e6e73}
 .opts .seg span{color:var(--mut);font-size:12px;padding:0 6px 0 9px}
 .opts .seg button{height:26px;padding:0 11px;background:none;box-shadow:none}
 .opts .seg button[aria-checked="true"]{color:var(--fg);background:rgba(255,255,255,.16)}
-.pvn{max-width:760px;margin:5px auto 0;text-align:center;font-size:11px;line-height:16px;color:#6e6e73}.pvn .wz-link{font-size:11px;color:#8e8e93;min-height:0}
+.pvn{max-width:760px;margin:5px auto 0;text-align:center;font-size:11px;line-height:16px;color:#8e8e93}.pvn .wz-link{font-size:11px;color:#8e8e93;min-height:0}
 html.embed.kb .pvn{display:none}
 .opts button:focus-visible{outline:2px solid var(--a1);outline-offset:2px}
 .think{max-width:100%;margin:2px 0 8px;border-radius:16px;background:rgba(255,255,255,.04);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.1)}
@@ -104,6 +105,29 @@ html.embed.kb .pvn{display:none}
 #sheet button i{font-style:normal;font-size:11px;padding:3px 7px;border-radius:999px;background:rgba(110,231,183,.16);color:var(--a1);white-space:nowrap}
 #sheet button .ck{width:18px;color:var(--a1);font-size:15px}
 .by{align-self:flex-start;font-size:11.5px;color:var(--mut);margin:-6px 0 0 6px}
+/* history sheet, message actions, code copy, save warning, screen-reader live region */
+.hb{display:flex;gap:6px;flex:none}
+#hs{position:fixed;inset:0;z-index:20;display:none;background:rgba(0,0,0,.35)}
+#hs.on{display:block}
+#hs .pan{position:absolute;right:max(12px,env(safe-area-inset-right));top:calc(env(safe-area-inset-top) + 64px);width:min(380px,calc(100vw - 24px));max-height:calc(100dvh - env(safe-area-inset-top) - 80px);overflow-y:auto;overscroll-behavior:contain;padding:10px;border-radius:24px;background:rgba(30,30,34,.9);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);box-shadow:inset 1.5px 1.5px 1px -1px rgba(255,255,255,.5),inset -1px -1px 1px -.5px rgba(255,255,255,.18),0 20px 50px -10px rgba(0,0,0,.7);transform-origin:80% 0;animation:pop .32s cubic-bezier(.3,1.4,.5,1)}
+#hs .hh{display:flex;align-items:center;gap:6px;padding:2px 2px 8px}#hs .hh strong{flex:1;font-size:15px;padding-left:6px}
+#hsl{list-style:none;display:flex;flex-direction:column;gap:2px}
+#hsl li{display:flex;align-items:center;gap:4px;border-radius:16px}#hsl li.on{background:rgba(255,255,255,.09)}
+#hsl .hi{flex:1;min-width:0;display:flex;text-align:left;border:0;background:none;color:var(--fg);font:inherit;padding:10px 12px;border-radius:16px;cursor:pointer;min-height:44px}
+#hsl .hi:hover{background:rgba(255,255,255,.06)}#hsl .hi .tx{min-width:0}#hsl .hi b{display:block;font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#hsl .hi small{color:var(--mut);font-size:12px}
+#hsl .hd2{flex:none;border:0;background:none;color:var(--mut);font:inherit;font-size:12.5px;padding:0 10px;min-height:44px;border-radius:12px;cursor:pointer}#hsl .hd2:hover,#hsl .hd2.arm{color:#ffb4a8}#hsl .hd2.arm{background:rgba(255,107,90,.16)}
+#hsl .none{color:var(--mut);font-size:14px;padding:18px 12px;text-align:center}
+#hs .hn{color:var(--mut);font-size:12px;line-height:1.6;padding:10px 8px 2px}
+.ab{border:0;cursor:pointer;font:inherit;font-size:12.5px;font-weight:600;color:var(--mut);background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.12);border-radius:999px;padding:0 12px;min-height:32px;display:inline-flex;align-items:center;gap:4px;transition:background .2s,color .2s}
+.ab:hover{color:var(--fg);background:rgba(255,255,255,.1)}.ab.bad{color:#ffb4a8}
+.ab:focus-visible,#hsl button:focus-visible,.pill:focus-visible,#mb:focus-visible,.cpb:focus-visible{outline:2px solid var(--a1);outline-offset:2px}
+.acts{align-self:flex-start;display:flex;gap:6px;margin:-4px 0 2px 4px}
+.msg.e .rt{margin-left:6px;color:var(--fg);vertical-align:middle}
+.cb{position:relative}.cb pre{padding-top:34px!important}
+.cpb{position:absolute;top:6px;right:6px;border:0;border-radius:8px;padding:4px 9px;font:600 11.5px/1.4 inherit;font-family:inherit;color:var(--fg);background:rgba(255,255,255,.12);cursor:pointer;white-space:nowrap}
+.cut{color:var(--mut);font-size:12.5px}
+.sv{max-width:760px;margin:6px auto 0;text-align:center;font-size:12px;color:#ffb4a8}
+.sr{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
 #send{flex:none;width:40px;height:40px;border-radius:50%;border:0;background:var(--fg);color:#000;display:grid;place-items:center;cursor:pointer;transition:opacity .2s,transform .2s}
 #send:disabled{opacity:.35}
 #send svg{width:20px;height:20px}
@@ -114,23 +138,28 @@ html.embed.kb .pvn{display:none}
 <div class="bg"></div>
 <header>
   <div class="t"><div class="logo">A</div><div><b id="mn">GPT-6 Astra</b><button id="mb" type="button">切换模型 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button></div></div>
-  <button class="pill" id="new">新对话</button>
+  <div class="hb"><button class="pill" id="hist" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="hs">历史</button><button class="pill" id="new" type="button">新对话</button></div>
 </header>
+<div id="hs" role="dialog" aria-modal="true" aria-labelledby="hst"><div class="pan"><div class="hh"><strong id="hst">对话历史</strong><button type="button" id="hsn" class="ab">＋ 新对话</button><button type="button" id="hsx" class="ab" aria-label="关闭对话历史">关闭</button></div>
+  <ul id="hsl"></ul><p class="hn">对话只保存在这台设备的浏览器里（最多 50 个），不会同步到其他设备；清除浏览器网站数据会一并删除。站长服务器上的记录见隐私说明。</p></div></div>
+<div id="sr" class="sr" aria-live="polite" aria-atomic="true"></div>
 <div id="sheet"><div class="pan" id="pan"></div></div>
-<div id="log"><div class="inner" id="inner"></div></div>
+<div id="log" role="region" aria-label="对话内容"><div class="inner" id="inner"></div></div>
 <form id="f" autocomplete="off">
   <div class="opts"><button type="button" id="web" aria-pressed="false" aria-label="联网搜索"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>联网搜索</button>
   <div class="seg" role="radiogroup" aria-label="思考深度" id="eff"><span>思考</span><button type="button" role="radio" data-e="low" title="快速作答">迅捷</button><button type="button" role="radio" data-e="medium" title="先想一想再回答">均衡</button><button type="button" role="radio" data-e="high" title="一步步深入推理">深思</button><button type="button" role="radio" data-e="max" title="最大思考深度，较慢">极致</button></div></div>
   <div class="box"><textarea id="in" rows="1" placeholder="给 GPT-6 Astra 发消息" maxlength="4000" enterkeyhint="send" aria-label="输入消息"></textarea>
   <button id="send" type="submit" aria-label="发送" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg></button></div>
-  <p class="pvn">对话会被站长记录 · <button type="button" class="wz-link" data-privacy>隐私说明</button></p>
+  <p id="sv" class="sv" role="alert" hidden></p>
+  <p class="pvn">对话会被站长记录，并保存在本机浏览器 · <button type="button" class="wz-link" data-privacy>隐私说明</button></p>
 </form>
 <script>
 (()=>{
 const $=s=>document.querySelector(s),log=$('#log'),inner=$('#inner'),inp=$('#in'),send=$('#send'),f=$('#f');
 const SUG=['介绍一下吴谦和这个网站','帮我写一段 Python 爬虫','用简单的话解释量子计算','给我讲个冷笑话'];
-let sid,hist,busy=false,ctrl=null;
-let MODELS=[{id:'astra',name:'GPT-6 Astra',tag:'默认',desc:'均衡好用，不限次数'}],model=localStorage.getItem('aiModel')||'astra';
+const PRODUCT='GPT-6 Astra';
+let busy=false,ctrl=null;
+let MODELS=[{id:'astra',name:PRODUCT,tag:'默认',desc:'均衡好用，不限次数'}],model=localStorage.getItem('aiModel')||'astra';
 const cur=()=>MODELS.find(m=>m.id===model)||MODELS[0];
 let web=localStorage.getItem('aiWeb')==='1',effort=localStorage.getItem('aiEffort')||'low';
 const opts=()=>{$('#web').setAttribute('aria-pressed',web);document.querySelectorAll('#eff button').forEach(b=>b.setAttribute('aria-checked',b.dataset.e===effort))};
@@ -141,68 +170,168 @@ const CATS=[['推荐','✦','默认与不限次数'],['旗舰','◆','参数最�
 const catOf=m=>m.cat||'推荐';
 function lvCats(back){const cur=MODELS.find(m=>m.id===model);const cs=CATS.filter(c=>MODELS.some(m=>catOf(m)===c[0]));const extra=[...new Set(MODELS.map(catOf))].filter(c=>!CATS.some(x=>x[0]===c)).map(c=>[c,'•','']);$('#pan').innerHTML=`<div class="lv${back?' back':''}" role="menu" aria-label="模型分类">`+[...cs,...extra].map(([c,ic,d])=>{const n=MODELS.filter(m=>catOf(m)===c).length,on=cur&&catOf(cur)===c;return `<button class="cat${on?' on':''}" data-cat="${esc(c)}" role="menuitem" aria-haspopup="true"><span class="ic" aria-hidden="true">${ic}</span><span class="tx"><b>${esc(c)}</b><small>${on?'当前：'+esc(cur.name):esc(d)}</small></span><span class="ct">${n} 个</span><span class="ar" aria-hidden="true">›</span></button>`}).join('')+(modelsState==='loading'?'<div class="wz-state" role="status">正在加载模型列表…</div>':modelsState==='err'?'<div class="wz-state err" role="alert">模型列表加载失败，目前只能用默认模型<button type="button" class="wz-btn" data-mretry>重试</button></div>':'')+'</div>';const f=$('#pan button.on')||$('#pan button');f&&f.focus({preventScroll:true})}
 function lvModels(c){$('#pan').innerHTML=`<div class="lv" role="menu" aria-label="${esc(c)}模型"><div class="hd"><button class="bk" data-back="1" aria-label="返回分类">‹ 分类</button><strong>${esc(c)}</strong></div>`+MODELS.filter(m=>catOf(m)===c).map(m=>`<button data-id="${m.id}" role="menuitemradio" aria-checked="${m.id===model}" class="${m.id===model?'on':''}"><span class="ck">${m.id===model?'✓':''}</span><span class="tx"><b>${esc(m.name)}</b><small>${esc(m.desc)}</small></span><i>${esc(m.tag)}</i></button>`).join('')+'</div>';$('#pan').scrollTop=0;const f=$('#pan button[data-id].on')||$('#pan button[data-id]');f&&f.focus({preventScroll:true})}
-function sheet(){if(modelsState==='err')loadModels();lvCats();$('#sheet').classList.add('on')}
+function sheet(){closeHs();if(modelsState==='err')loadModels();lvCats();$('#sheet').classList.add('on')}
 let modelsState='loading';
 function loadModels(){modelsState='loading';const ac=new AbortController(),to=setTimeout(()=>ac.abort(),10000);
  fetch('/api/models',{signal:ac.signal}).then(r=>{if(!r.ok)throw 0;return r.json()}).then(j=>{if(j.models&&j.models.length){MODELS=j.models;if(!MODELS.some(m=>m.id===model))model='astra';showModel()}modelsState='ok'})
  .catch(()=>{modelsState='err'}).finally(()=>{clearTimeout(to);if($('#sheet').classList.contains('on'))lvCats()})}
 loadModels();
 const newId=()=>crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(36).slice(2);
-const esc=s=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const md=t=>esc(t).split(/```/).map((x,i)=>i%2?'<pre><code>'+x.replace(/^[\w+-]*\n/,'')+'</code></pre>':x.replace(/`([^`\n]+)`/g,'<code>$1</code>').replace(/\*\*([^*\n]+)\*\*/g,'<b>$1</b>').replace(/^#{1,6} (.*)$/gm,'<b>$1</b>').replace(/^\s*[-*] /gm,'• ')).join('');
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+/* markdown-lite; every code block gets its own copy button */
+const md=t=>esc(t).split(/```/).map((x,i)=>i%2?'<div class="cb"><pre><code>'+x.replace(/^[\w+-]*\n/,'')+'</code></pre><button type="button" class="cpb" data-act="copycode" aria-label="复制这段代码">复制代码</button></div>':x.replace(/`([^`\n]+)`/g,'<code>$1</code>').replace(/\*\*([^*\n]+)\*\*/g,'<b>$1</b>').replace(/^#{1,6} (.*)$/gm,'<b>$1</b>').replace(/^\s*[-*] /gm,'• ')).join('');
 const near=()=>log.scrollHeight-log.scrollTop-log.clientHeight<90;
 const down=()=>{log.scrollTop=log.scrollHeight};
 function add(c,t,html){const d=document.createElement('div');d.className='msg '+c;if(html)d.innerHTML=t;else d.textContent=t;inner.appendChild(d);down();return d}
-function save(){try{sessionStorage.setItem('astra',JSON.stringify({sid,hist}))}catch(e){}}
-function hello(){inner.innerHTML=`<div class="hello"><h1>有什么可以帮你？</h1><p>我是 GPT-6 Astra，问我任何问题。</p><div class="sug">${SUG.map(s=>`<button type="button">${s}</button>`).join('')}</div><div class="note">对话内容会被站长记录，请勿发送隐私信息。</div></div>`;
+/* screen readers: the streaming bubble is aria-busy; one polite announcement when the reply starts and one with the finished text */
+const sr=$('#sr');let srT=0;const say=t=>{clearTimeout(srT);sr.textContent='';srT=setTimeout(()=>{sr.textContent=t},60)};
+
+/* ================= conversation history: kept on this device (localStorage), several sessions =================
+   schema v2: {v:2,cur:<id>,list:[{id,title,created,updated,msgs:[{role,content,ts,st?,src?,by?}]}]}
+   st: 'partial' (saved mid-stream) | 'stopped' (stopped / interrupted). The server keeps its own log (see /privacy); there is no
+   visitor login, so history is per browser and is never sent anywhere except the last 16 messages of the open chat. */
+const SKEY='astra.v2',MAXS=50,MAXC=60000;
+let saveOk=true,cv,dbAll=[];
+const clean=m=>m&&(m.role==='user'||m.role==='assistant')&&typeof m.content==='string'?{role:m.role,content:m.content.slice(0,MAXC),ts:+m.ts||Date.now(),...(m.st==='partial'||m.st==='stopped'?{st:m.st}:{}),...(Array.isArray(m.src)?{src:m.src.filter(x=>x&&typeof x.u==='string').slice(0,10).map(x=>({t:String(x.t||'').slice(0,200),u:x.u.slice(0,500)}))}:{}),...(typeof m.by==='string'?{by:m.by.slice(0,80)}:{})}:null;
+const cleanS=s=>s&&typeof s.id==='string'&&Array.isArray(s.msgs)?{id:s.id.slice(0,64),title:String(s.title||'').slice(0,60),created:+s.created||Date.now(),updated:+s.updated||Date.now(),msgs:s.msgs.map(clean).filter(Boolean)}:null;
+function readDB(){let d=null;try{d=JSON.parse(localStorage.getItem(SKEY)||'null')}catch(e){d=null}
+ if(!d||d.v!==2||!Array.isArray(d.list))d={v:2,cur:null,list:[]};
+ d.list=d.list.map(cleanS).filter(s=>s&&s.msgs.length);return d}
+/* returns '' when saved, else a short reason. Storage full → drop the oldest OTHER conversation and try again */
+function writeDB(d){d.list.sort((a,b)=>b.updated-a.updated);if(d.list.length>MAXS)d.list.length=MAXS;
+ for(;;){try{localStorage.setItem(SKEY,JSON.stringify(d));return ''}
+  catch(e){const full=/quota|exceed/i.test((e&&e.name||'')+(e&&e.message||''));
+   const others=d.list.filter(s=>!cv||s.id!==cv.id);
+   if(full&&others.length){d.list.splice(d.list.indexOf(others[others.length-1]),1);continue}
+   return full?'浏览器存储空间已满':'浏览器禁止了本地存储'}}}
+function setSave(ok,why){saveOk=ok;const el=$('#sv');if(ok){el.hidden=true;el.textContent='';return}
+ el.hidden=false;el.textContent='⚠ 这段对话没能保存到本机'+(why?'（'+why+'）':'')+'，关闭或刷新页面后会丢失。'}
+/* save the open conversation (merge: re-read first so other tabs' sessions are kept) */
+function persist(extra){if(!cv)return;const msgs=extra?cv.msgs.concat(extra):cv.msgs;
+ let why='';
+ try{const d=readDB();d.list=d.list.filter(s=>s.id!==cv.id);
+  if(msgs.length){cv.updated=Date.now();d.list.push({id:cv.id,title:cv.title,created:cv.created,updated:cv.updated,msgs});}
+  d.cur=cv.id;why=writeDB(d);if(!why)dbAll=d.list}
+ catch(e){why='浏览器禁止了本地存储'}
+ const ok=!why;setSave(ok,why);if($('#hs').classList.contains('on'))renderHs();return ok}
+function newConv(){cv={id:newId(),title:'',created:Date.now(),updated:Date.now(),msgs:[]}}
+/* migrate the old single-tab sessionStorage copy ('astra' = {sid,hist}) once */
+(()=>{try{const old=JSON.parse(sessionStorage.getItem('astra')||'null');if(old&&old.sid&&Array.isArray(old.hist)){const msgs=old.hist.map(clean).filter(Boolean);
+  if(msgs.length){const d=readDB();if(!d.list.some(s=>s.id===old.sid)){const fu=msgs.find(m=>m.role==='user');d.list.push({id:String(old.sid).slice(0,64),title:fu?fu.content.slice(0,40):'对话',created:Date.now(),updated:Date.now(),msgs});d.cur=String(old.sid).slice(0,64);if(!writeDB(d))sessionStorage.removeItem('astra')}else sessionStorage.removeItem('astra')}else sessionStorage.removeItem('astra')}}catch(e){}})();
+{const d=readDB();dbAll=d.list;const c=d.list.find(s=>s.id===d.cur);
+ if(c){cv=c;cv.msgs.forEach(m=>{if(m.st==='partial')m.st='stopped'})}else newConv()}
+addEventListener('storage',e=>{if(e.key===SKEY){dbAll=readDB().list;if($('#hs').classList.contains('on'))renderHs()}});
+
+const ACTS=(i,last)=>`<div class="acts" role="group" aria-label="回答操作"><button type="button" class="ab" data-act="copy" data-i="${i}">复制</button>${last?`<button type="button" class="ab" data-act="regen" data-i="${i}">重新生成</button>`:''}</div>`;
+function srcEl(srcs){const d=document.createElement('div');d.className='src';srcs.forEach((s,i)=>{const a=document.createElement('a');a.href=s.u;a.target='_blank';a.rel='noopener noreferrer';a.innerHTML='<b>'+(i+1)+'</b><span></span>';let h='';try{h=new URL(s.u).hostname.replace(/^www\./,'')}catch(_){}a.querySelector('span').textContent=s.t||h;a.title=h;d.appendChild(a)});return d}
+function failBar(msg,noRetry){const d=document.createElement('div');d.className='msg e';d.setAttribute('role','alert');d.innerHTML='<span></span>'+(noRetry?'':' <button type="button" class="ab rt" data-act="retry">重试</button>');d.firstChild.textContent=msg;inner.appendChild(d);down();return d}
+function hello(){inner.innerHTML=`<div class="hello"><h1>有什么可以帮你？</h1><p>我是 ${esc(cur().name)}，${esc(cur().desc)}。</p><div class="sug">${SUG.map(s=>`<button type="button">${s}</button>`).join('')}</div><div class="note">对话内容会被站长记录，请勿发送隐私信息。</div></div>`;
   inner.querySelectorAll('.sug button').forEach(b=>b.onclick=()=>{inp.value=b.textContent;ask()})}
-function reset(){sid=newId();hist=[];save();hello()}
-try{const s=JSON.parse(sessionStorage.getItem('astra')||'null');if(s&&s.sid){sid=s.sid;hist=s.hist||[]}}catch(e){}
-if(!sid)reset();else if(!hist.length)hello();else{inner.innerHTML='';hist.forEach(m=>m.role==='user'?add('u',m.content):add('a',md(m.content),true))}
+/* draw the whole open conversation from cv.msgs */
+function renderConv(){inner.innerHTML='';if(!cv.msgs.length){hello();return}
+ const lastA=cv.msgs.map(m=>m.role).lastIndexOf('assistant');
+ cv.msgs.forEach((m,i)=>{if(m.role==='user'){add('u',m.content);return}
+  const w=add('a',md(m.content)+(m.st?'<span class="cut">（回答被中断）</span>':''),true);w.dataset.i=i;
+  if(m.src&&m.src.length)inner.appendChild(srcEl(m.src));
+  if(m.by){const t=document.createElement('div');t.className='by';t.textContent=m.by;inner.appendChild(t)}
+  inner.insertAdjacentHTML('beforeend',ACTS(i,i===lastA&&i===cv.msgs.length-1))});
+ if(cv.msgs[cv.msgs.length-1].role==='user')failBar('上一条消息没有收到回答');
+ down()}
+function switchTo(id){if(ctrl)ctrl.abort();const s=dbAll.find(x=>x.id===id);if(!s)return;cv=JSON.parse(JSON.stringify(s));cv.msgs.forEach(m=>{if(m.st==='partial')m.st='stopped'});
+ try{const d=readDB();d.cur=cv.id;writeDB(d)}catch(e){}renderConv()}
+function delConv(id){try{const d=readDB();d.list=d.list.filter(s=>s.id!==id);if(d.cur===id)d.cur=null;if(writeDB(d))throw 0;dbAll=d.list}catch(e){setSave(false,'删除失败');return}
+ if(cv.id===id){if(ctrl)ctrl.abort();newConv();renderConv()}renderHs();say('已删除对话')}
+/* ---- history sheet ---- */
+const fmtT=t=>{const d=new Date(t),n=new Date();return d.toDateString()===n.toDateString()?d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString()};
+function renderHs(){const L=dbAll.slice().sort((a,b)=>b.updated-a.updated);
+ $('#hsl').innerHTML=L.length?L.map(s=>`<li class="${s.id===cv.id?'on':''}"><button type="button" class="hi" data-sid="${esc(s.id)}"${s.id===cv.id?' aria-current="true"':''}><span class="tx"><b>${esc(s.title||'对话')}</b><small>${fmtT(s.updated)} · ${s.msgs.length} 条</small></span></button><button type="button" class="hd2" data-del="${esc(s.id)}" aria-label="删除对话：${esc(s.title||'对话')}">删除</button></li>`).join(''):'<li class="none">还没有保存的对话</li>'}
+let hsFocus=null;
+function openHs(){$('#sheet').classList.remove('on');hsFocus=document.activeElement;dbAll=readDB().list;renderHs();$('#hs').classList.add('on');$('#hist').setAttribute('aria-expanded','true');const b=$('#hsl li.on .hi')||$('#hsl .hi')||$('#hsx');b&&b.focus({preventScroll:true})}
+function closeHs(){if(!$('#hs').classList.contains('on'))return;$('#hs').classList.remove('on');$('#hist').setAttribute('aria-expanded','false');hsFocus&&hsFocus.focus&&hsFocus.focus({preventScroll:true})}
+$('#hist').onclick=()=>$('#hs').classList.contains('on')?closeHs():openHs();
+$('#hs').onclick=e=>{const d=e.target.closest('[data-del]');if(d){if(d.dataset.arm){delConv(d.dataset.del);const n=$('#hsl .hi')||$('#hsx');n&&n.focus()}else{d.dataset.arm=1;d.textContent='确认删除';d.classList.add('arm');setTimeout(()=>{if(d.isConnected){delete d.dataset.arm;d.textContent='删除';d.classList.remove('arm')}},3000)}return}
+ const h=e.target.closest('[data-sid]');if(h){switchTo(h.dataset.sid);closeHs();inp.focus({preventScroll:true});return}
+ if(e.target.closest('#hsn')){if(ctrl)ctrl.abort();newConv();renderConv();closeHs();inp.focus();return}
+ if(e.target.closest('#hsx')||!e.target.closest('.pan'))closeHs()};
+
+renderConv();
 $('#mb').onclick=sheet;
 $('#sheet').onclick=e=>{if(e.target.closest('[data-mretry]')){loadModels();lvCats();return}const c=e.target.closest('button[data-cat]');if(c){lvModels(c.dataset.cat);return}if(e.target.closest('button[data-back]')){lvCats(true);return}if(e.target.closest('.pan')&&!e.target.closest('button[data-id]'))return;const b=e.target.closest('button[data-id]');if(b){model=b.dataset.id;localStorage.setItem('aiModel',model);showModel()}$('#sheet').classList.remove('on');$('#mb').focus({preventScroll:true})};
-document.addEventListener('keydown',e=>{if(!$('#sheet').classList.contains('on'))return;if(e.key==='Escape'){if($('#pan .hd'))lvCats(true);else{$('#sheet').classList.remove('on');$('#mb').focus()}}});
-$('#new').onclick=()=>{if(ctrl)ctrl.abort();reset();inp.focus()};
+document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;if($('#hs').classList.contains('on')){closeHs();return}if(!$('#sheet').classList.contains('on'))return;if($('#pan .hd'))lvCats(true);else{$('#sheet').classList.remove('on');$('#mb').focus()}});
+$('#new').onclick=()=>{if(ctrl)ctrl.abort();newConv();try{const d=readDB();d.cur=null;writeDB(d)}catch(e){}renderConv();inp.focus()};
 const grow=()=>{inp.style.height='auto';inp.style.height=Math.min(140,inp.scrollHeight)+'px';send.disabled=!busy&&!inp.value.trim()};
 inp.addEventListener('input',grow);
 inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing&&matchMedia('(hover:hover)').matches){e.preventDefault();ask()}});
 f.onsubmit=e=>{e.preventDefault();if(busy&&ctrl){ctrl.abort();return}ask()};
+
+/* ---- copy / retry / regenerate ---- */
+async function copyText(t){try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(t);return true}}catch(e){}
+ try{const ta=document.createElement('textarea');ta.value=t;ta.setAttribute('readonly','');ta.style.cssText='position:fixed;left:-9999px;top:0;opacity:0';document.body.appendChild(ta);ta.select();const ok=document.execCommand('copy');ta.remove();return ok}catch(e){return false}}
+const flash=(b,t,cls)=>{const o=b.dataset.o||(b.dataset.o=b.textContent);b.textContent=t;b.classList.toggle('bad',cls==='bad');clearTimeout(b._t);b._t=setTimeout(()=>{b.textContent=o;b.classList.remove('bad')},1600)};
+inner.addEventListener('click',async e=>{const b=e.target.closest('button[data-act]');if(!b)return;const a=b.dataset.act;
+ if(a==='copy'||a==='copycode'){const t=a==='copy'?(cv.msgs[+b.dataset.i]||{}).content||'':(b.parentNode.querySelector('code')||{}).textContent||'';
+  const ok=t&&await copyText(t);flash(b,ok?'已复制 ✓':'复制失败',ok?'':'bad');say(ok?'已复制到剪贴板':'复制失败，请手动选择文字复制');return}
+ if(busy)return;
+ if(a==='retry'){if(cv.msgs.length&&cv.msgs[cv.msgs.length-1].role==='user'){b.closest('.msg').remove();ask(true)}return}
+ if(a==='regen'){const i=+b.dataset.i;if(i===cv.msgs.length-1&&cv.msgs[i].role==='assistant'){cv.msgs.pop();persist();renderConv();const fb=inner.querySelector('.msg.e:last-child');fb&&fb.remove();ask(true)}}});
+
 const STOP='<svg viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="7" width="10" height="10" rx="2"/></svg>',SEND=send.innerHTML;
-async function ask(){const t=inp.value.trim();if(!t||busy)return;
-  if(inner.querySelector('.hello'))inner.innerHTML='';
-  inp.value='';grow();add('u',t);hist.push({role:'user',content:t});save();
-  busy=true;send.disabled=false;send.innerHTML=STOP;send.classList.add('stop');
-  const w=add('a wait',web?'正在联网搜索':(effort==='max'?'正在极致思考':effort==='high'?'正在深度思考':'正在思考'));let srcs=null;let full='',queue='',done=false,timer=0,started=false;
+const IDLE=90000;   // no bytes for 90 s → treat as a timeout
+/* ask(): send the typed message, or (retry=true) re-send for the last user message already in the conversation */
+async function ask(retry){if(busy)return;
+  if(!retry){const t=inp.value.trim();if(!t)return;
+   if(inner.querySelector('.hello'))inner.innerHTML='';
+   inp.value='';grow();add('u',t);cv.msgs.push({role:'user',content:t,ts:Date.now()});if(!cv.title)cv.title=t.slice(0,40)}
+  else if(!cv.msgs.length||cv.msgs[cv.msgs.length-1].role!=='user')return;
+  persist();inner.querySelectorAll('[data-act=regen],.msg.e').forEach(b=>b.remove());   // only the newest reply can be regenerated; old error notices go
+  busy=true;send.disabled=false;send.innerHTML=STOP;send.classList.add('stop');send.setAttribute('aria-label','停止生成');
+  const conv=cv;   // the conversation this reply belongs to (the visitor may switch while it streams)
+  const w=add('a wait',web?'正在联网搜索':(effort==='max'?'正在极致思考':effort==='high'?'正在深度思考':'正在思考'));w.setAttribute('aria-busy','true');say(cur().name+' 正在回答');
+  let srcs=null,full='',queue='',done=false,timer=0,started=false,by='',note='',idle=0,timedOut=false,lastSave=0;
   const paint=()=>{const st=near();w.innerHTML=md(full.replace(/^\s+/,''));if(st)down()};
-  const pump=()=>{if(queue){if(!started){started=true;w.className='msg a typing'}const n=Math.max(1,Math.ceil(queue.length/14));full+=queue.slice(0,n);queue=queue.slice(n);paint()}
+  const partial=()=>{const n=Date.now();if(n-lastSave>1500&&full&&conv===cv){lastSave=n;persist([{role:'assistant',content:full,ts:n,st:'partial'}])}};
+  const pump=()=>{if(queue){if(!started){started=true;w.className='msg a typing'}const n=Math.max(1,Math.ceil(queue.length/14));full+=queue.slice(0,n);queue=queue.slice(n);paint();partial()}
     if(queue||!done)timer=requestAnimationFrame(pump);else w.classList.remove('typing')};
-  timer=requestAnimationFrame(pump);ctrl=new AbortController();
-  try{const r=await fetch('/api/chat',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({sid,model,effort,web,messages:hist.slice(-16)}),signal:ctrl.signal});
-    if(!r.ok||!r.body){let j={};try{j=await r.json()}catch(_){}throw new Error(j.error||'出错了，请稍后再试')}
-    const rd=r.body.getReader(),dec=new TextDecoder();let buf='',err='',note='',by='';
+  timer=requestAnimationFrame(pump);ctrl=new AbortController();const myCtrl=ctrl;
+  const arm=()=>{clearTimeout(idle);idle=setTimeout(()=>{timedOut=true;myCtrl.abort()},IDLE)};arm();
+  const finishOk=(st)=>{   // keep what we have, attach copy / regenerate
+    const msg={role:'assistant',content:full,ts:Date.now(),...(st?{st}:{}),...(srcs&&srcs.length?{src:srcs}:{}),...(by?{by}:{})};
+    conv.msgs.push(msg);if(conv===cv){persist();w.dataset.i=conv.msgs.length-1;if(st)w.insertAdjacentHTML('beforeend','<span class="cut">（回答被中断）</span>');
+     inner.insertAdjacentHTML('beforeend',ACTS(conv.msgs.length-1,true))}
+    else{try{const d=readDB();d.list=d.list.filter(s=>s.id!==conv.id);d.list.push({...conv,updated:Date.now()});writeDB(d);dbAll=d.list}catch(e){}}};
+  try{const r=await fetch('/api/chat',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({sid:conv.id,model,effort,web,messages:conv.msgs.filter(m=>m.content).map(m=>({role:m.role,content:m.content})).slice(-16)}),signal:myCtrl.signal});
+    if(!r.ok||!r.body){let j={};try{j=await r.json()}catch(_){}throw new Error(j.error||'出错了（服务器返回 '+r.status+'），请稍后再试')}
+    const rd=r.body.getReader(),dec=new TextDecoder();let buf='',err='',gotDone=false;
     let tk=null,tkTxt='',tkT0=0,tkOn=false;
     const thinkAdd=t=>{if(!tk){tk=document.createElement('details');tk.className='think';tk.open=true;tk.innerHTML='<summary><span class="tl">正在思考</span><span class="ts"></span></summary><div class="tb"></div>';inner.insertBefore(tk,w);tkT0=Date.now();tkOn=true;w.textContent=''}
       tkTxt+=t;const st=near();tk.querySelector('.tb').textContent=tkTxt;tk.querySelector('.ts').textContent=' · '+Math.round((Date.now()-tkT0)/1000)+'s';if(st)down()};
     const thinkEnd=()=>{if(!tk||!tkOn)return;tkOn=false;tk.open=false;tk.querySelector('.tl').textContent='已深度思考';tk.querySelector('.ts').textContent=' '+Math.max(1,Math.round((Date.now()-tkT0)/1000))+' 秒'};
-    for(;;){const{done:d,value}=await rd.read();if(d)break;buf+=dec.decode(value,{stream:true});let i;
+    for(;;){const{done:d,value}=await rd.read();if(d)break;arm();buf+=dec.decode(value,{stream:true});let i;
       while((i=buf.indexOf('\n\n'))>=0){const ev=buf.slice(0,i);buf=buf.slice(i+2);const line=ev.split('\n').find(l=>l.startsWith('data:'));if(!line)continue;
-        const j=JSON.parse(line.slice(5));if(j.k)thinkAdd(j.k);if(j.t){queue+=j.t;thinkEnd()}if(j.error)err=j.error;if(j.notice)note=j.notice;if(j.done)by=j.model;if(j.status&&!started)w.textContent=j.status.replace(/…$/,'');if(j.sources){srcs=j.sources;if(!started)w.textContent='已找到 '+srcs.length+' 个来源，正在整理'}}}
-    thinkEnd();
+        let j;try{j=JSON.parse(line.slice(5))}catch(_){continue}
+        if(j.k)thinkAdd(j.k);if(j.t){queue+=j.t;thinkEnd()}if(j.error)err=j.error;if(j.notice)note=j.notice;if(j.done){by=j.model;gotDone=true}if(j.status&&!started)w.textContent=j.status.replace(/…$/,'');if(j.sources){srcs=j.sources;if(!started)w.textContent='已找到 '+srcs.length+' 个来源，正在整理'}}}
+    clearTimeout(idle);thinkEnd();
     if(err&&!full&&!queue)throw new Error(err);
+    if(!gotDone&&!err)throw new Error('连接意外断开');   // the server always ends a good reply with {done}; anything else is a cut stream
     done=true;await new Promise(res=>{const c=()=>queue?setTimeout(c,30):res();c()});
-    hist.push({role:'assistant',content:full||'…'});save();
-    if(srcs&&srcs.length){const d=document.createElement('div');d.className='src';srcs.forEach((s,i)=>{const a=document.createElement('a');a.href=s.u;a.target='_blank';a.rel='noopener noreferrer';a.innerHTML='<b>'+(i+1)+'</b><span></span>';let h='';try{h=new URL(s.u).hostname.replace(/^www\./,'')}catch(_){}a.querySelector('span').textContent=s.t||h;a.title=h;d.appendChild(a)});inner.appendChild(d)}
-    if(by&&(note||model!=='astra')){const t=document.createElement('div');t.className='by';t.textContent=note||(by+' 回答');inner.appendChild(t)}
-  }catch(e){done=true;
-    if(e.name==='AbortError'){full+=queue;queue='';if(full){paint();w.classList.remove('typing');hist.push({role:'assistant',content:full});save()}else{cancelAnimationFrame(timer);w.remove();hist.pop();save()}}
-    else{cancelAnimationFrame(timer);w.remove();add('e',e.message);hist.pop();save()}}
-  finally{busy=false;ctrl=null;send.innerHTML=SEND;send.classList.remove('stop');grow()}}
+    if(!full)throw new Error('没有收到回答内容，请重试');
+    if(srcs&&srcs.length&&conv===cv)inner.appendChild(srcEl(srcs));
+    const label=by&&(note||model!=='astra')?(note||(by+' 回答')):'';by=label;
+    if(label&&conv===cv){const t=document.createElement('div');t.className='by';t.textContent=label;inner.appendChild(t)}
+    finishOk(err?'stopped':'');w.removeAttribute('aria-busy');if(err&&conv===cv)failBar('回答中断：'+err+'。可以点「重新生成」再试一次',true);say('回答完成：'+full.slice(0,600)+(full.length>600?'……（较长，请在页面中继续阅读）':''));
+  }catch(e){done=true;clearTimeout(idle);
+    full+=queue;queue='';w.removeAttribute('aria-busy');
+    const why=timedOut?'等待回答超时（90 秒没有新内容）':e.name==='AbortError'?'':(e.message||'网络错误');
+    if(full){cancelAnimationFrame(timer);paint();w.classList.remove('typing','wait');finishOk('stopped');if(why&&conv===cv)failBar('回答中断：'+why+'。可以点「重新生成」再试一次',true)}
+    else{cancelAnimationFrame(timer);w.remove();if(conv===cv){persist();failBar(why?why:'已停止生成');say(why||'已停止')}}}
+  finally{if(ctrl===myCtrl)ctrl=null;busy=false;send.innerHTML=SEND;send.classList.remove('stop');send.setAttribute('aria-label','发送');grow()}}
 showModel();grow();
 /* keyboard open on phones: let the input sit right above the keyboard */
 const TOUCH=matchMedia('(hover:none)').matches;
 inp.addEventListener('focus',()=>{if(TOUCH)document.documentElement.classList.add('kb');setTimeout(down,300)});
 inp.addEventListener('blur',()=>document.documentElement.classList.remove('kb'));
 addEventListener('message',e=>{if(e.data&&e.data.type==='tab-shown'&&matchMedia('(hover:hover)').matches)inp.focus()});
+window.__astra={get cv(){return cv},persist,readDB};
 })();
 </script>
 <script src="/shared.js?v=__V__" defer></script>
