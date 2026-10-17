@@ -38,3 +38,5 @@ html.embed .no-embed{display:none!important}
 #mb::before,#new::before,.opts button::before,.sug button::before,
 #on::before,.ib::before,#me::before,#rc::before,#newp::before,#dmback::before,#send::before,
 .tabs button::before,.selbar button::before,.li .acts button::before,.wz-link::before{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%);border-radius:inherit;background:none;pointer-events:auto}
+/* placeholders: the UA default (#757575) is ~4:1 on the dark fields; #8e8e93 is >=5:1 on every field background used here */
+::placeholder{color:#8e8e93;opacity:1}
