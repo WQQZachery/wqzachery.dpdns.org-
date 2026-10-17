@@ -2,9 +2,12 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="wqz-page" content="home">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>吴谦 · Zachery Wu</title>
 <link rel="canonical" href="https://wqzachery.dpdns.org/">
+<script>(function(){var d=document.documentElement,m='full';try{if(Date.now()-(+localStorage.getItem('wqzBootSeen')||0)<7*864e5)m='fast'}catch(e){}
+if(matchMedia('(prefers-reduced-motion: reduce)').matches)m='still';d.classList.add('boot-'+m);d.setAttribute('data-boot',m)})();</script>
 <script>
 (function(){if(window.parent===window)return;var d=document.documentElement;d.classList.add('embed');
 var post=function(m){try{parent.postMessage(m,location.origin)}catch(e){}};window.__post=post;
@@ -23,11 +26,10 @@ document.addEventListener('focusout',function(e){if(touch&&e.target.matches&&e.t
 <meta property="og:title" content="吴谦 · Zachery Wu">
 <meta property="og:description" content="开发、AI 工具与自动化。">
 <meta name="theme-color" content="#000000">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23000'/><text x='50' y='68' font-size='56' text-anchor='middle' font-family='sans-serif' font-weight='700' fill='%23fff'>谦</text></svg>">
 <style>
 :root{
   --bg:#000;--bg2:#0a0a0c;--card:#111114;--line:rgba(255,255,255,.08);
-  --fg:#f5f5f7;--mut:#86868b;--dim:#3a3a3e;
+  --fg:#f5f5f7;--mut:#86868b;--dim:#636366;   /* --dim: unlit statement text (≥26 px bold = large text) → 3.5:1 on #000; was #3a3a3e = 1.9:1 */
   --a1:#6ee7b7;--a2:#60a5fa;--a3:#a78bfa;--amb:#fbbf24;
   --ease:cubic-bezier(.22,1,.36,1);
   --navh:calc(max(12px,env(safe-area-inset-top)) + 64px);
@@ -82,7 +84,7 @@ button{font:inherit;color:inherit}
 .ent:hover{transform:translateY(-2px)}.ent:focus-visible{outline:2px solid var(--a2);outline-offset:3px}
 @media (max-width:560px){.entry{grid-template-columns:1fr 1fr;gap:10px}.ent{padding:14px 8px 12px}}
 .card .prob{display:block;margin-top:10px;color:var(--fg);font-size:14px;line-height:1.55}.card .prob em{font-style:normal;color:var(--mut)}
-.stat small{display:block;margin-top:4px;color:var(--mut);font-size:11.5px;opacity:.8}
+.stat small{display:block;margin-top:4px;color:var(--mut);font-size:11.5px}
 .btn{display:inline-flex;align-items:center;gap:6px;padding:13px 26px;border-radius:999px;font-size:16px;font-weight:500;transition:transform .3s var(--ease),background-color .25s,box-shadow .3s var(--ease)}
 .btn:active{transform:scale(.97)}
 .btn.p{background:var(--fg);color:#000}
@@ -94,6 +96,7 @@ button{font:inherit;color:inherit}
 @keyframes cue{0%{opacity:0;transform:translateY(0)}30%{opacity:1}100%{opacity:0;transform:translateY(12px)}}
 
 /* ---------- statement (word-by-word light up) ---------- */
+.vh{position:absolute!important;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
 .statement{position:relative;height:220vh}
 .statement .stick{position:sticky;top:0;height:100vh;height:100svh;display:flex;align-items:center}
 .statement p{font-size:clamp(30px,5.4vw,64px);line-height:1.22;font-weight:700;letter-spacing:-.02em;max-width:980px}
@@ -246,25 +249,29 @@ footer .wrap{display:flex;justify-content:space-between;align-items:center;flex-
 }
 
 
-/* ---------- boot loader (~1.9s, plays fully) ---------- */
-#boot{position:fixed;inset:0;z-index:200;background:#000;display:grid;place-items:center;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Arial,sans-serif;color:#f5f5f7;transition:opacity .38s cubic-bezier(.65,0,.35,1)}
+/* ---------- boot loader: Z mark + ZACHERY WU. Mode is set in <head> (html.boot-full|fast|still):
+   full  = first visit, ~1.9 s (RUN 1500 + FADE 380);  fast = seen within 7 days, same animation at ~0.32× (~0.6 s);
+   still = prefers-reduced-motion: static frame, no movement, ~0.8 s.  Tap / click / any key skips.
+   It is only an overlay: the page, its data (/api/stats) and the other tabs load underneath in parallel. ---------- */
+#boot{--bk:1;--bf:1}html.boot-fast #boot{--bk:.32;--bf:.53}
+#boot{position:fixed;inset:0;z-index:200;background:#000;display:grid;place-items:center;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Arial,sans-serif;color:#f5f5f7;transition:opacity calc(.38s*var(--bf)) cubic-bezier(.65,0,.35,1)}
 #boot.out{opacity:0;pointer-events:none}
 #boot.out .stage{transform:scale(1.04);filter:blur(4px)}
-#boot .halo{position:absolute;width:70vmax;height:70vmax;border-radius:50%;background:radial-gradient(circle,rgba(118,185,0,.16) 0,rgba(118,185,0,.04) 35%,transparent 62%);opacity:0;animation:halo .9s cubic-bezier(.22,1,.36,1) forwards}
+#boot .halo{position:absolute;width:70vmax;height:70vmax;border-radius:50%;background:radial-gradient(circle,rgba(118,185,0,.16) 0,rgba(118,185,0,.04) 35%,transparent 62%);opacity:0;animation:halo calc(.9s*var(--bk)) cubic-bezier(.22,1,.36,1) forwards}
 @keyframes halo{to{opacity:1}}
-#boot .stage{position:relative;display:flex;flex-direction:column;align-items:center;transition:transform .38s cubic-bezier(.65,0,.35,1),filter .38s}
+#boot .stage{position:relative;display:flex;flex-direction:column;align-items:center;transition:transform calc(.38s*var(--bf)) cubic-bezier(.65,0,.35,1),filter calc(.38s*var(--bf))}
 #boot .mark{width:76px;height:76px;overflow:visible}
-#boot .mark .frame{fill:none;stroke:rgba(255,255,255,.9);stroke-width:1.4;stroke-dasharray:420;stroke-dashoffset:420;animation:draw .7s cubic-bezier(.65,0,.35,1) forwards}
-#boot .mark .z{fill:none;stroke:#76b900;stroke-width:5;stroke-linecap:square;stroke-linejoin:miter;stroke-dasharray:150;stroke-dashoffset:150;animation:draw .55s cubic-bezier(.65,0,.35,1) .3s forwards;filter:drop-shadow(0 0 10px rgba(118,185,0,.55))}
+#boot .mark .frame{fill:none;stroke:rgba(255,255,255,.9);stroke-width:1.4;stroke-dasharray:420;stroke-dashoffset:420;animation:draw calc(.7s*var(--bk)) cubic-bezier(.65,0,.35,1) forwards}
+#boot .mark .z{fill:none;stroke:#76b900;stroke-width:5;stroke-linecap:square;stroke-linejoin:miter;stroke-dasharray:150;stroke-dashoffset:150;animation:draw calc(.55s*var(--bk)) cubic-bezier(.65,0,.35,1) calc(.3s*var(--bk)) forwards;filter:drop-shadow(0 0 10px rgba(118,185,0,.55))}
 @keyframes draw{to{stroke-dashoffset:0}}
-#boot .word{margin-top:30px;font-size:clamp(20px,4.6vw,30px);font-weight:600;letter-spacing:.5em;padding-left:.5em;text-transform:uppercase;position:relative;opacity:0;background:linear-gradient(100deg,#8a8a8f 0%,#fff 45%,#fff 55%,#8a8a8f 100%);background-size:250% 100%;background-position:100% 0;-webkit-background-clip:text;background-clip:text;color:transparent;animation:track .7s cubic-bezier(.22,1,.36,1) .35s forwards,sweep .9s cubic-bezier(.65,0,.35,1) .5s forwards}
+#boot .word{margin-top:30px;font-size:clamp(20px,4.6vw,30px);font-weight:600;letter-spacing:.5em;padding-left:.5em;text-transform:uppercase;position:relative;opacity:0;background:linear-gradient(100deg,#8a8a8f 0%,#fff 45%,#fff 55%,#8a8a8f 100%);background-size:250% 100%;background-position:100% 0;-webkit-background-clip:text;background-clip:text;color:transparent;animation:track calc(.7s*var(--bk)) cubic-bezier(.22,1,.36,1) calc(.35s*var(--bk)) forwards,sweep calc(.9s*var(--bk)) cubic-bezier(.65,0,.35,1) calc(.5s*var(--bk)) forwards}
 @keyframes track{from{opacity:0;letter-spacing:.8em;filter:blur(4px)}to{opacity:1;letter-spacing:.5em;filter:blur(0)}}
 @keyframes sweep{to{background-position:-50% 0}}
-#boot .tagl{margin-top:14px;font-size:11px;font-weight:500;letter-spacing:.42em;padding-left:.42em;color:#76b900;text-transform:uppercase;opacity:0;transform:translateY(6px);animation:rise .5s cubic-bezier(.22,1,.36,1) .75s forwards}
+#boot .tagl{margin-top:14px;font-size:11px;font-weight:500;letter-spacing:.42em;padding-left:.42em;color:#76b900;text-transform:uppercase;opacity:0;transform:translateY(6px);animation:rise calc(.5s*var(--bk)) cubic-bezier(.22,1,.36,1) calc(.75s*var(--bk)) forwards}
 @keyframes rise{to{opacity:1;transform:none}}
 #boot .bar{position:absolute;left:50%;bottom:clamp(48px,9vh,84px);width:min(220px,50vw);height:1px;background:rgba(255,255,255,.12);transform:translateX(-50%);overflow:hidden}
 #boot .bar i{position:absolute;inset:0;background:linear-gradient(90deg,rgba(118,185,0,.2),#76b900);transform-origin:0 50%;transform:scaleX(0);box-shadow:0 0 12px #76b900}
-#boot .meta{position:absolute;left:50%;bottom:calc(clamp(48px,9vh,84px) + 14px);transform:translateX(-50%);width:min(220px,50vw);display:flex;justify-content:space-between;font:500 10px/1 "SF Mono",ui-monospace,Menlo,monospace;letter-spacing:.2em;color:#6e6e73;font-variant-numeric:tabular-nums}
+#boot .meta{position:absolute;left:50%;bottom:calc(clamp(48px,9vh,84px) + 14px);transform:translateX(-50%);width:min(220px,50vw);display:flex;justify-content:space-between;font:500 10px/1 "SF Mono",ui-monospace,Menlo,monospace;letter-spacing:.2em;color:#8e8e93;font-variant-numeric:tabular-nums}
 
 
 /* ---------- effects inspired by react-bits (DavidHDev, MIT+Commons Clause) — rewritten in vanilla JS ---------- */
@@ -372,7 +379,11 @@ body{overflow-x:clip;max-width:100%}
 @media (max-width:480px){#aiPanel{right:8px;left:8px;width:auto;top:calc(max(12px,env(safe-area-inset-top)) + 58px);height:auto;bottom:calc(max(16px,env(safe-area-inset-bottom)) + 62px)}}
 footer{padding-bottom:calc(max(40px,env(safe-area-inset-bottom)) + 56px)!important}
 
-/* ---------- reduced motion (boot loader always plays) ---------- */
+/* ---------- reduced motion (the boot loader has its own static version: html.boot-still) ---------- */
+html.boot-still #boot,html.boot-still #boot *{animation:none!important}
+html.boot-still #boot{transition:opacity .15s linear}html.boot-still #boot .stage{transition:none}html.boot-still #boot.out .stage{transform:none;filter:none}
+html.boot-still #boot .halo{opacity:1}html.boot-still #boot .mark .frame,html.boot-still #boot .mark .z{stroke-dashoffset:0}
+html.boot-still #boot .word{opacity:1;background-position:-50% 0}html.boot-still #boot .tagl{opacity:1;transform:none}
 @media (prefers-reduced-motion:reduce){
   :not(#boot,#boot *),:not(#boot,#boot *)::before,:not(#boot,#boot *)::after{animation:none!important;transition-duration:.01ms!important;transition-delay:0s!important}
   .hero,.statement{height:auto}
@@ -430,7 +441,7 @@ footer{padding-bottom:calc(max(40px,env(safe-area-inset-bottom)) + 56px)!importa
 </section>
 
 <section class="statement" id="statement" aria-label="理念">
-  <div class="stick"><div class="wrap"><p id="stmt" data-text="用 AI 写代码、做研究、写作和学习。|再把|域名、托管、数据流水线和定时任务|拼成一套|属于自己的|小型基础设施。" data-hl="1,3"></p></div></div>
+  <div class="stick"><div class="wrap"><p id="stmt" data-text="用 AI 写代码、做研究、写作和学习。|再把|域名、托管、数据流水线和定时任务|拼成一套|属于自己的|小型基础设施。" data-hl="1,3">用 AI 写代码、做研究、写作和学习。再把域名、托管、数据流水线和定时任务拼成一套属于自己的小型基础设施。</p></div></div>
 </section>
 
 <section class="blk lg-field" id="about" aria-labelledby="aboutT"><div class="blob b2" style="left:50%;top:40%"></div><div class="blob b3" style="left:70%;top:15%"></div>
@@ -579,28 +590,40 @@ const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const $=(s,c=document)=>c.querySelector(s), $$=(s,c=document)=>[...c.querySelectorAll(s)];
 const post=m=>{window.__post&&window.__post(m)};
 
-/* ---- boot: always plays, ~1.9s total; tells the parent to show the tab bar when done ---- */
+/* ---- boot: full ~1.9 s on the first visit, short (~0.6 s) for returning visitors, static under reduced motion;
+   tap / any key skips. Tells the parent to show the tab bar when done. ---- */
 const boot=$('#boot');let booted=false;
 function startIntro(){requestAnimationFrame(()=>requestAnimationFrame(()=>document.body.classList.add('loaded')))}
 function bootDone(){if(booted)return;booted=true;post({type:'booted'})}
+const BOOT_MODE=document.documentElement.dataset.boot||'full';
 if(!boot){startIntro();bootDone()}else{
   const root=document.documentElement;root.style.overflow='hidden';
-  const prog=$('#bootProg'),pct=$('#bootPct'),t0=performance.now(),RUN=1500,FADE=380;
-  (function tick(t){const k=Math.min(1,(t-t0)/RUN),e=1-Math.pow(1-k,3);
+  const RUN={full:1500,fast:420,still:650}[BOOT_MODE]||1500,FADE={full:380,fast:200,still:150}[BOOT_MODE]||380;
+  const prog=$('#bootProg'),pct=$('#bootPct'),t0=performance.now();let ended=false,t1=0;
+  if(BOOT_MODE==='still'){prog.style.transform='scaleX(1)';pct.textContent='100'}
+  else (function tick(t){if(ended)return;const k=Math.min(1,(t-t0)/RUN),e=1-Math.pow(1-k,3);
     prog.style.transform='scaleX('+e+')';pct.textContent=String(Math.round(e*100)).padStart(3,'0');
     if(k<1)requestAnimationFrame(tick)})(t0);
+  const end=()=>{if(ended)return;ended=true;clearTimeout(t1);removeEventListener('keydown',end,true);
+    try{localStorage.setItem('wqzBootSeen',String(Date.now()))}catch(e){}
+    prog.style.transform='scaleX(1)';pct.textContent='100';boot.classList.add('out');root.style.overflow='';startIntro();
+    window.__bootEnd=performance.now();setTimeout(()=>{bootDone();boot.remove()},FADE)};
   /* timers (not rAF) so it still finishes if the frame is hidden */
-  setTimeout(()=>{prog.style.transform='scaleX(1)';pct.textContent='100';boot.classList.add('out');root.style.overflow='';startIntro();
-    setTimeout(()=>{bootDone();boot.remove()},FADE)},RUN);
+  t1=setTimeout(end,RUN);
+  boot.addEventListener('pointerdown',end);addEventListener('keydown',end,true);
 }
 
 /* ---- statement words ---- */
 const st=$('#stmt'),parts=st.dataset.text.split('|'),hl=st.dataset.hl.split(',').map(Number);
-st.innerHTML=parts.map((p,i)=>[...p].map(ch=>ch===' '?' ':`<span class="w${hl.includes(i)?' hl':''}">${ch}</span>`).join('')).join('');
+/* screen readers get the sentence once (.vh); the per-character spans that light up on scroll are aria-hidden */
+st.innerHTML='<span class="vh">'+parts.join('')+'</span><span aria-hidden="true">'+parts.map((p,i)=>[...p].map(ch=>ch===' '?' ':`<span class="w${hl.includes(i)?' hl':''}">${ch}</span>`).join('')).join('')+'</span>';
 const words=$$('.w',st);
 
 /* ---- blur-in headings: split text nodes into chars ---- */
-$$('.bt').forEach(h=>{let i=0;const walk=n=>{[...n.childNodes].forEach(c=>{if(c.nodeType===3){const f=document.createDocumentFragment();[...c.textContent].forEach(ch=>{if(/\s/.test(ch)){f.append(ch);return}const sp=document.createElement('span');sp.className='ch';sp.style.setProperty('--i',i++);sp.textContent=ch;f.append(sp)});c.replaceWith(f)}else if(c.nodeType===1&&c.classList.contains('grad')){c.classList.add('ch');c.style.setProperty('--i',i++)}else if(c.nodeType===1&&c.tagName!=='BR')walk(c)})};walk(h)});
+$$('.bt').forEach(h=>{let i=0;const walk=n=>{[...n.childNodes].forEach(c=>{if(c.nodeType===3){const f=document.createDocumentFragment();[...c.textContent].forEach(ch=>{if(/\s/.test(ch)){f.append(ch);return}const sp=document.createElement('span');sp.className='ch';sp.style.setProperty('--i',i++);sp.textContent=ch;f.append(sp)});c.replaceWith(f)}else if(c.nodeType===1&&c.classList.contains('grad')){c.classList.add('ch');c.style.setProperty('--i',i++)}else if(c.nodeType===1&&c.tagName!=='BR')walk(c)})};
+  const txt=h.textContent.replace(/\s+/g,' ').trim();walk(h);   // same for headings split into characters: one readable copy, spans hidden
+  const box=document.createElement('span');box.setAttribute('aria-hidden','true');while(h.firstChild)box.appendChild(h.firstChild);
+  const v=document.createElement('span');v.className='vh';v.textContent=txt;h.append(v,box)});
 
 /* ---- click spark ---- */
 (()=>{const cv=$('#spark'),ctx=cv.getContext('2d');let sp=[],run=false,dpr=1;if(RM)return;
