@@ -1,0 +1,67 @@
+# PR checks: build + tests only. Never deploys (production deploys come from Cloudflare Workers Builds on main),
+# uses no secrets, touches no production data. Any failing step fails the job.
+name: CI
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - name: Install wrangler (from package-lock)
+        run: npm ci --no-audit --no-fund
+      - name: JSON / config validation
+        run: |
+          node -e "JSON.parse(require('fs').readFileSync('site/announcements.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('package.json','utf8'))"
+          # wrangler.jsonc is checked by the dry run below (wrangler parses and validates it)
+      - name: JavaScript syntax (worker + every inline page script)
+        run: python3 tools/syntax_check.py
+      - name: Unit tests (pure helpers)
+        run: node tools/unit_test.mjs
+      - name: Worker request tests (stubbed HF / Durable Object, no network)
+        run: node tools/worker_test.mjs
+      - name: push_github.py tests (local mock API)
+        run: python3 tools/push_github_test.py
+      - name: Build dist/
+        run: bash tools/build_worker.sh
+      - name: Wrangler dry run (validates config + modules, uploads nothing)
+        run: npx wrangler deploy --dry-run --outdir /tmp/wrangler-out
+        env:
+          CLOUDFLARE_API_TOKEN: ''
+          WRANGLER_SEND_METRICS: 'false'
+      - name: No secrets or private files committed
+        run: |
+          set -e
+          ! git ls-files | grep -E '(^|/)\.admin_key$|(^|/)\.test_admin_key$|^\.dev\.vars$|^(work|review|build|backup)/'
+          ! git grep -nE 'hf_[A-Za-z0-9]{30,}|sk-or-v1-[a-f0-9]{20,}|AIza[0-9A-Za-z_-]{35}|ghp_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{40,}' -- . ':!tools/worker_test.mjs' ':!tools/push_github_test.py'
+
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - name: Install Playwright + Chromium
+        run: |
+          pip install playwright
+          python -m playwright install --with-deps chromium
+      - name: Admin key handling (local pages, all API calls stubbed)
+        run: |
+          MPORT=8768 python3 tools/mock_api.py > /tmp/mock.log 2>&1 &
+          PORT=8766 UP=http://127.0.0.1:8768 python3 tools/lproxy.py > /tmp/lproxy.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf -o /dev/null http://127.0.0.1:8766/admin && break; sleep 1; done
+          python3 tools/admin_auth_test.py http://127.0.0.1:8766

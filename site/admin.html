@@ -49,13 +49,14 @@ body.has-bar .wrap{padding-bottom:calc(env(safe-area-inset-bottom) + 150px)}
 #login h1{font-size:24px;margin-bottom:6px}#login p{color:var(--mut);font-size:14px;margin-bottom:18px}
 #login input{width:100%;background:rgba(255,255,255,.07);border:0;border-radius:14px;padding:13px 15px;font-size:16px;outline:none;margin-bottom:12px;box-shadow:inset 0 0 0 .5px rgba(255,255,255,.15)}
 #login .pill{width:100%;padding:12px}
+#login .rem{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;text-align:left;font-size:14px;margin:0 0 14px;min-height:44px;cursor:pointer}#login .rem input{-webkit-appearance:none;appearance:none;width:44px;height:44px;min-height:44px;margin:-11px -4px -11px -11px;padding:0;flex:none;box-shadow:none;border:0;border-radius:12px;cursor:pointer;background:transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'%3E%3Crect x='1' y='1' width='20' height='20' rx='6' fill='none' stroke='%23aaa' stroke-width='1.5'/%3E%3C/svg%3E") center/22px 22px no-repeat}#login .rem input:checked{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'%3E%3Crect width='22' height='22' rx='6' fill='%2376b900'/%3E%3Cpath d='M6 11.5l3.2 3.2L16 8' fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")}#login .rem input:focus-visible{outline:2px solid #76b900;outline-offset:-8px}#login .rem small{flex-basis:100%;color:var(--mut);font-size:12px;line-height:1.5}
 #err{color:var(--bad);font-size:13px;min-height:18px;margin-top:8px}
 /* header + tabs */
 header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;min-width:0}
 header>div:first-child{min-width:0}
 header h1{font-size:24px;letter-spacing:-.02em;line-height:1.15}
 header small{color:var(--mut);font-size:12.5px;display:block;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-header .acts{display:flex;gap:8px;flex:none}
+header .acts{display:flex;gap:8px;flex:none}header .acts .pill{min-height:44px}
 .tabs{display:flex;padding:5px;border-radius:999px;margin-bottom:16px;touch-action:none;user-select:none;-webkit-user-select:none;position:sticky;top:var(--tabs-top);z-index:6}
 .tabs button{flex:1;position:relative;z-index:1;border:0;background:none;border-radius:999px;padding:10px 4px;font-size:14px;line-height:20px;color:rgba(245,245,247,.75);cursor:pointer;white-space:nowrap;transition:color .25s}
 .tabs button.on{color:var(--a1);font-weight:600}
@@ -291,7 +292,7 @@ body.has-bar .toast{bottom:calc(env(safe-area-inset-bottom) + 132px)}
   <symbol id="i-more" viewBox="0 0 16 16"><g fill="currentColor"><circle cx="3" cy="8" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="13" cy="8" r="1.5"/></g></symbol>
 </svg>
 <div class="wrap">
-  <div id="login"><div class="box glass"><h1>管理后台</h1><p>输入管理员密钥</p><input id="k" type="password" autocomplete="current-password" placeholder="密钥" aria-label="管理员密钥"><button class="pill pri" id="go">进入</button><div id="err"></div></div></div>
+  <div id="login"><div class="box glass"><h1>管理后台</h1><p>输入管理员密钥</p><input id="k" type="password" autocomplete="current-password" placeholder="密钥" aria-label="管理员密钥"><label class="rem"><input type="checkbox" id="rem"> 在此标签页保持登录<small>默认不保存密钥，刷新页面需重新输入；勾选后保存在本标签页，关闭即清除。公用电脑请勿勾选。</small></label><button class="pill pri" id="go">进入</button><div id="err" role="alert"></div></div></div>
   <div id="app" style="display:none">
     <header><div><h1>管理后台</h1><small id="sum">加载中…</small></div><div class="acts"><button class="pill" id="re">刷新</button><button class="pill" id="out">退出</button></div></header>
     <nav class="tabs glass" id="tabs"><div id="tl"></div><button data-v="ov" class="on">概览</button><button data-v="up">上传</button><button data-v="vi">访客</button><button data-v="fs">文件</button><button data-v="ai">AI 对话</button></nav>
@@ -352,13 +353,15 @@ body.has-bar .toast{bottom:calc(env(safe-area-inset-bottom) + 132px)}
 <script>
 (()=>{
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
-let key=localStorage.getItem('adminKey')||'',S=null,F={files:[],folders:[]},cwd='';
+/* admin key: kept in memory only; sessionStorage (this tab, cleared on close) only when 保持登录 is ticked. Old builds kept it in localStorage → removed here. */
+try{localStorage.removeItem('adminKey')}catch{}
+let key=sessionStorage.getItem('adminKey')||'',authed=false,S=null,F={files:[],folders:[]},cwd='';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>!n?'0 B':n<1024?n+' B':n<1048576?(n/1024).toFixed(1)+' KB':n<1073741824?(n/1048576).toFixed(1)+' MB':(n/1073741824).toFixed(2)+' GB';
 const tm=t=>new Date(t).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai',hour12:false});
 const hm=t=>new Date(t).toLocaleTimeString('zh-CN',{timeZone:'Asia/Shanghai',hour12:false,hour:'2-digit',minute:'2-digit'});
 const tmo=ms=>window.AbortSignal&&AbortSignal.timeout?AbortSignal.timeout(ms):undefined;
-const api=(p,o={})=>fetch(p,{signal:tmo(45000),...o,headers:{'x-admin-key':key,...(o.body?{'content-type':'application/json'}:{}),...(o.headers||{})},cache:'no-store'}).then(async r=>{const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||r.status);return j},e=>{throw new Error(e&&e.name==='TimeoutError'?'请求超时，请重试':(e&&e.message)||'网络错误')});
+const api=(p,o={})=>fetch(p,{signal:tmo(45000),...o,headers:{'x-admin-key':key,...(o.body?{'content-type':'application/json'}:{}),...(o.headers||{})},cache:'no-store'}).then(async r=>{const j=await r.json().catch(()=>({}));if(authed&&(r.status===403||(r.status===429&&j.code==='locked'))){logout(r.status===403?'密钥已失效，请重新输入':j.error);throw new Error('已退出')}if(!r.ok)throw new Error(j.error||r.status);return j},e=>{throw new Error(e&&e.name==='TimeoutError'?'请求超时，请重试':(e&&e.message)||'网络错误')});
 const toast=t=>{const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2400)};
 const cnDay=t=>new Date(t+8*3600e3).toISOString().slice(0,10);
 /* dates from the file list may be ISO or a humanised string ("Wed 2026-10-14 11:45 PM CST (UTC+08:00)"): parse both */
@@ -372,7 +375,14 @@ const rawUrl=p=>'/api/files/raw/'+p.split('/').map(encodeURIComponent).join('/')
 const dlUrl=p=>'/api/files/dl/'+p.split('/').map(encodeURIComponent).join('/');
 const isFine=matchMedia('(hover:hover) and (pointer:fine)');
 
-async function enter(){try{await api('/api/admin/check');localStorage.setItem('adminKey',key);$('#login').style.display='none';$('#app').style.display='block';refresh()}catch(e){$('#err').textContent=/次数过多/.test(e.message)?e.message:'密钥错误';localStorage.removeItem('adminKey')}}
+async function enter(){try{await api('/api/admin/check');authed=true;$('#k').value='';if($('#rem').checked||sessionStorage.getItem('adminKey'))sessionStorage.setItem('adminKey',key);else sessionStorage.removeItem('adminKey');touch();$('#login').style.display='none';$('#app').style.display='block';refresh()}catch(e){$('#err').textContent=/次数过多/.test(e.message)?e.message:'密钥错误';key='';sessionStorage.removeItem('adminKey')}}
+/* logout: forget the key everywhere and reload, which also wipes every loaded admin list from memory */
+function logout(msg){key='';authed=false;try{sessionStorage.removeItem('adminKey');localStorage.removeItem('adminKey');if(msg)sessionStorage.setItem('admMsg',msg)}catch{}location.reload()}
+/* idle expiry: 30 min without input → logged out */
+const IDLE=30*60e3;let lastAct=Date.now();const touch=()=>{lastAct=Date.now()};
+['pointerdown','keydown','wheel','touchstart'].forEach(t=>addEventListener(t,touch,{passive:true,capture:true}));
+setInterval(()=>{if(authed&&Date.now()-lastAct>IDLE)logout('长时间未操作，已自动退出，请重新输入密钥')},30e3);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&authed&&Date.now()-lastAct>IDLE)logout('长时间未操作，已自动退出，请重新输入密钥')});
 async function refresh(){await Promise.all([loadStats(),loadFiles(),loadSes(),loadChat(),loadReports()]).catch(e=>toast(e.message))}
 /* ---------- reports: open ones, preview, delete file / ignore ---------- */
 async function loadReports(){let j;try{j=await api('/api/admin/reports')}catch(e){$('#rps').textContent='加载失败：'+e.message;return}
@@ -629,9 +639,10 @@ $('#back').onclick=()=>$('#grid').classList.remove('detail');
  btns.forEach((b,i)=>b.addEventListener('click',e=>{if(e.detail===0)go(i)}));
  addEventListener('resize',render);window.__tabs={go};render()})();
 $('#go').onclick=()=>{key=$('#k').value.trim();enter()};$('#k').onkeydown=e=>{if(e.key==='Enter')$('#go').click()};
-$('#out').onclick=()=>{localStorage.removeItem('adminKey');sessionStorage.removeItem('adminKey');location.reload()};
+$('#out').onclick=()=>logout('已退出登录');
 $('#re').onclick=()=>refresh().then(()=>toast('已刷新'));
 let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>S&&loadStats(),300)});
+{const m=sessionStorage.getItem('admMsg');if(m){sessionStorage.removeItem('admMsg');$('#err').textContent=m}}
 if(key)enter();
 })();
 /* ---------- liquid glass lens (Chromium only; Safari/Firefox keep frosted fallback) ---------- */
