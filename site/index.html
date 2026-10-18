@@ -364,8 +364,8 @@ body{overflow-x:clip;max-width:100%}
 .msg.a.typing::after{content:'▍';animation:blink 1s steps(1) infinite;color:var(--a1)}
 @keyframes blink{50%{opacity:0}}
 #aiForm{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line)}
-#aiForm input{flex:1;min-width:0;background:rgba(255,255,255,.07);border:1px solid var(--line);border-radius:999px;color:var(--fg);padding:11px 16px;font:16px/1.2 inherit;font-family:inherit;outline:none}
-#aiForm button{border:0;border-radius:999px;padding:0 18px;background:var(--fg);color:#000;font-weight:600;font-size:15px;cursor:pointer}
+#aiForm input{flex:1;min-width:0;box-sizing:border-box;min-height:44px;background:rgba(255,255,255,.07);border:1px solid var(--line);border-radius:999px;color:var(--fg);padding:11px 16px;font:16px/1.2 inherit;font-family:inherit;outline:none}
+#aiForm button{border:0;min-height:44px;border-radius:999px;padding:0 18px;background:var(--fg);color:#000;font-weight:600;font-size:15px;cursor:pointer}
 #aiForm button:disabled{opacity:.4}
 @media (max-width:480px){#aiPanel{right:8px;left:8px;width:auto;top:calc(max(12px,env(safe-area-inset-top)) + 58px);height:auto;bottom:calc(max(16px,env(safe-area-inset-bottom)) + 62px)}}
 footer{padding-bottom:calc(max(40px,env(safe-area-inset-bottom)) + 56px)!important}
