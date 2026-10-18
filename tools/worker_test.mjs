@@ -133,6 +133,10 @@ const parts = [{ partNumber: 1, etag: '"e1"' }, { partNumber: 2, etag: '"e2"' }]
   t('relay: S3-looking URL not from this session → 400', (await put('https://hf-hub-lfs-us-1.s3.us-east-1.amazonaws.com/other?partNumber=1')).status === 400);
   t('relay: non-S3 host → 400', (await put('https://evil.example/x')).status === 400);
   t('relay: unknown session → 400', (await put(S3(1), 'files/20261018-qqqqqq-n.txt')).status === 400);
+  // the page URI-encodes x-up (header values must be ASCII); a Chinese file name must still find its session
+  const { j: jz } = await (async () => { const r = await post('/api/up/init', { name: '中文 名字.txt', size: SIZE, oid: OID }); return { j: await r.json() }; })();
+  t('relay: URI-encoded non-ASCII x-up accepted', (await put(S3(1), encodeURIComponent(jz.path))).status === 200, jz.path);
+  t('relay: malformed x-up encoding → 400', (await put(S3(1), '%E4%B8')).status === 400);
 }
 
 /* ===== D. bounded JSON bodies ===== */

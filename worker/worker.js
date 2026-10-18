@@ -1175,7 +1175,8 @@ async function raw(req, env, path, dl) {
 async function upPart(req, env) {
   const t = req.headers.get('x-target') || '';
   if (!trustedUrl(t, 's3')) return json({ error: '参数错误' }, 400);
-  const path = req.headers.get('x-up') || '';
+  // x-up is URI-encoded by the page (HTTP header values must be ASCII; raw non-ASCII names made the browser throw)
+  let path = req.headers.get('x-up') || ''; try { path = decodeURIComponent(path); } catch { path = ''; }
   const pend = okPath(path) ? await store(env).upPending(path) : null;
   if (!pend || pend.done || Date.now() - pend.ts > UP_TTL) return json({ error: '上传会话无效或已过期，请重新上传' }, 400);
   let keep = null; try { keep = pend.plan ? JSON.parse(pend.plan) : null; } catch {}

@@ -4,7 +4,7 @@ import websockets
 WSKW = {'proxy': None} if int(websockets.__version__.split('.')[0]) >= 15 else {}   # newer websockets read HTTPS_PROXY, which breaks the upgrade
 
 BASE = os.environ.get('BASE', 'https://wqz-test.15112479050.workers.dev')
-WS = BASE.replace('https://', 'wss://') + '/api/chat/ws'
+WS = BASE.replace('https://', 'wss://').replace('http://', 'ws://') + '/api/chat/ws'
 ADMIN = os.environ.get('ADMIN_KEY') or (open(os.path.join(os.path.dirname(__file__), '..', 'worker', '.admin_key')).read().strip() if os.path.exists(os.path.join(os.path.dirname(__file__), '..', 'worker', '.admin_key')) else '')
 rk = lambda: ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(24))
 results = []

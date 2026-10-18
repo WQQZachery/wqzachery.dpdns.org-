@@ -16,6 +16,11 @@ def key():
     return open(f).read().strip() if os.path.exists(f) else ''
 AK = key()
 S = requests.Session(); S.headers['user-agent'] = 'Mozilla/5.0 sec-test'
+# LOCAL_FAKE=http://127.0.0.1:8790 (tools/local_env.mjs): presigned S3 URLs go to the local fake instead of AWS
+import re as _re
+def s3(u):
+    lf = os.environ.get('LOCAL_FAKE')
+    return _re.sub(r'^https://hf-hub-lfs-[a-z0-9-]+\.s3[a-z0-9.-]*\.amazonaws\.com', lf.rstrip('/') + '/s3', u) if lf else u
 ok = fail = 0
 def check(name, cond, info=''):
     global ok, fail
@@ -104,12 +109,12 @@ elif MODE == 'full':
         made.append(plj['path'])
         fin = {'path': plj['path'], 'oid': oid, 'size': len(data), 'verify': plj.get('verify')}
         if plj['mode'] == 'basic':
-            requests.put(plj['href'], data=data, headers=plj.get('header') or {}, timeout=600).raise_for_status()
+            requests.put(s3(plj['href']), data=data, headers=plj.get('header') or {}, timeout=600).raise_for_status()
         elif plj['mode'] == 'multipart':
             ch = plj['chunk']; parts = []
             for i, u in enumerate(plj['parts']):
-                rr = requests.put(u, data=data[i * ch:(i + 1) * ch], timeout=600); rr.raise_for_status(); parts.append({'partNumber': i + 1, 'etag': rr.headers['ETag']})
-            fin['parts'] = parts; fin['complete'] = plj['complete']
+                rr = requests.put(s3(u), data=data[i * ch:(i + 1) * ch], timeout=600); rr.raise_for_status(); parts.append({'partNumber': i + 1, 'etag': rr.headers['ETag']})
+            fin['parts'] = parts   # complete URL stays server-side since the audit fix
         r = S.post(B + '/api/up/finish', json=fin); return r, j(r)
     txt = ('sec_test 合法文本 %s\n' % time.ctime()).encode()
     r, jj = upload('sec-test 合法.txt', txt); check('legal txt upload ok', r.status_code == 200 and jj.get('ok'), jj)
