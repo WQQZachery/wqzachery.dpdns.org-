@@ -173,6 +173,60 @@ const goodChat = { sid: 's1', messages: [{ role: 'user', content: '你好' }] };
   t('pages: CSP does not restrict inline scripts (not yet tested for that)', !has(pg, 'content-security-policy', 'script-src'));
 }
 
+/* ===== G. locked owner folder files/wq + owner IPs shown as 我 ===== */
+{
+  env.ADMIN_KEY = 'adm_TEST_KEY';
+  const OWN = new Set(); let fails = 0;
+  Object.assign(store, {
+    ups: async () => [{ path: 'files/wq/20261017-aaaaaa-me.jpg', ip: '198.51.100.9' }, { path: 'files/20261017-bbbbbb-pub.jpg', ip: '203.0.113.50' }],
+    owners: async () => ['198.51.100.9', ...OWN], ownerAdd: async a => { OWN.add(a); return true; },
+    authFail: async () => { fails++; return true; },
+    stats: async () => ({ recent: [{ ip: '198.51.100.9', path: '/' }, { ip: '203.0.113.50', path: '/' }], uploads: [{ ip: '198.51.100.9', name: 'me.jpg' }] }),
+  });
+  const TREE = [{ type: 'directory', path: 'files/wq' }, { type: 'file', path: 'files/wq/20261017-aaaaaa-me.jpg', size: 5 }, { type: 'directory', path: 'files/wq/sub' }, { type: 'file', path: 'files/wq/sub/20261017-cccccc-deep.txt', size: 3 },
+    { type: 'file', path: 'files/20261017-bbbbbb-pub.jpg', size: 7 }];
+  ROUTES.unshift(u => u.includes('/tree/main/files?recursive') && J(TREE), u => u.includes('/resolve/main/files/') && new Response('IMG', { status: 200, headers: { 'content-type': 'image/jpeg' } }));
+  const list = async (h = {}) => (await call('/api/files', { headers: h })).json();
+  let L = await list();
+  t('locked: visitor list hides files inside wq (incl. subfolders)', L.files.length === 1 && L.files[0].path === 'files/20261017-bbbbbb-pub.jpg', JSON.stringify(L.files.map(f => f.path)));
+  t('locked: visitor still sees the wq folder itself, not its subfolders', L.folders.includes('wq') && !L.folders.includes('wq/sub') && L.unlocked === false && L.locked.includes('wq'));
+  const enc = encodeURIComponent;
+  for (const op of ['raw', 'url', 'dl', 'view']) t(`locked: visitor GET /api/files/${op} in wq → 403`, (await call(`/api/files/${op}/` + enc('files/wq/20261017-aaaaaa-me.jpg'))).status === 403);
+  t('locked: deep path also 403', (await call('/api/files/raw/' + enc('files/wq/sub/20261017-cccccc-deep.txt'))).status === 403);
+  t('locked: public file still readable', (await call('/api/files/raw/' + enc('files/20261017-bbbbbb-pub.jpg'))).status === 200);
+  t('locked: visitor upload into wq → 403', (await post('/api/up/init', { name: 'x.txt', size: 3, oid: 'c'.repeat(64), dir: 'wq' })).status === 403);
+  t('locked: visitor upload into wq/sub → 403', (await post('/api/up/init', { name: 'x.txt', size: 3, oid: 'c'.repeat(64), dir: 'wq/sub' })).status === 403);
+  t('locked: visitor mkdir inside wq → 403', (await post('/api/folders', { path: 'wq/new' })).status === 403);
+  t('locked: report on a wq file → 400', (await post('/api/report', { path: 'files/wq/20261017-aaaaaa-me.jpg', reason: '其他' })).status === 400);
+  t('locked: folder named wqx is not locked', (await call('/api/files/raw/' + enc('files/wqx/20261017-dddddd-a.jpg'))).status === 200);
+  // wrong password
+  const bad = await post('/api/lock/open', { key: 'nope' });
+  t('unlock: wrong password → 403, counted as a failed attempt, no cookie', bad.status === 403 && fails === 1 && !bad.headers.get('set-cookie'));
+  // right password
+  const good = await post('/api/lock/open', { key: 'adm_TEST_KEY' }, { 'cf-connecting-ip': '2001:db8::77' });
+  const sc = good.headers.get('set-cookie') || '';
+  t('unlock: right password → cookie HttpOnly Secure SameSite=Strict', good.status === 200 && /HttpOnly/.test(sc) && /Secure/.test(sc) && /SameSite=Strict/.test(sc) && /^wqu=\d+\.[A-Za-z0-9_-]{43};/.test(sc), sc);
+  t('unlock: cookie never contains the key', !sc.includes('adm_TEST_KEY'));
+  t('unlock: unlocking IP is remembered as the owner', OWN.has('2001:db8::77'));
+  const ck = { cookie: sc.split(';')[0] };
+  L = await list(ck);
+  t('unlocked: list shows wq files + subfolder', L.unlocked === true && L.files.length === 3 && L.folders.includes('wq/sub'));
+  t('unlocked: owner files are tagged 我 (mine) even from a new IP', L.files.filter(f => f.path.startsWith('files/wq/20261017-aaaaaa')).every(f => f.mine && f.owner));
+  t('unlocked: raw readable', (await call('/api/files/raw/' + enc('files/wq/20261017-aaaaaa-me.jpg'), { headers: ck })).status === 200);
+  const [v, sg] = ck.cookie.slice(4).split('.');
+  t('forged cookie (bad signature) → still locked', (await call('/api/files/raw/' + enc('files/wq/20261017-aaaaaa-me.jpg'), { headers: { cookie: `wqu=${v}.${'A'.repeat(43)}` } })).status === 403);
+  t('forged cookie (extended expiry, old signature) → still locked', (await call('/api/files/raw/' + enc('files/wq/20261017-aaaaaa-me.jpg'), { headers: { cookie: `wqu=${+v + 1000}.${sg}` } })).status === 403);
+  const cl = await post('/api/lock/close', {});
+  t('relock: clears the cookie', /Max-Age=0/.test(cl.headers.get('set-cookie') || ''));
+  // admin
+  const A = { 'x-admin-key': 'adm_TEST_KEY', 'cf-connecting-ip': '192.0.2.200' };
+  L = await list(A);
+  t('admin: sees wq, owner IP shown as 我, others keep their IP', L.files.length === 3 && L.files.find(f => f.path.includes('me.jpg')).ip === '我' && L.files.find(f => f.path.includes('pub.jpg')).ip === '203.0.113.50');
+  const st = await (await call('/api/admin/stats', { headers: A })).json();
+  t('admin stats: owner visits/uploads shown as 我', st.recent[0].ip === '我' && st.recent[0].me === true && st.uploads[0].ip === '我' && st.recent[1].ip === '203.0.113.50');
+  t('admin key use via scripts does not register an owner IP', !OWN.has('192.0.2.200'));
+}
+
 /* ===== F. assistant identity copy ===== */
 {
   const ai = fs.readFileSync(path.join(root, 'site/ai.html'), 'utf8');

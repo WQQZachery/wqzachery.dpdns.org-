@@ -74,6 +74,51 @@ async function limited(rl, key) { try { const { success } = await rl.limit({ key
 // admin auth: decided once per request in fetch() (constant-time compare + per-IP lockout kept in the DO), read via isAdmin()
 const ADM = new WeakMap();
 const isAdmin = req => ADM.get(req) === true;
+/* ---------- owner's private folder: files/wq is locked; it opens with the admin key (a signed HttpOnly cookie) ---------- */
+const LOCKED = ['wq'];
+const lockedRel = d => LOCKED.some(x => d === x || String(d).startsWith(x + '/'));
+const lockedPath = p => String(p).startsWith('files/') && lockedRel(String(p).slice(6));
+const UNL = new WeakMap();
+const isUnlocked = req => isAdmin(req) || UNL.get(req) === true;
+const UNLOCK_TTL = 12 * 3600e3;
+async function unlockSig(env, exp) {
+  const k = await crypto.subtle.importKey('raw', new TextEncoder().encode('wqz-unlock:' + env.ADMIN_KEY), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const d = new Uint8Array(await crypto.subtle.sign('HMAC', k, new TextEncoder().encode('wq:' + exp)));
+  return btoa(String.fromCharCode(...d)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+async function checkUnlock(req, env) {
+  if (!env.ADMIN_KEY) return false;
+  const m = (req.headers.get('cookie') || '').match(/(?:^|;\s*)wqu=(\d{10,16})\.([A-Za-z0-9_-]{43})(?:;|$)/);
+  if (!m || +m[1] < Date.now() || +m[1] > Date.now() + UNLOCK_TTL + 60e3) return false;
+  return safeEq(m[2], await unlockSig(env, m[1]));
+}
+const ownerSeen = new Set();   // per-isolate: avoid writing the same owner IP on every request
+function noteOwner(req, env, ctx) { const a = ip(req); if (a === 'x' || ownerSeen.has(a)) return; ownerSeen.add(a); ctx.waitUntil(store(env).ownerAdd(a).catch(() => {})); }
+async function ownerSet(env) { try { return new Set(await store(env).owners()); } catch { return new Set(); } }
+// admin views: the owner's own IPs are shown as 「我」
+function markMe(o, set) {
+  if (Array.isArray(o)) { for (const x of o) markMe(x, set); return o; }
+  if (o && typeof o === 'object') for (const k of Object.keys(o)) { const v = o[k];
+    if (k === 'ip' && typeof v === 'string' && set.has(v)) { o.ip = '我'; o.me = true; } else if (v && typeof v === 'object') markMe(v, set); }
+  return o;
+}
+async function lockOpen(req, env, ctx) {
+  if (!env.ADMIN_KEY) return json({ error: '暂时无法解锁' }, 503);
+  if (await limited(env.UP_RL, 'lock:' + ip(req))) return json({ error: '操作太频繁了，请稍后再试' }, 429);
+  const b = await readJson(req), k = String(b.key || '');
+  const st = store(env), who = ip(req);
+  if (await st.authLocked(who, LOCK.fails, LOCK.win)) return json({ error: '密码错误次数过多，请 15 分钟后再试', code: 'locked' }, 429);
+  if (!k || !safeEq(k, env.ADMIN_KEY)) {
+    if (k) { const kh = [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('wqz-ak:' + k)))].slice(0, 8).map(x => x.toString(16).padStart(2, '0')).join(''); await st.authFail(who, kh); }
+    return json({ error: '密码不对', code: 'bad' }, 403);
+  }
+  noteOwner(req, env, ctx);
+  const exp = String(Date.now() + UNLOCK_TTL);
+  const r = json({ ok: true, until: +exp });
+  r.headers.append('set-cookie', `wqu=${exp}.${await unlockSig(env, exp)}; Path=/; Max-Age=${UNLOCK_TTL / 1000}; HttpOnly; Secure; SameSite=Strict`);
+  return r;
+}
+function lockClose() { const r = json({ ok: true }); r.headers.append('set-cookie', 'wqu=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict'); return r; }
 function safeEq(a, b) {   // constant-time string compare (length leaks only via the loop bound, which is the secret's length)
   const x = new TextEncoder().encode(String(a)), y = new TextEncoder().encode(String(b));
   let d = x.length ^ y.length;
@@ -123,6 +168,7 @@ async function route(req, env, ctx) {
     try {
       const au = await authenticate(req, env);
       if (au === 'locked' && p.startsWith('/api/')) return json({ error: '管理员密钥错误次数过多，请 15 分钟后再试', code: 'locked' }, 429);
+      if (p.startsWith('/api/') && au !== 'ok' && await checkUnlock(req, env)) { UNL.set(req, true); noteOwner(req, env, ctx); }   // owner IPs: learnt from the unlocked browser, never from scripts using the admin key
       if (p === '/' || p === '/drive' || p === '/drive/' || p === '/ai' || p === '/ai/' || p === '/chat' || p === '/chat/') { if (m === 'GET') ctx.waitUntil(hit(req, env, p)); return page(APP); }
       if (p === '/robots.txt') return new Response(`# 欢迎搜索引擎和 AI 抓取、索引与学习本站公开内容。\nUser-agent: GPTBot\nUser-agent: OAI-SearchBot\nUser-agent: ChatGPT-User\nUser-agent: ClaudeBot\nUser-agent: Claude-User\nUser-agent: Claude-SearchBot\nUser-agent: anthropic-ai\nUser-agent: PerplexityBot\nUser-agent: Perplexity-User\nUser-agent: Google-Extended\nUser-agent: Googlebot\nUser-agent: Bingbot\nUser-agent: Applebot\nUser-agent: Applebot-Extended\nUser-agent: CCBot\nUser-agent: Bytespider\nUser-agent: Baiduspider\nUser-agent: YandexBot\nUser-agent: DuckDuckBot\nUser-agent: Amazonbot\nUser-agent: meta-externalagent\nUser-agent: cohere-ai\nUser-agent: MistralAI-User\nUser-agent: YouBot\nUser-agent: Diffbot\nAllow: /\nDisallow: /admin\nDisallow: /api/\n\nUser-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /api/\n\nSitemap: https://wqzachery.dpdns.org/sitemap.xml\n`, { headers: { ...SEC, 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=3600' } });
       if (p === '/7a416ee677f4d0164f25edf790e7566a.txt') return new Response('7a416ee677f4d0164f25edf790e7566a', { headers: { ...SEC, 'content-type': 'text/plain; charset=utf-8' } });
@@ -147,11 +193,13 @@ async function route(req, env, ctx) {
         return store(env).fetch(new Request(req.url, { headers: h }));
       }
       if (p === '/api/chat/msg' && m === 'DELETE') { if (!isAdmin(req)) return json({ error: '密钥错误' }, 403); return json(await store(env).chatDel(+u.searchParams.get('id') || 0)); }
-      if (p === '/api/admin/chat') { if (!isAdmin(req)) return json({ error: '密钥错误' }, 403); return json(await store(env).chatAdmin()); }
+      if (p === '/api/admin/chat') { if (!isAdmin(req)) return json({ error: '密钥错误' }, 403); return json(markMe(await store(env).chatAdmin(), await ownerSet(env))); }
       if (p === '/api/chat' && m === 'POST') return chat(req, env, ctx);
       if (p === '/api/search' && m === 'GET') { if (!isAdmin(req)) return json({ error: '需要管理员密钥' }, 403); return json({ results: await webSearch(u.searchParams.get('q') || '', u.searchParams.get('e'), env) }); }
       if (p === '/api/models' && m === 'GET') return json({ models: MODELS.filter(x => x.via !== 'or' || env.OPENROUTER_KEY).map(({ id, cat, name, tag, desc }) => ({ id, cat, name, tag, desc })) });
       if (p === '/api/files' && m === 'GET') return list(req, env);
+      if (p === '/api/lock/open' && m === 'POST') return lockOpen(req, env, ctx);
+      if (p === '/api/lock/close' && m === 'POST') return lockClose();
       if (p === '/api/report' && m === 'POST') return report(req, env);
       if (p === '/api/admin/reports') return reportAdmin(req, env);
       if (p === '/api/stats' && m === 'GET') return publicStats(env);
@@ -166,16 +214,17 @@ async function route(req, env, ctx) {
       if (p.startsWith('/api/files/')) {
         const rest = p.slice(11), i = rest.indexOf('/'), op = rest.slice(0, i), path = decodeURIComponent(rest.slice(i + 1));
         if (!okPath(path)) return json({ error: '路径无效' }, 400);
+        if (lockedPath(path) && !isUnlocked(req)) return json({ error: '这个文件夹已上锁，输入密码后才能查看', code: 'lockedDir' }, 403);
         if (op === 'url' && m === 'GET') return fileUrl(env, path, true);
         if (op === 'raw' && (m === 'GET' || m === 'HEAD')) return raw(req, env, path, u.searchParams.has('dl'));
         if ((op === 'dl' || op === 'view') && m === 'GET') return fileUrl(env, path, false);
         if (op === 'dl' && m === 'DELETE') return del(req, env, path);
       }
       if (p === '/api/admin/check') return isAdmin(req) ? json({ ok: true, hasGemini: !!env.GEMINI_KEY, lastAIError }) : json({ error: '密钥错误' }, 403);
-      if (p === '/api/admin/stats') { if (!isAdmin(req)) return json({ error: '密钥错误' }, 403); return json(await store(env).stats(+u.searchParams.get('days') || 30)); }
-      if (p === '/api/admin/sessions') { if (!isAdmin(req)) return json({ error: '密钥错误' }, 403); return json(await store(env).sessions(+u.searchParams.get('offset') || 0)); }
+      if (p === '/api/admin/stats') { if (!isAdmin(req)) return json({ error: '密钥错误' }, 403); return json(markMe(await store(env).stats(+u.searchParams.get('days') || 30), await ownerSet(env))); }
+      if (p === '/api/admin/sessions') { if (!isAdmin(req)) return json({ error: '密钥错误' }, 403); return json(markMe(await store(env).sessions(+u.searchParams.get('offset') || 0), await ownerSet(env))); }
       if (p === '/api/admin/analyze' && m === 'POST') { if (!isAdmin(req)) return json({ error: '密钥错误' }, 403); return json(await analyze(env, u.searchParams.get('id') || '', u.searchParams.get('force') === '1')); }
-      if (p === '/api/admin/session') { if (!isAdmin(req)) return json({ error: '密钥错误' }, 403); return json(await store(env).messages(u.searchParams.get('id') || '')); }
+      if (p === '/api/admin/session') { if (!isAdmin(req)) return json({ error: '密钥错误' }, 403); return json(markMe(await store(env).messages(u.searchParams.get('id') || ''), await ownerSet(env))); }
       if (p.startsWith('/api/')) return json({ error: 'not found' }, 404);
       return page(NOTFOUND, 404);
     } catch (e) {
@@ -203,12 +252,15 @@ export class Store extends DurableObject {
       CREATE TABLE IF NOT EXISTS upq(path TEXT PRIMARY KEY, ip TEXT, day TEXT, oid TEXT, size INTEGER, ts INTEGER, done INTEGER DEFAULT 0);
       CREATE INDEX IF NOT EXISTS upq_ip ON upq(ip, day);
       CREATE TABLE IF NOT EXISTS reports(id INTEGER PRIMARY KEY AUTOINCREMENT, path TEXT, name TEXT, reason TEXT, note TEXT, ip TEXT, ts INTEGER, status TEXT DEFAULT 'open');
-      CREATE INDEX IF NOT EXISTS reports_st ON reports(status, id);`);
+      CREATE INDEX IF NOT EXISTS reports_st ON reports(status, id);
+      CREATE TABLE IF NOT EXISTS owner_ip(ip TEXT PRIMARY KEY, ts INTEGER);`);
     try { ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair('ping', 'pong')); } catch {}
     for (const c of ['think TEXT', 'mname TEXT', 'extra TEXT']) { try { this.sql.exec('ALTER TABLE msgs ADD COLUMN ' + c); } catch {} }
     try { this.sql.exec('ALTER TABLE upq ADD COLUMN plan TEXT'); } catch {}   // trusted HF upload plan saved at /api/up/init (finish + relay only use this, never client URLs)
   }
   log(rows) { for (const r of rows) this.sql.exec('INSERT INTO msgs(sid,role,content,ts,ip,geo,model,think,mname,extra) VALUES(?,?,?,?,?,?,?,?,?,?)', r.sid, r.role, r.content, r.ts, r.ip, r.geo, r.model || '', r.think || '', r.mname || '', r.extra || ''); return true; }
+  ownerAdd(a) { this.sql.exec('INSERT OR REPLACE INTO owner_ip(ip,ts) VALUES(?,?)', String(a).slice(0, 64), Date.now()); return true; }
+  owners() { return this.sql.exec("SELECT ip FROM owner_ip UNION SELECT DISTINCT ip FROM ups WHERE path LIKE 'files/wq/%' AND ip IS NOT NULL").toArray().map(r => r.ip); }
   saveAna(sid, n, data) { this.sql.exec('INSERT OR REPLACE INTO ana(sid,n,ts,data) VALUES(?,?,?,?)', sid, n, Date.now(), data); return true; }
   pending(limit) { return this.sql.exec('SELECT m.sid FROM msgs m LEFT JOIN ana a ON a.sid=m.sid GROUP BY m.sid HAVING a.n IS NULL OR a.n<COUNT(*) ORDER BY MAX(m.ts) DESC LIMIT ?', limit).toArray().map(r => r.sid); }
   sessions(offset) {
@@ -825,8 +877,9 @@ async function ipTag(addr) {
 
 async function list(req, env) {
   let t; try { t = await tree(env); } catch { return json({ error: '存储暂时不可用' }, 502); }
-  const admin = isAdmin(req), me = ip(req);
+  const admin = isAdmin(req), unl = isUnlocked(req), me = ip(req);
   let owners = {}; try { for (const r of await store(env).ups()) owners[r.path] = r.ip; } catch {}
+  const own = await ownerSet(env), meOwner = unl || own.has(me);
   const tags = {};
   const folders = new Set();
   for (const x of t) {
@@ -834,17 +887,20 @@ async function list(req, env) {
     if (x.type === 'directory') folders.add(rel);
     else if (base(x.path) === '.keep') folders.add(rel.slice(0, -6));
   }
+  for (const d of LOCKED) if (t.some(x => x.path.startsWith('files/' + d + '/'))) folders.add(d);
+  if (!unl) for (const d of [...folders]) if (lockedRel(d) && !LOCKED.includes(d)) folders.delete(d);
   const files = [];
   for (const x of t) {
     if (x.type !== 'file' || base(x.path) === '.keep') continue;
     const rel = x.path.slice(6), dir = rel.includes('/') ? rel.slice(0, rel.lastIndexOf('/')) : '';
+    if (!unl && lockedRel(dir)) continue;
     const f = { path: x.path, name: nameOf(x.path), dir, size: x.lfs?.size ?? x.size, date: x.lastCommit?.date };
     const o = owners[x.path];
-    if (o) { tags[o] = tags[o] || await ipTag(o); f.tag = tags[o].tag; f.hue = tags[o].hue; f.mine = o === me; if (admin) f.ip = o; }
+    if (o) { tags[o] = tags[o] || await ipTag(o); f.tag = tags[o].tag; f.hue = tags[o].hue; f.mine = o === me || (meOwner && own.has(o)); if (own.has(o)) f.owner = true; if (admin) f.ip = own.has(o) ? '我' : o; }
     files.push(f);
   }
   files.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-  return json({ files, folders: [...folders].filter(Boolean).sort(), used: files.reduce((s, f) => s + f.size, 0), cap: env.CAP_LABEL, admin });
+  return json({ files, folders: [...folders].filter(Boolean).sort(), used: files.reduce((s, f) => s + f.size, 0), cap: env.CAP_LABEL, admin, locked: LOCKED, unlocked: unl });
 }
 
 async function mkFolder(req, env) {
@@ -852,6 +908,7 @@ async function mkFolder(req, env) {
   const b = await readJson(req);
   const d = cleanDir(b.path);
   if (!d) return json({ error: '文件夹名无效（最多 4 层）' }, 400);
+  if (lockedRel(d) && !isUnlocked(req)) return json({ error: '这个文件夹已上锁', code: 'lockedDir' }, 403);
   // reject instead of silently rewriting names (the old code turned bad characters into "_")
   const raw = String(b.path || '').normalize('NFC').split('/').map(s => s.trim()).filter(Boolean).join('/');
   if (raw !== d) return json({ error: '文件夹名无效：不能包含 / \\ : * ? " < > | # %，不能以点开头或结尾，每层最多 60 个字', code: 'name' }, 400);
@@ -1008,6 +1065,7 @@ async function upInit(req, env) {
   const rand = [...crypto.getRandomValues(new Uint8Array(6))].map(x => 'abcdefghijklmnopqrstuvwxyz0123456789'[x % 36]).join('');
   const dir = b.dir ? cleanDir(b.dir) : '';
   if (dir === null) return json({ error: '文件夹无效' }, 400);
+  if (lockedRel(dir) && !isUnlocked(req)) return json({ error: '这个文件夹已上锁，输入密码后才能上传', code: 'lockedDir' }, 403);
   const path = `files/${dir ? dir + '/' : ''}${stamp}-${rand}-${name}`;
   {
     const adm = isAdmin(req);   // the admin has no daily quota, but still gets a pending row (needed by the relay + finish checks)
@@ -1119,7 +1177,7 @@ async function report(req, env) {
   if (await limited(env.UP_RL, 'rep:' + ip(req))) return json({ error: '操作太频繁了，请稍后再试' }, 429);
   const b = await readJson(req);
   const path = String(b.path || ''), reason = String(b.reason || '');
-  if (!okPath(path) || base(path) === '.keep') return json({ error: '文件无效' }, 400);
+  if (!okPath(path) || base(path) === '.keep' || (lockedPath(path) && !isUnlocked(req))) return json({ error: '文件无效' }, 400);
   if (!REASONS.includes(reason)) return json({ error: '请选择举报原因' }, 400);
   const note = String(b.note || '').replace(/[\u0000-\u001f\u007f\u202a-\u202e]/g, ' ').trim().slice(0, 300);
   const r = await store(env).report(path, nameOf(path), reason, note, ip(req), 20);
@@ -1127,7 +1185,7 @@ async function report(req, env) {
 }
 async function reportAdmin(req, env) {
   if (!isAdmin(req)) return json({ error: '管理员密钥错误' }, 403);
-  if (req.method === 'GET') return json(await store(env).reportsOpen());
+  if (req.method === 'GET') return json(markMe(await store(env).reportsOpen(), await ownerSet(env)));
   const b = await readJson(req);
   const path = String(b.path || '');
   if (!okPath(path)) return json({ error: '参数错误' }, 400);

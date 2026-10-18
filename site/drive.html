@@ -145,6 +145,7 @@ h1 span{background:linear-gradient(90deg,var(--a1),var(--a2));-webkit-background
 .rpm{min-height:18px;font-size:13px;color:#ffb4a8}.rpm.ok{color:var(--a1)}
 .rpa{display:flex;gap:10px;justify-content:flex-end}.rpa button{min-height:44px;padding:0 18px;border-radius:999px;border:0;font:inherit;font-weight:600;cursor:pointer;color:var(--fg);background:rgba(255,255,255,.1)}.rpa .pri{background:#ff6b5a;color:#fff}.rpa button:disabled{opacity:.5}
 .more{display:flex;justify-content:center;margin:14px 0 0}.more button,#list .empty button.retry{min-height:44px;padding:0 20px;border-radius:999px;border:0;font:inherit;font-size:14px;font-weight:600;color:var(--fg);background:rgba(255,255,255,.1);cursor:pointer}
+#list .empty.lockbox{flex-direction:column;gap:12px;text-align:center}#list .lockbox form{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;width:100%;max-width:360px}#list .lockbox input{flex:1 1 180px;min-height:44px;border-radius:999px;border:0;padding:0 16px;font:inherit;font-size:15px;color:var(--fg);background:rgba(255,255,255,.08);box-shadow:inset 1px 1px 1px -.5px rgba(255,255,255,.4)}#list .lockbox button{min-height:44px;padding:0 20px;border-radius:999px;border:0;font:inherit;font-size:14px;font-weight:600;color:#04150e;background:var(--a1);cursor:pointer}#list .lockbox .lm{min-height:1.2em;font-size:13px;color:#ffb4a8}#list .lockbox .li{font-size:34px;line-height:1}.relock{display:flex;justify-content:flex-end;margin:0 0 10px}.relock[hidden]{display:none}
 #list .empty.errbox{flex-direction:column;gap:10px;text-align:center;color:#ffb4a8}
 </style>
 </head>
@@ -168,6 +169,7 @@ h1 span{background:linear-gradient(90deg,var(--a1),var(--a2));-webkit-background
 
   <div class="bar2"><h2 id="h2">全部文件</h2><div class="tools"><input id="q" type="search" placeholder="搜索" aria-label="搜索文件"><button type="button" class="pill" id="mk" aria-haspopup="dialog">＋ 文件夹</button></div></div>
   <div class="crumb" id="crumb"></div>
+  <div class="relock" id="relock" hidden><button type="button" class="pill" id="relockb">🔒 重新上锁</button></div>
   <div class="vbar"><div class="cats" id="cats"><button data-c="" class="on">全部</button><button data-c="img">图片</button><button data-c="video">视频</button><button data-c="audio">音频</button><button data-c="doc">文档</button><button data-c="other">其他</button></div>
    <div class="vt" id="vt"><button data-v="grid" aria-label="网格"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg></button><button data-v="list" aria-label="列表"><svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg></button></div></div>
   <div class="filter" id="filter"></div>
@@ -216,7 +218,7 @@ class Sha256{constructor(){this.h=new Uint32Array([0x6a09e667,0xbb67ae85,0x3c6ef
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 let LIM={maxFile:2*1073741824,blocked:'exe msi msp mst apk xapk apks aab ipa bat cmd ps1 psm1 ps1xml scr com pif cpl vbs vbe jse wsf wsh hta jar dll sys drv ocx sh bash zsh csh ksh command run app dmg pkg mpkg deb rpm appx appxbundle msix msixbundle reg lnk gadget inf elf so dylib out'.split(' ')},shown=60;
 fetch('/api/limits').then(r=>r.ok&&r.json()).then(j=>{if(j&&j.maxFile)LIM=j}).catch(()=>{});
-let files=[],folders=[],cwd=sessionStorage.getItem('cwd')||'',tagF='',cat='',view=localStorage.getItem('driveView')||'grid';
+let locked=[],unlocked=false,files=[],folders=[],cwd=sessionStorage.getItem('cwd')||'',tagF='',cat='',view=localStorage.getItem('driveView')||'grid';
 const fmt=n=>n<1024?n+' B':n<1048576?(n/1024).toFixed(1)+' KB':n<1073741824?(n/1048576).toFixed(1)+' MB':(n/1073741824).toFixed(2)+' GB';
 const say=(t,c='')=>{const m=$('#msg');m.textContent=t;m.className=c};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -225,6 +227,7 @@ const KIND={img:'jpg jpeg png gif webp avif bmp svg heic ico',video:'mp4 webm mo
 const kindOf=n=>{const e=ext(n);for(const k in KIND)if(KIND[k].split(' ').includes(e))return k;return ''};
 const enc=p=>encodeURIComponent(p);
 const inDir=(f,d)=>f.dir===d;
+const isLk=d=>locked.some(x=>d===x||d.startsWith(x+'/'));
 const kids=d=>folders.filter(x=>x.startsWith(d?d+'/':'')&&x.slice(d?d.length+1:0).indexOf('/')<0&&x!==d);
 const countIn=d=>files.filter(f=>f.dir===d||f.dir.startsWith(d+'/')).length;
 function crumb(){const parts=cwd?cwd.split('/'):[];let h=`<button data-d="">全部文件</button>`,acc='';for(const p of parts){acc=acc?acc+'/'+p:p;h+=`<span>›</span><button data-d="${esc(acc)}">${esc(p)}</button>`}
@@ -239,7 +242,8 @@ function fileTile(f,showDir){const k=kindOf(f.name),u='/api/files/raw/'+enc(f.pa
  else if(k==='video')th=`<video preload="none" muted playsinline data-src="${u}#t=0.1"></video><div class="play"><span>▶</span></div>`;
  else th=`<span class="big">${bigIcon(f.name)}</span>`;
  return `<li class="${k?'':'dl-only'}" data-p="${esc(f.path)}"><div class="th">${th}<span class="ext">${esc(ext(f.name).slice(0,5)||'file')}</span></div><div class="meta"><b title="${esc(f.name)}">${esc(f.name)}</b><small>${showDir&&f.dir?esc(f.dir)+' · ':''}${fmt(f.size)}</small>${tagHtml(f)}</div></li>`}
-function folderTile(d,label,sub){return `<li class="fd" data-d="${esc(d)}"><div class="th"><span class="big">${label==='..'?'↩︎':'📁'}</span></div><div class="meta"><b>${label==='..'?'返回上一级':esc(label)}</b><small>${sub}</small></div></li>`}
+const fsub=d=>isLk(d)&&!unlocked?'已上锁':countIn(d)+' 个文件',fico=d=>isLk(d)&&!unlocked?'🔒':'📁';
+function folderTile(d,label,sub){return `<li class="fd" data-d="${esc(d)}"><div class="th"><span class="big">${label==='..'?'↩︎':fico(d)}</span></div><div class="meta"><b>${label==='..'?'返回上一级':esc(label)}</b><small>${sub}</small></div></li>`}
 function fileRow(f,showDir){if(view==='grid')return fileTile(f,showDir);return `<li><div class="ico">${{img:'🖼️',video:'🎬',audio:'🎵',pdf:'📕',text:'📄'}[kindOf(f.name)]||'📦'}</div><div class="n"><b title="${esc(f.name)}">${esc(f.name)}</b><small>${showDir&&f.dir?'📁 '+esc(f.dir)+' · ':''}${fmt(f.size)}${f.date?' · '+new Date(f.date).toLocaleDateString():''}</small>${tagHtml(f)}</div><div class="acts">${kindOf(f.name)?`<button class="v" data-p="${esc(f.path)}">查看</button>`:''}<a class="d" href="/api/files/raw/${enc(f.path)}?dl=1" data-p="${esc(f.path)}">下载</a><button class="rp" data-p="${esc(f.path)}" aria-label="举报 ${esc(f.name)}">举报</button></div></li>`}
 /* 60 files per page; "显示更多" appends the next 60 */
 let pageKey='';function page(v){const k=cwd+'|'+cat+'|'+tagF+'|'+$('#q').value;if(k!==pageKey){pageKey=k;shown=60}const m=$('#more'),left=v.length-shown;m.innerHTML=left>0?`<button type="button" id="moreb">显示更多（还有 ${left} 个）</button>`:'';return v.slice(0,shown)}
@@ -254,10 +258,13 @@ function render(){crumb();const q=$('#q').value.trim().toLowerCase(),L=$('#list'
   L.innerHTML=(fd.map(d=>view==='grid'?folderTile(d,d.split('/').pop(),countIn(d)+' 个文件'):`<li class="fd" data-d="${esc(d)}"><div class="ico f">📁</div><div class="n"><b>${esc(d.split('/').pop())}</b><small>${esc(d)} · ${countIn(d)} 个文件</small></div></li>`).join('')+page(v).map(f=>fileRow(f,true)).join(''))||'<li class="empty">没有匹配的文件</li>';return}
  const sub=kids(cwd),v=files.filter(f=>inDir(f,cwd));
  const G=view==='grid';
+ const rl=$('#relock');if(rl)rl.hidden=!(unlocked&&isLk(cwd));
+ if(isLk(cwd)&&!unlocked){$('#more').innerHTML='';L.classList.remove('grid');L.innerHTML=`<li class="empty lockbox"><span class="li" aria-hidden="true">🔒</span><b>这个文件夹已上锁</b><span>输入密码后才能查看和上传</span><form id="ulf"><input id="ulk" type="password" autocomplete="current-password" placeholder="密码" aria-label="文件夹密码" required><button type="submit" id="uls">解锁</button></form><span class="lm" id="ulm" role="alert"></span><button type="button" class="retry" data-d="${esc(cwd.includes('/')?cwd.slice(0,cwd.lastIndexOf('/')):'')}" data-back>返回上一级</button></li>`;return}
  const up=cwd&&G?folderTile(cwd.includes('/')?cwd.slice(0,cwd.lastIndexOf('/')):'','..',''):cwd?`<li class="fd" data-d="${esc(cwd.includes('/')?cwd.slice(0,cwd.lastIndexOf('/')):'')}"><div class="ico">↩︎</div><div class="n"><b>返回上一级</b></div></li>`:'';
- const h=sub.map(d=>G?folderTile(d,d.split('/').pop(),countIn(d)+' 个文件'):`<li class="fd" data-d="${esc(d)}"><div class="ico f">📁</div><div class="n"><b>${esc(d.split('/').pop())}</b><small>${countIn(d)} 个文件</small></div></li>`).join('')+page(v).map(f=>fileRow(f,false)).join('');
+ const h=sub.map(d=>G?folderTile(d,d.split('/').pop(),fsub(d)):`<li class="fd" data-d="${esc(d)}"><div class="ico f">${fico(d)}</div><div class="n"><b>${esc(d.split('/').pop())}</b><small>${fsub(d)}</small></div></li>`).join('')+page(v).map(f=>fileRow(f,false)).join('');
  L.innerHTML=up+(h||'<li class="empty"><div class="eu"><svg viewBox="0 0 24 24"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H10l2 2h6.5A2.5 2.5 0 0 1 21 9.5v7a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 16.5z"/><path d="M12 15.5v-5M9.5 13l2.5-2.5 2.5 2.5"/></svg><span>'+(q?'没有找到匹配的文件':cwd?'这个文件夹还是空的':'还没有文件')+'</span>'+(q?'':'<button type="button" data-pick>上传文件到这里</button>')+'</div></li>')}
 function cd(d,pop){if(!pop&&d!==cwd)history.pushState({cwd:d,pv:0},'');cwd=d;sessionStorage.setItem('cwd',d);$('#q').value='';render();window.scrollTo({top:Math.max(0,$('.bar2').offsetTop-20),behavior:'smooth'})}
+$('#relockb').onclick=async()=>{try{await fetch('/api/lock/close',{method:'POST',credentials:'same-origin'})}catch{}say('已重新上锁','ok');await load()};
 $('#crumb').onclick=e=>{const b=e.target.closest('button[data-d]');if(b)cd(b.dataset.d)};
 $('#cats').onclick=e=>{const b=e.target.closest('button[data-c]');if(b){cat=b.dataset.c;render()}};
 $('#vt').onclick=e=>{const b=e.target.closest('button[data-v]');if(b){view=b.dataset.v;localStorage.setItem('driveView',view);render()}};
@@ -288,7 +295,7 @@ let loaded=false,inflight=null,again=false;
 function load(){if(inflight){again=true;return inflight}inflight=load1().finally(()=>{inflight=null;if(again){again=false;load()}});return inflight}
 let lt=0;const loadSoon=()=>{clearTimeout(lt);lt=setTimeout(load,700)};
 async function load1(){const L=$('#list');L.setAttribute('aria-busy','true');const ac=new AbortController(),to=setTimeout(()=>ac.abort(),10000);
- try{const r=await fetch('/api/files',{cache:'no-store',signal:ac.signal});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'服务器返回 '+r.status);files=j.files;folders=j.folders||[];if(cwd&&!folders.includes(cwd)&&!files.some(f=>f.dir===cwd||f.dir.startsWith(cwd+'/')))cwd='';$('#quota').textContent='已用 '+fmt(j.used)+' / '+j.cap;loaded=true;render()}
+ try{const r=await fetch('/api/files',{cache:'no-store',signal:ac.signal});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'服务器返回 '+r.status);files=j.files;folders=j.folders||[];locked=j.locked||[];unlocked=!!j.unlocked;if(cwd&&!isLk(cwd)&&!folders.includes(cwd)&&!files.some(f=>f.dir===cwd||f.dir.startsWith(cwd+'/')))cwd='';$('#quota').textContent='已用 '+fmt(j.used)+' / '+j.cap;loaded=true;render()}
  catch(e){if(loaded){say('刷新列表失败，稍后再试','err');return}$('#more').innerHTML='';L.classList.remove('grid');L.innerHTML='<li class="empty errbox"><span>'+(e.name==='AbortError'?'加载超时（10 秒），网络可能不太好':'文件列表加载失败：'+esc(e.message||'网络错误'))+'</span><button type="button" class="retry" data-retry>重试</button></li>'}
  finally{clearTimeout(to);L.setAttribute('aria-busy','false')}}
 const sig=async p=>{const r=await fetch('/api/files/url/'+enc(p),{cache:'no-store'});const j=await r.json();if(!r.ok)throw new Error(j.error||'获取链接失败');return j};
@@ -380,7 +387,11 @@ async function view2(f){cur=f;if(!(history.state&&history.state.pv))history.push
   else pvb.innerHTML='<div class="na">这种文件暂不支持在线查看<br>请下载后打开</div>';
  }catch(e){pvb.innerHTML='<div class="na">'+esc(e.message)+'</div>'}}
 
+$('#list').addEventListener('submit',async e=>{if(e.target.id!=='ulf')return;e.preventDefault();const k=$('#ulk').value,b=$('#uls'),m=$('#ulm');if(!k)return;b.disabled=true;b.textContent='解锁中…';m.textContent='';
+ try{const r=await fetch('/api/lock/open',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({key:k}),credentials:'same-origin'});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'解锁失败（'+r.status+'）');say('已解锁，12 小时内有效','ok');await load()}
+ catch(err){m.textContent=err.message||'解锁失败，请重试';b.disabled=false;b.textContent='解锁';const i=$('#ulk');if(i){i.value='';i.focus()}}});
 $('#list').onclick=e=>{const t=e.target;
+ const bk=t.closest('[data-back]');if(bk){cd(bk.dataset.d);return}
  if(t.closest('[data-retry]')){$('#list').innerHTML='<li class="empty">加载中…</li>';load();return}
  if(t.closest('[data-pick]')){$('#file').click();return}
  const tg=t.closest('.tag');if(tg){tagF=tg.dataset.tag;render();return}
