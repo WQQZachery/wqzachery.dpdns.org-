@@ -151,7 +151,7 @@ html.embed.kb .pvn{display:none}
   <div class="box"><textarea id="in" rows="1" placeholder="给 GPT-6 Astra 发消息" maxlength="4000" enterkeyhint="send" aria-label="输入消息"></textarea>
   <button id="send" type="submit" aria-label="发送" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg></button></div>
   <p id="sv" class="sv" role="alert" hidden></p>
-  <p class="pvn">对话会被站长记录，并保存在本机浏览器 · <button type="button" class="wz-link" data-privacy>隐私说明</button></p>
+  <p class="pvn">GPT-6 Astra 是本站助手名，非 OpenAI 产品，由第三方模型生成、可能自动切换，内容可能有误 · 对话会被站长记录并保存在本机 · <button type="button" class="wz-link" data-privacy>隐私说明</button></p>
 </form>
 <script>
 (()=>{
@@ -223,7 +223,7 @@ function newConv(){cv={id:newId(),title:'',created:Date.now(),updated:Date.now()
 addEventListener('storage',e=>{if(e.key===SKEY){dbAll=readDB().list;if($('#hs').classList.contains('on'))renderHs()}});
 
 const ACTS=(i,last)=>`<div class="acts" role="group" aria-label="回答操作"><button type="button" class="ab" data-act="copy" data-i="${i}">复制</button>${last?`<button type="button" class="ab" data-act="regen" data-i="${i}">重新生成</button>`:''}</div>`;
-function srcEl(srcs){const d=document.createElement('div');d.className='src';srcs.forEach((s,i)=>{const a=document.createElement('a');a.href=s.u;a.target='_blank';a.rel='noopener noreferrer';a.innerHTML='<b>'+(i+1)+'</b><span></span>';let h='';try{h=new URL(s.u).hostname.replace(/^www\./,'')}catch(_){}a.querySelector('span').textContent=s.t||h;a.title=h;d.appendChild(a)});return d}
+function srcEl(srcs){const d=document.createElement('div');d.className='src';srcs.forEach((s,i)=>{const a=document.createElement('a');if(/^https?:\/\//i.test(String(s.u||'')))a.href=s.u;a.target='_blank';a.rel='noopener noreferrer';a.innerHTML='<b>'+(i+1)+'</b><span></span>';let h='';try{h=new URL(s.u).hostname.replace(/^www\./,'')}catch(_){}a.querySelector('span').textContent=s.t||h;a.title=h;d.appendChild(a)});return d}
 function failBar(msg,noRetry){const d=document.createElement('div');d.className='msg e';d.setAttribute('role','alert');d.innerHTML='<span></span>'+(noRetry?'':' <button type="button" class="ab rt" data-act="retry">重试</button>');d.firstChild.textContent=msg;inner.appendChild(d);down();return d}
 function hello(){inner.innerHTML=`<div class="hello"><h1>有什么可以帮你？</h1><p>我是 ${esc(cur().name)}，${esc(cur().desc)}。</p><div class="sug">${SUG.map(s=>`<button type="button">${s}</button>`).join('')}</div><div class="note">对话内容会被站长记录，请勿发送隐私信息。</div></div>`;
   inner.querySelectorAll('.sug button').forEach(b=>b.onclick=()=>{inp.value=b.textContent;ask()})}
@@ -299,7 +299,7 @@ async function ask(retry){if(busy)return;
     conv.msgs.push(msg);if(conv===cv){persist();w.dataset.i=conv.msgs.length-1;if(st)w.insertAdjacentHTML('beforeend','<span class="cut">（回答被中断）</span>');
      inner.insertAdjacentHTML('beforeend',ACTS(conv.msgs.length-1,true))}
     else{try{const d=readDB();d.list=d.list.filter(s=>s.id!==conv.id);d.list.push({...conv,updated:Date.now()});writeDB(d);dbAll=d.list}catch(e){}}};
-  try{const r=await fetch('/api/chat',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({sid:conv.id,model,effort,web,messages:conv.msgs.filter(m=>m.content).map(m=>({role:m.role,content:m.content})).slice(-16)}),signal:myCtrl.signal});
+  try{const r=await fetch('/api/chat',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({sid:conv.id,model,effort,web,messages:conv.msgs.filter(m=>m.content).map(m=>({role:m.role,content:m.content.slice(0,4000)})).slice(-16)}),signal:myCtrl.signal});
     if(!r.ok||!r.body){let j={};try{j=await r.json()}catch(_){}throw new Error(j.error||'出错了（服务器返回 '+r.status+'），请稍后再试')}
     const rd=r.body.getReader(),dec=new TextDecoder();let buf='',err='',gotDone=false;
     let tk=null,tkTxt='',tkT0=0,tkOn=false;
