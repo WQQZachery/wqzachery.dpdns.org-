@@ -61,7 +61,7 @@ async def main():
         check('home: no 300+ / 24/7 fake stats', '300+' not in body and '24/7' not in body)
         hrefs = await p.evaluate("[...document.querySelectorAll('a.em')].map(a=>a.href)")
         check('home: e-mail links assembled by JS (mailto:)', len(hrefs) == 2 and all(h.startswith('mailto:') and '@' in h for h in hrefs), hrefs)
-        html = await p.content(); check('home: no private repo link', 'wqzachery.dpdns.org-' not in html)
+        html = await p.content(); check('home: source repo link present (repo public since 2026-10-18)', 'github.com/WQQZachery/wqzachery.dpdns.org-' in html)
         await p.evaluate("document.querySelector('#about').scrollIntoView()"); await p.wait_for_timeout(900)
         await p.screenshot(path=OUT + 'ui_home_stats.png')
         await p.evaluate("scrollTo(0,0)"); await p.wait_for_timeout(500); await p.screenshot(path=OUT + 'ui_home_hero.png')
