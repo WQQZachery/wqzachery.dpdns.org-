@@ -152,7 +152,7 @@ const FAKE_AI = `export default function () { return { async run(model, opts) {
 const main = {
   name: 'wqzachery',
   modules: true, scriptPath: path.join(DIST, 'worker.js'), modulesRoot: DIST,
-  modulesRules: [{ type: 'Text', include: ['**/*.html', '**/*.css', 'shared.js', 'announcements.json'], fallthrough: false }, { type: 'Data', include: ['**/*.png'], fallthrough: false }],
+  modulesRules: [{ type: 'Text', include: ['**/*.html', '**/*.css', 'shared.js', 'marked.min.js', 'announcements.json'], fallthrough: false }, { type: 'Data', include: ['**/*.png'], fallthrough: false }],
   compatibilityDate: '2026-10-01',
   durableObjects: { STORE: { className: 'Store', useSQLite: true } },
   ratelimits: { CHAT_RL: { namespace_id: '7101', simple: { limit: 15, period: 60 } }, UP_RL: { namespace_id: '7102', simple: { limit: 30, period: 60 } } },

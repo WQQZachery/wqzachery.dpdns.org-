@@ -2,11 +2,16 @@
 """Deterministic mock of the site API for browser tests (no real AI / storage calls). Port $MPORT (default 8768).
 Run a second preview against it:  MPORT=8768 python3 tools/mock_api.py &  PORT=8767 UP=http://127.0.0.1:8768 python3 tools/lproxy.py &
 AI (/api/chat) behaviour by the last user message: '#slow' long slow stream, '#cut' stream that breaks off (no done event),
-'#failonce' HTTP 500 the first time that text is sent, '#err' SSE {error}, '#code' reply with a code block, else a short echo.
+'#failonce' HTTP 500 the first time that text is sent, '#err' SSE {error}, '#code' reply with a code block, '#md' a long Markdown reply streamed in 7-char pieces, else a short echo.
 Drive: /api/files, /api/limits, /api/up/init|finish (basic mode, PUT to /s3/<n> here, 1.2 s each, CORS), /api/folders.
 Files named *failonce* fail at /api/up/finish once (502); *bad* fail at init (502) every time.  GET /api/__stats → counters; POST /api/__reset."""
 import http.server, json, os, threading, time, itertools
 lock = threading.Lock()
+MD_DOC = ('# 标题一\n\n第一段，**粗体**和*斜体*，还有 `行内代码`。\n第二行紧跟着（单换行）。\n\n'
+          '## 列表\n\n- 无序一\n- 无序二\n  - 嵌套\n\n1. 有序一\n2. 有序二\n\n> 这是一段引用\n\n'
+          '[链接](https://example.com) 和 <script>alert(1)</script>\n\n'
+          '| 名称 | 数量 |\n|:--|--:|\n| 苹果 | 3 |\n| 香蕉 | 12 |\n\n'
+          '```js\nconst a = 1;\n\nconsole.log(a < 2);\n```\n\n```python\nprint("你好")\n```\n\n结束。')
 ST = {}
 def reset():
     ST.clear(); ST.update(chat=0, chat_by={}, put_now=0, put_max=0, puts=0, init=0, finish=0, folders_post=0, failed_once=set(),
@@ -80,6 +85,8 @@ class H(http.server.BaseHTTPRequestHandler):
             try:
                 if '#err' in q: ev({'error': 'AI 暂时不可用，请稍后再试'}); return
                 if '#code' in q: parts = ['这是示例代码：\n', '```python\n', 'print("hi")\n', '```\n', '完毕。']
+                elif '#md' in q:
+                    doc = MD_DOC; parts = [doc[i:i + 7] for i in range(0, len(doc), 7)]
                 elif '#slow' in q: parts = ['第%d段内容。' % i for i in range(40)]
                 elif '#cut' in q: parts = ['这是一段', '会被中断的', '回答']
                 else: parts = ['收到：', q[:40], '。']

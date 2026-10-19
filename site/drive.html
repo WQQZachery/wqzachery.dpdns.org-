@@ -383,7 +383,7 @@ async function view2(f){cur=f;if(!(history.state&&history.state.pv))history.push
   else if(k==='video'){pvb.innerHTML=`<video src="${esc(s.url)}" controls playsinline preload="metadata"></video>`;pvb.querySelector('video').onerror=()=>{pvb.innerHTML='<div class="na">这个视频格式当前浏览器无法播放'+(ext(f.name)==='mov'?'（.mov 在 Safari 里最稳）':'')+'<br>可以下载后观看</div>'}}
   else if(k==='audio')pvb.innerHTML=`<audio src="${esc(s.url)}" controls preload="metadata"></audio>`;
   else if(k==='pdf')pvb.innerHTML=`<iframe src="${esc(s.url)}" title="PDF"></iframe>`;
-  else if(k==='text'){const r=await fetch(s.url,{headers:{Range:'bytes=0-2097151'}});const t=await r.text();const pre=document.createElement('pre');pre.textContent=t+(f.size>2097152?'\n\n…（只显示前 2MB，完整内容请下载）':'');pvb.innerHTML='';pvb.appendChild(pre)}
+  else if(k==='text'){const r=await fetch(s.url,{headers:{Range:'bytes=0-2097151'}});if(!r.ok){let m='';try{m=(await r.json()).error}catch(_){}throw new Error(m||'文件读取失败（服务器返回 '+r.status+'）')}const t=await r.text();const pre=document.createElement('pre');pre.textContent=t+(f.size>2097152?'\n\n…（只显示前 2MB，完整内容请下载）':'');pvb.innerHTML='';pvb.appendChild(pre)}
   else pvb.innerHTML='<div class="na">这种文件暂不支持在线查看<br>请下载后打开</div>';
  }catch(e){pvb.innerHTML='<div class="na">'+esc(e.message)+'</div>'}}
 

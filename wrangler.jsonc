@@ -12,7 +12,7 @@
   "base_dir": "dist",
   "rules": [
     { "type": "ESModule", "globs": ["worker.js"] },
-    { "type": "Text", "globs": ["**/*.html", "**/*.css", "shared.js", "announcements.json"], "fallthrough": false },
+    { "type": "Text", "globs": ["**/*.html", "**/*.css", "shared.js", "marked.min.js", "announcements.json"], "fallthrough": false },
     { "type": "Data", "globs": ["**/*.png"], "fallthrough": false }
   ],
   "ai": { "binding": "AI" },

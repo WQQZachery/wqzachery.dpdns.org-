@@ -30,5 +30,6 @@ curl -s -X PUT "https://api.cloudflare.com/client/v4/accounts/$A/workers/scripts
  -F "privacy.html=@$D/site/privacy.html;type=text/plain" \
  -F "shared.css=@$D/site/shared.css;type=text/plain" \
  -F "shared.js=@$D/site/shared.js;type=text/plain" \
+ -F "marked.min.js=@$D/site/marked.min.js;type=text/plain" \
  -F "announcements.json=@$D/site/announcements.json;type=text/plain" \
  -F "og.png=@$D/site/og.png;type=application/octet-stream" | python3 -c "import sys,json;d=json.load(sys.stdin);print('success',d['success'],d.get('errors'))"

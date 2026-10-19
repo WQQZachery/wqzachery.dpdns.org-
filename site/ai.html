@@ -125,6 +125,26 @@ html.embed.kb .pvn{display:none}
 .msg.e .rt{margin-left:6px;color:var(--fg);vertical-align:middle}
 .cb{position:relative}.cb pre{padding-top:34px!important}
 .cpb{position:absolute;top:6px;right:6px;border:0;border-radius:8px;padding:4px 9px;font:600 11.5px/1.4 inherit;font-family:inherit;color:var(--fg);background:rgba(255,255,255,.12);cursor:pointer;white-space:nowrap}
+/* rendered Markdown in replies */
+.msg.a.md{white-space:normal}
+.msg.a.md>:first-child{margin-top:0}.msg.a.md>:last-child{margin-bottom:0}
+.msg.a.md p,.msg.a.md ul,.msg.a.md ol,.msg.a.md blockquote,.msg.a.md .tw,.msg.a.md hr{margin:0 0 .7em}
+.msg.a.md h1,.msg.a.md h2,.msg.a.md h3,.msg.a.md h4,.msg.a.md h5,.msg.a.md h6{margin:.9em 0 .45em;line-height:1.35;font-weight:700}
+.msg.a.md h1{font-size:1.3em}.msg.a.md h2{font-size:1.18em}.msg.a.md h3{font-size:1.07em}.msg.a.md h4,.msg.a.md h5,.msg.a.md h6{font-size:1em}
+.msg.a.md ul,.msg.a.md ol{padding-left:1.4em}.msg.a.md li{margin:.2em 0}.msg.a.md li>ul,.msg.a.md li>ol,.msg.a.md li>p{margin:.2em 0}
+.msg.a.md li input{margin-right:6px;vertical-align:-1px}
+.msg.a.md blockquote{border-left:3px solid rgba(255,255,255,.22);padding:2px 0 2px 12px;color:#c7c7cc}
+.msg.a.md a{color:var(--a1);text-decoration:underline;text-underline-offset:2px;word-break:break-all}
+.msg.a.md hr{border:0;border-top:1px solid var(--line)}
+.msg.a.md .tw{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%}
+.msg.a.md table{border-collapse:collapse;font-size:14px;min-width:60%}
+.msg.a.md th,.msg.a.md td{border:1px solid rgba(255,255,255,.14);padding:6px 10px;text-align:left;vertical-align:top}
+.msg.a.md th[align=center],.msg.a.md td[align=center]{text-align:center}.msg.a.md th[align=right],.msg.a.md td[align=right]{text-align:right}
+.msg.a.md th{background:rgba(255,255,255,.06);font-weight:600}
+.msg.a.md .cb{margin:.2em 0 .7em}.msg.a.md .cb pre{margin:0}
+.cl{position:absolute;top:9px;left:12px;font:600 11px/1.4 ui-monospace,Menlo,monospace;color:var(--mut);text-transform:lowercase}
+.msg.a.md.typing::after{content:none}
+.msg.a.md.typing>:last-child::after{content:'▍';content:'▍'/'';animation:blink 1s steps(1) infinite;color:var(--a1)}
 .cut{color:var(--mut);font-size:12.5px}
 .sv{max-width:760px;margin:6px auto 0;text-align:center;font-size:12px;color:#ffb4a8}
 .sr{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
@@ -153,6 +173,7 @@ html.embed.kb .pvn{display:none}
   <p id="sv" class="sv" role="alert" hidden></p>
   <p class="pvn">GPT-6 Astra 是本站助手名，非 OpenAI 产品，由第三方模型生成、可能自动切换，内容可能有误 · 对话会被站长记录并保存在本机 · <button type="button" class="wz-link" data-privacy>隐私说明</button></p>
 </form>
+<script src="/marked.js?v=__V__"></script>
 <script>
 (()=>{
 const $=s=>document.querySelector(s),log=$('#log'),inner=$('#inner'),inp=$('#in'),send=$('#send'),f=$('#f');
@@ -178,8 +199,26 @@ function loadModels(){modelsState='loading';const ac=new AbortController(),to=se
 loadModels();
 const newId=()=>crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(36).slice(2);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-/* markdown-lite; every code block gets its own copy button */
-const md=t=>esc(t).split(/```/).map((x,i)=>i%2?'<div class="cb"><pre><code>'+x.replace(/^[\w+-]*\n/,'')+'</code></pre><button type="button" class="cpb" data-act="copycode" aria-label="复制这段代码">复制代码</button></div>':x.replace(/`([^`\n]+)`/g,'<code>$1</code>').replace(/\*\*([^*\n]+)\*\*/g,'<b>$1</b>').replace(/^#{1,6} (.*)$/gm,'<b>$1</b>').replace(/^\s*[-*] /gm,'• ')).join('');
+/* Markdown: marked (GFM; single newlines kept as line breaks). Safety: raw HTML in a reply is shown as text, links only http(s)/mailto,
+   images become links (no remote loads), then an allowlist pass over the parsed DOM. Every code block gets a language label + copy button. */
+const SAFE_URL=u=>/^(https?:\/\/|mailto:)/i.test(String(u||'').trim());
+const CPB='<button type="button" class="cpb" data-act="copycode" aria-label="复制这段代码">复制代码</button>';
+let MK=null;
+try{if(window.marked&&marked.Marked){MK=new marked.Marked({gfm:true,breaks:true,async:false});MK.use({renderer:{
+ html(t){return esc(t.text||'')},
+ link(t){const x=this.parser.parseInline(t.tokens);return SAFE_URL(t.href)?'<a href="'+esc(t.href.trim())+'"'+(t.title?' title="'+esc(t.title)+'"':'')+'>'+x+'</a>':x},
+ image(t){return SAFE_URL(t.href)?'<a href="'+esc(t.href.trim())+'">[图片] '+esc(t.text||'')+'</a>':esc(t.text||'')},
+ code(t){const l=String(t.lang||'').trim().split(/\s/)[0].slice(0,24);return '<div class="cb">'+(l?'<span class="cl">'+esc(l)+'</span>':'')+'<pre><code>'+esc(String(t.text||'').replace(/\n$/,''))+'</code></pre>'+CPB+'</div>'}}})}}catch(e){MK=null}
+const OKTAG=new Set('P BR HR H1 H2 H3 H4 H5 H6 STRONG B EM I DEL S CODE PRE BLOCKQUOTE UL OL LI A TABLE THEAD TBODY TR TH TD DIV SPAN BUTTON INPUT'.split(' '));
+const OKATTR={A:['href','title'],OL:['start'],TH:['align'],TD:['align'],DIV:['class'],SPAN:['class'],BUTTON:['type','class','data-act','aria-label'],INPUT:['type','disabled','checked']};
+function sanit(root){[...root.querySelectorAll('*')].forEach(el=>{if(!root.contains(el))return;const tg=el.tagName;
+  if(!OKTAG.has(tg)||(tg==='INPUT'&&el.getAttribute('type')!=='checkbox')||(tg==='A'&&!SAFE_URL(el.getAttribute('href')))){el.replaceWith(document.createTextNode(el.textContent));return}
+  const ok=OKATTR[tg]||[];[...el.attributes].forEach(a=>{if(!ok.includes(a.name))el.removeAttribute(a.name)});
+  if(tg==='A'){el.target='_blank';el.rel='noopener noreferrer nofollow'}if(tg==='INPUT')el.disabled=true;
+  if(tg==='TABLE'&&!(el.parentNode.classList&&el.parentNode.classList.contains('tw'))){const w=document.createElement('div');w.className='tw';el.replaceWith(w);w.appendChild(el)}});return root}
+/* returns safe HTML; falls back to escaped plain text (pre-wrap) when the parser did not load */
+const md=t=>{t=String(t||'');if(!MK)return esc(t);let h;try{h=MK.parse(t)}catch(e){return esc(t)}const tp=document.createElement('template');tp.innerHTML=h;const d=document.createElement('div');d.appendChild(tp.content);return sanit(d).innerHTML};
+const MDC=MK?'a md':'a';
 const near=()=>log.scrollHeight-log.scrollTop-log.clientHeight<90;
 const down=()=>{log.scrollTop=log.scrollHeight};
 function add(c,t,html){const d=document.createElement('div');d.className='msg '+c;if(html)d.innerHTML=t;else d.textContent=t;inner.appendChild(d);down();return d}
@@ -231,7 +270,7 @@ function hello(){inner.innerHTML=`<div class="hello"><h1>有什么可以帮你�
 function renderConv(){inner.innerHTML='';if(!cv.msgs.length){hello();return}
  const lastA=cv.msgs.map(m=>m.role).lastIndexOf('assistant');
  cv.msgs.forEach((m,i)=>{if(m.role==='user'){add('u',m.content);return}
-  const w=add('a',md(m.content)+(m.st?'<span class="cut">（回答被中断）</span>':''),true);w.dataset.i=i;
+  const w=add(MDC,md(m.content)+(m.st?'<span class="cut">（回答被中断）</span>':''),true);w.dataset.i=i;
   if(m.src&&m.src.length)inner.appendChild(srcEl(m.src));
   if(m.by){const t=document.createElement('div');t.className='by';t.textContent=m.by;inner.appendChild(t)}
   inner.insertAdjacentHTML('beforeend',ACTS(i,i===lastA&&i===cv.msgs.length-1))});
@@ -288,9 +327,9 @@ async function ask(retry){if(busy)return;
   const conv=cv;   // the conversation this reply belongs to (the visitor may switch while it streams)
   const w=add('a wait',web?'正在联网搜索':(effort==='max'?'正在极致思考':effort==='high'?'正在深度思考':'正在思考'));w.setAttribute('aria-busy','true');say(cur().name+' 正在回答');
   let srcs=null,full='',queue='',done=false,timer=0,started=false,by='',note='',idle=0,timedOut=false,lastSave=0;
-  const paint=()=>{const st=near();w.innerHTML=md(full.replace(/^\s+/,''));if(st)down()};
+  let lastPaint=0;const paint=force=>{const n=performance.now();if(!force&&n-lastPaint<60)return;lastPaint=n;const st=near();w.innerHTML=md(full.replace(/^\s+/,''));if(st)down()};   // re-parse at most ~16×/s while streaming; always on the last chunk
   const partial=()=>{const n=Date.now();if(n-lastSave>1500&&full&&conv===cv){lastSave=n;persist([{role:'assistant',content:full,ts:n,st:'partial'}])}};
-  const pump=()=>{if(queue){if(!started){started=true;w.className='msg a typing'}const n=Math.max(1,Math.ceil(queue.length/14));full+=queue.slice(0,n);queue=queue.slice(n);paint();partial()}
+  const pump=()=>{if(queue){if(!started){started=true;w.className='msg '+MDC+' typing'}const n=Math.max(1,Math.ceil(queue.length/14));full+=queue.slice(0,n);queue=queue.slice(n);paint(!queue);partial()}
     if(queue||!done)timer=requestAnimationFrame(pump);else w.classList.remove('typing')};
   timer=requestAnimationFrame(pump);ctrl=new AbortController();const myCtrl=ctrl;
   const arm=()=>{clearTimeout(idle);idle=setTimeout(()=>{timedOut=true;myCtrl.abort()},IDLE)};arm();
@@ -322,7 +361,7 @@ async function ask(retry){if(busy)return;
   }catch(e){done=true;clearTimeout(idle);
     full+=queue;queue='';w.removeAttribute('aria-busy');
     const why=timedOut?'等待回答超时（90 秒没有新内容）':e.name==='AbortError'?'':(e.message||'网络错误');
-    if(full){cancelAnimationFrame(timer);paint();w.classList.remove('typing','wait');finishOk('stopped');if(why&&conv===cv)failBar('回答中断：'+why+'。可以点「重新生成」再试一次',true)}
+    if(full){cancelAnimationFrame(timer);paint(true);w.classList.remove('typing','wait');finishOk('stopped');if(why&&conv===cv)failBar('回答中断：'+why+'。可以点「重新生成」再试一次',true)}
     else{cancelAnimationFrame(timer);w.remove();if(conv===cv){persist();failBar(why?why:'已停止生成');say(why||'已停止')}}}
   finally{if(ctrl===myCtrl)ctrl=null;busy=false;send.innerHTML=SEND;send.classList.remove('stop');send.setAttribute('aria-label','发送');grow()}}
 showModel();grow();
@@ -331,7 +370,7 @@ const TOUCH=matchMedia('(hover:none)').matches;
 inp.addEventListener('focus',()=>{if(TOUCH)document.documentElement.classList.add('kb');setTimeout(down,300)});
 inp.addEventListener('blur',()=>document.documentElement.classList.remove('kb'));
 addEventListener('message',e=>{if(e.data&&e.data.type==='tab-shown'&&matchMedia('(hover:hover)').matches)inp.focus()});
-window.__astra={get cv(){return cv},persist,readDB};
+window.__astra={get cv(){return cv},persist,readDB,md};
 })();
 </script>
 <script src="/shared.js?v=__V__" defer></script>
