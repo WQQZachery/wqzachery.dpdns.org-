@@ -9,6 +9,7 @@ put repo/LICENSE LICENSE
 for f in app index drive ai chat admin privacy 404; do put site/$f.html site/$f.html; done
 put site/shared.css site/shared.css
 put site/shared.js site/shared.js
+put site/marked.min.js site/marked.min.js
 put site/og.png site/og.png
 put site/announcements.json site/announcements.json
 for f in wrangler.jsonc package.json package-lock.json .gitignore; do put $f $f; done

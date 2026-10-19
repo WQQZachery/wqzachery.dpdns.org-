@@ -10,6 +10,7 @@ import CHAT0 from './chat.html';
 import PRIVACY0 from './privacy.html';
 import SHARED_CSS from './shared.css';
 import SHARED_JS from './shared.js';
+import MARKED from './marked.min.js';   // Markdown parser for the AI page (marked v15, MIT), served as /marked.js
 import OG from './og.png';
 import ANNOUNCEMENTS from './announcements.json';   // text module: update announcements + changelog (site/announcements.json)
 import { DurableObject } from 'cloudflare:workers';
@@ -17,7 +18,7 @@ import { DurableObject } from 'cloudflare:workers';
 const HF = 'https://huggingface.co';
 // /shared.css + /shared.js are cached for a year; pages reference them with ?v=<content hash> (placeholder __V__)
 const fnv = t => { let h = 0x811c9dc5; for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 0x01000193); } return (h >>> 0).toString(36); };
-const VER = fnv(SHARED_CSS + SHARED_JS);
+const VER = fnv(SHARED_CSS + SHARED_JS + MARKED);
 const fill = h => h.split('__V__').join(VER);
 const [INDEX, DRIVE, ADMIN, APP, AI, CHAT_HTML, PRIVACY] = [INDEX0, DRIVE0, ADMIN0, APP0, AI0, CHAT0, PRIVACY0].map(fill);
 const asset = (body, type) => new Response(body, { headers: { ...SEC, 'content-type': type + '; charset=utf-8', 'cache-control': 'public, max-age=31536000, immutable', 'access-control-allow-origin': '*' } });
@@ -186,6 +187,7 @@ async function route(req, env, ctx) {
       if (p === '/privacy' || p === '/privacy/' || p === '/p/privacy') return page(PRIVACY);
       if (p === '/shared.css') return asset(SHARED_CSS, 'text/css');
       if (p === '/shared.js') return asset(SHARED_JS, 'text/javascript');
+      if (p === '/marked.js') return asset(MARKED, 'text/javascript');
       if (p === '/admin' || p === '/admin/') return page(ADMIN, 200, { ...NOIDX, 'cache-control': 'no-store' });
       if (p === '/api/chat/ws') {
         if ((req.headers.get('upgrade') || '').toLowerCase() !== 'websocket') return json({ error: '需要 WebSocket' }, 426);

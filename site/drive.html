@@ -44,7 +44,7 @@ h1 span{background:linear-gradient(90deg,var(--a1),var(--a2));-webkit-background
 #drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:34px 18px;text-align:center;cursor:pointer;transition:background .2s}
 #drop.over{background:rgba(110,231,183,.1)}
 #drop b{font-size:17px}#drop small{color:var(--mut);font-size:13px}
-.btn{display:inline-block;border:0;border-radius:999px;background:var(--fg);color:#000;font:600 15px/1 inherit;font-family:inherit;padding:12px 22px;cursor:pointer}
+.btn{display:inline-block;border:0;border-radius:999px;background:var(--fg);color:#000;font-weight:600;font-size:15px;line-height:1;font-family:inherit;padding:12px 22px;cursor:pointer}
 #bar{height:4px;border-radius:4px;background:rgba(255,255,255,.1);overflow:hidden;margin-top:14px;display:none}#bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--a1),var(--a2));transition:width .2s}
 #msg{margin-top:10px;font-size:14px;min-height:20px;color:var(--mut)}#msg.err{color:#ffb4a8}#msg.ok{color:var(--a1)}
 .bar2{display:flex;justify-content:space-between;align-items:center;margin:30px 0 12px;gap:12px}
@@ -383,7 +383,7 @@ async function view2(f){cur=f;if(!(history.state&&history.state.pv))history.push
   else if(k==='video'){pvb.innerHTML=`<video src="${esc(s.url)}" controls playsinline preload="metadata"></video>`;pvb.querySelector('video').onerror=()=>{pvb.innerHTML='<div class="na">这个视频格式当前浏览器无法播放'+(ext(f.name)==='mov'?'（.mov 在 Safari 里最稳）':'')+'<br>可以下载后观看</div>'}}
   else if(k==='audio')pvb.innerHTML=`<audio src="${esc(s.url)}" controls preload="metadata"></audio>`;
   else if(k==='pdf')pvb.innerHTML=`<iframe src="${esc(s.url)}" title="PDF"></iframe>`;
-  else if(k==='text'){const r=await fetch(s.url,{headers:{Range:'bytes=0-2097151'}});const t=await r.text();const pre=document.createElement('pre');pre.textContent=t+(f.size>2097152?'\n\n…（只显示前 2MB，完整内容请下载）':'');pvb.innerHTML='';pvb.appendChild(pre)}
+  else if(k==='text'){const r=await fetch(s.url,{headers:{Range:'bytes=0-2097151'}});if(!r.ok){let m='';try{m=(await r.json()).error}catch(_){}throw new Error(m||'文件读取失败（服务器返回 '+r.status+'）')}const t=await r.text();const pre=document.createElement('pre');pre.textContent=t+(f.size>2097152?'\n\n…（只显示前 2MB，完整内容请下载）':'');pvb.innerHTML='';pvb.appendChild(pre)}
   else pvb.innerHTML='<div class="na">这种文件暂不支持在线查看<br>请下载后打开</div>';
  }catch(e){pvb.innerHTML='<div class="na">'+esc(e.message)+'</div>'}}
 

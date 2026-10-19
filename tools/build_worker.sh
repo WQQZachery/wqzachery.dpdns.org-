@@ -6,5 +6,5 @@ rm -rf dist && mkdir -p dist
 cp worker/worker.js dist/
 for f in index drive admin 404 app ai chat privacy; do cp "site/$f.html" dist/; done
 node -e "JSON.parse(require('fs').readFileSync('site/announcements.json','utf8'))" || { echo "site/announcements.json is not valid JSON"; exit 1; }
-cp site/shared.css site/shared.js site/og.png site/announcements.json dist/
+cp site/shared.css site/shared.js site/marked.min.js site/og.png site/announcements.json dist/
 echo "dist/: $(ls dist | tr '\n' ' ')"
