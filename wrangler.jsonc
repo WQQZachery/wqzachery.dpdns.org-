@@ -29,6 +29,8 @@
     "HF_REPO": "wqzachery/drive",
     "CAP_LABEL": "100 GB",
     "AI_DAILY_CAP": "200",
+    "CHAT_ANA_IP_DAILY": "20",
+    "CHAT_ANA_DAILY": "300",
     "UP_MAX_FILE": "2147483648",
     "UP_DAY_BYTES": "5368709120",
     "UP_DAY_FILES": "50"

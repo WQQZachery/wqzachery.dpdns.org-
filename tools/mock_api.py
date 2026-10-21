@@ -4,7 +4,9 @@ Run a second preview against it:  MPORT=8768 python3 tools/mock_api.py &  PORT=8
 AI (/api/chat) behaviour by the last user message: '#slow' long slow stream, '#cut' stream that breaks off (no done event),
 '#failonce' HTTP 500 the first time that text is sent, '#err' SSE {error}, '#code' reply with a code block, '#md' a long Markdown reply streamed in 7-char pieces, else a short echo.
 Drive: /api/files, /api/limits, /api/up/init|finish (basic mode, PUT to /s3/<n> here, 1.2 s each, CORS), /api/folders.
-Files named *failonce* fail at /api/up/finish once (502); *bad* fail at init (502) every time.  GET /api/__stats → counters; POST /api/__reset."""
+Files named *failonce* fail at /api/up/finish once (502); *bad* fail at init (502) every time.  GET /api/__stats → counters; POST /api/__reset.
+Chat analysis (POST /api/chat/analyze) by message id: 1 success, 2 success after 2.5 s (loading state), 3 503 clef_failed, 4 429 ip_cap,
+5 success but reply ideas failed (suggest: failed), 6 504 clef_timeout, 7 success with very long text (overflow check), no id → 400 empty, other ids → 404."""
 import http.server, json, os, threading, time, itertools
 lock = threading.Lock()
 MD_DOC = ('# 标题一\n\n第一段，**粗体**和*斜体*，还有 `行内代码`。\n第二行紧跟着（单换行）。\n\n'
@@ -75,6 +77,24 @@ class H(http.server.BaseHTTPRequestHandler):
                 if d in ST['folders']: return self.js({'error': '这里已经有同名文件夹', 'code': 'exists'}, 409)
                 time.sleep(0.4); ST['folders'].append(d)
             return self.js({'ok': True, 'path': d})
+        if p == '/api/chat/analyze':
+            i = b.get('id')
+            with lock: ST['ana'] = ST.get('ana', 0) + 1; ST['ana_keys'] = ST.get('ana_keys', 0) + (1 if b.get('key') else 0)
+            if i in (None, ''): return self.js({'ok': False, 'code': 'empty', 'error': '请先选一条消息'}, 400)
+            if i == 3: time.sleep(0.4); return self.js({'ok': False, 'code': 'clef_failed', 'error': '分析服务暂时不可用，请稍后再试'}, 503)
+            if i == 4: return self.js({'ok': False, 'code': 'ip_cap', 'error': '你今天的分析次数已用完（每天 20 次），北京时间 0 点后再来吧'}, 429)
+            if i == 6: return self.js({'ok': False, 'code': 'clef_timeout', 'error': '分析超时了，请稍后再试'}, 504)
+            if i not in (1, 2, 5, 7): return self.js({'ok': False, 'code': 'not_found', 'error': '这条消息不存在、已被删除，或你没有权限查看'}, 404)
+            time.sleep(2.5 if i == 2 else 0.3)
+            long = 'x' * 0 if i != 7 else '超长回复' * 40 + 'https://example.com/' + 'a' * 120
+            ok = {'ok': True, 'id': i, 'note': '模型推测，仅供参考', 'left': 17,
+                  'intent': {'key': 'question', 'label': '提问', 'level': '较可能', 'alts': ['寻求帮助']},
+                  'tone': {'friendly': {'label': '比较友好', 'level': '较可能'}, 'sentiment': {'key': 'neutral', 'label': '中性', 'level': '有可能'}, 'style': {'key': 'direct', 'label': '直接', 'level': '不确定'}},
+                  'ambiguous': '歧义不大', 'reason': '消息以问号结尾，看起来是在问问题；语气平和。但只有一句话，也可能只是随口一问。' + long,
+                  'uncertainty': ['也可能是「寻求帮助」', '表达方式拿不准', '只看了这条消息和前面最多 3 条，不了解更多背景、语气和你们的关系'],
+                  'suggest': 'ok', 'replies': [{'tone': '友好', 'text': '我知道一点，可以跟你说说～' + long}, {'tone': '简洁', 'text': '可以，在这里。'}, {'tone': '礼貌澄清', 'text': '你是想问具体哪一部分呢？'}]}
+            if i == 5: ok.update(suggest='failed', suggestError='建议生成失败', replies=[])
+            return self.js(ok)
         if p == '/api/chat':
             msgs = b.get('messages') or []; q = msgs[-1]['content'] if msgs else ''
             with lock:

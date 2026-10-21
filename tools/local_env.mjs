@@ -3,7 +3,8 @@
 // Hugging Face / S3 / CDN (all outbound fetches are rerouted to an in-process fake). Nothing reaches production.
 //
 //   bash tools/build_worker.sh && node tools/local_env.mjs            # worker on :8787, fake HF on :8790
-//   env: PORT, FAKE_PORT, UP_DAY_FILES, UP_DAY_BYTES, UP_MAX_FILE, AI_DAILY_CAP, MULTIPART_MIN (bytes, default 8 MiB)
+//   env: PORT, FAKE_PORT, UP_DAY_FILES, UP_DAY_BYTES, UP_MAX_FILE, AI_DAILY_CAP, CHAT_ANA_IP_DAILY, CHAT_ANA_DAILY, MULTIPART_MIN (bytes, default 8 MiB)
+// Fake AI: Clef-flash answers every question generically (state markers __CLEF_FAIL__ / __CLEF_BAD__ / __CLEF_SLOW__); reply ideas fail on __GEN_FAIL__.
 // Admin key for the run is written to work/.local_admin_key (gitignored). Fake HF control: GET :8790/__state, POST :8790/__reset,
 // GET :8790/__violations (HF token seen on a non-HF host, or HF API called without the token → listed here).
 // S3/CDN hosts for test clients: http://127.0.0.1:8790/s3/<path>, /cdn/<path> (tools rewrite the https URLs to these).
@@ -140,8 +141,25 @@ const route = url => {
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'wqz-local-'));
 const DIST = path.join(ROOT, 'dist');
 const FAKE_AI = `export default function () { return { async run(model, opts) {
+  if (/clef-flash/.test(model)) {   // chat analysis decision model: answers every question generically; markers in the state force failures
+    const st = String(opts.state || '');
+    if (opts.model !== 'clef-flash') throw new Error('model field missing');
+    if (/__CLEF_FAIL__/.test(st)) throw new Error('fake clef failure');
+    if (/__CLEF_BAD__/.test(st)) return { model: 'clef-flash', answers: { intent: { type: 'choice', choice: 'nope' } } };
+    if (/__CLEF_SLOW__/.test(st)) await new Promise(r => setTimeout(r, 12000));
+    const answers = {};
+    for (const [id, q] of Object.entries(opts.questions || {})) {
+      if (q.type === 'noul') { answers[id] = { type: 'noul', noul: 0.2 }; continue; }
+      const keys = q.type === 'choice' ? Object.keys(q.criteria) : q.criteria.map((_, i) => String(i)), top = q.type === 'choice' ? 0 : keys.length - 2, P = {};
+      keys.forEach((k, i) => { P[k] = i === top ? 0.7 : 0.3 / (keys.length - 1); });
+      answers[id] = q.type === 'choice' ? { type: 'choice', choice: keys[top], confidence: 0.7, probabilities: P } : { type: 'score', score: top, confidence: 0.7, legend: Object.fromEntries(keys.map((k, i) => [k, q.criteria[i]])), probabilities: P };
+    }
+    return { model: 'clef-flash', answers, usage: { input_tokens: 100, output_tokens: 5 } };
+  }
   const last = (opts.messages || []).filter(m => m.role === 'user').pop()?.content || '';
   if (/__AI_FAIL__/.test(last)) throw new Error('fake AI failure');
+  if (/"replies"/.test(last) && !/__GEN_FAIL__/.test(last)) { const t = '{"reason":"fake: looks like a question, but only one short line","replies":[{"text":"fake reply one"},{"text":"fake reply two"},{"text":"fake reply three"}]}';
+    const e = new TextEncoder(); return new ReadableStream({ start(c) { c.enqueue(e.encode('data: ' + JSON.stringify({ response: t }) + '\\n\\n')); c.enqueue(e.encode('data: [DONE]\\n\\n')); c.close(); } }); }
   const slow = /\\u957f\\u57ce/.test(last), words = slow ? Array.from({ length: 40 }, (_, i) => '\\u957f\\u57ce' + i + '\\u3002') : ['\\u597d'];   // escapes: inline script source must stay ASCII
   const enc = new TextEncoder();
   return new ReadableStream({ async start(c) {
@@ -159,7 +177,7 @@ const main = {
   bindings: {
     HF_TOKEN, ADMIN_KEY, HF_REPO: REPO, CAP_LABEL: '100 GB', GEMINI_MODELS: '',
     AI_MODELS: '@cf/openai/gpt-oss-120b,@cf/meta/llama-3.3-70b-instruct-fp8-fast',
-    AI_DAILY_CAP: process.env.AI_DAILY_CAP || '200', UP_MAX_FILE: process.env.UP_MAX_FILE || '2147483648',
+    AI_DAILY_CAP: process.env.AI_DAILY_CAP || '200', CHAT_ANA_IP_DAILY: process.env.CHAT_ANA_IP_DAILY || '20', CHAT_ANA_DAILY: process.env.CHAT_ANA_DAILY || '300', UP_MAX_FILE: process.env.UP_MAX_FILE || '2147483648',
     UP_DAY_BYTES: process.env.UP_DAY_BYTES || '5368709120', UP_DAY_FILES: process.env.UP_DAY_FILES || '50',
   },
   wrappedBindings: { AI: { scriptName: 'fake-ai' } },

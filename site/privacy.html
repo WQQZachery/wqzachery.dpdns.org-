@@ -26,7 +26,7 @@ html.embed main{padding-top:18px}
 <script>if(/[?&]embed=1/.test(location.search))document.documentElement.classList.add('embed')</script>
 <main>
 <h1>隐私说明</h1>
-<p class="upd">适用于 wqzachery.dpdns.org 的主页、网盘、AI 助手和聊天室 · 最后更新 2026-10-17</p>
+<p class="upd">适用于 wqzachery.dpdns.org 的主页、网盘、AI 助手和聊天室 · 最后更新 2026-10-21</p>
 
 <div class="box">这是吴谦个人维护的小网站，<b>没有广告、没有第三方统计脚本、不设 Cookie</b>。下面列出的就是网站代码实际会保存和转发的全部内容。只有站长（持有后台密钥的人）能查看这些记录。</div>
 
@@ -51,6 +51,7 @@ html.embed main{padding-top:18px}
 <ul>
 <li><b>会保存：</b>昵称、匿名 ID（由你浏览器里的随机密钥计算，不含个人信息）、消息内容、时间和 <b>IP 地址</b>。大厅只保留最近 100 条，每段私信只保留最近 50 条，更早的会自动删除。</li>
 <li><b>私信</b>只有对话双方能在聊天室里看到，但站长在后台可以查看（用于处理骚扰和违规）。</li>
+<li><b>聊天分析（你主动点击时）：</b>会把你选中的那条消息和它之前最多 3 条同频道消息发给 <b>Cloudflare Workers AI</b> 推测意图和语气、生成回复建议。发送前昵称换成标签，手机号、邮箱、身份证号、IP、链接里的令牌等会替换成占位符。分析结果不保存；为执行每天的次数上限，会按"IP 的哈希 + 日期"计数，约 3 天后清理。</li>
 </ul>
 
 <h2>访问统计</h2>
@@ -65,7 +66,7 @@ html.embed main{padding-top:18px}
 <tr><td>AI 对话及分析、访问统计、上传记录、举报</td><td>目前<b>不会自动删除</b>，可联系站长删除</td></tr>
 <tr><td>网盘文件</td><td>不会自动过期；违规文件或站长清理时删除，删除时一并清除它的上传记录和举报</td></tr>
 <tr><td>聊天室消息</td><td>大厅最近 100 条、每段私信最近 50 条</td></tr>
-<tr><td>AI 次数计数 / 上传额度 / 密钥错误记录</td><td>约 7 天 / 约 3 天 / 15 分钟</td></tr>
+<tr><td>AI 次数计数 / 上传额度 / 聊天分析次数 / 密钥错误记录</td><td>约 7 天 / 约 3 天 / 约 3 天 / 15 分钟</td></tr>
 </table></div>
 <p>网站目前没有"删除我的对话"按钮。想删除你的 AI 对话、聊天消息或上传记录，请发邮件给站长（<span class="em" data-u="zacherywu0914" data-d="gmail.com">邮箱需要 JavaScript 才能显示</span>），说明大致时间和内容即可。</p>
 

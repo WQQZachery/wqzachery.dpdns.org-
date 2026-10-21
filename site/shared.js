@@ -1,6 +1,7 @@
 /* wqzachery shared helpers (served at /shared.js?v=<hash>):
    - wqzPrivacy(): opens the privacy sheet (/privacy in an iframe), any [data-privacy] element opens it too
-   - .em[data-u][data-d]: e-mail addresses assembled by JS (not in the HTML) to reduce scraping */
+   - .em[data-u][data-d]: e-mail addresses assembled by JS (not in the HTML) to reduce scraping
+   - wqzCopy(text): copy to clipboard → Promise<boolean> (chat analysis reply buttons) */
 (function () {
   var post = function (m) { try { if (window.parent !== window) parent.postMessage(m, location.origin) } catch (e) {} };
   var last = null;
@@ -36,6 +37,12 @@
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', emails); else emails();
   window.wqzEmails = emails;
+  // copy to clipboard (same approach as the AI page's copy buttons): Clipboard API, then a hidden-textarea fallback. Resolves true/false.
+  window.wqzCopy = function (t) {
+    var legacy = function () { try { var ta = document.createElement('textarea'); ta.value = t; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0'; document.body.appendChild(ta); ta.select(); var ok = document.execCommand('copy'); ta.remove(); return ok } catch (e) { return false } };
+    try { if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(t).then(function () { return true }, legacy) } catch (e) {}
+    return Promise.resolve(legacy());
+  };
 })();
 
 /* Update announcements + changelog (data: /announcements.json, one file in the repo: site/announcements.json).
