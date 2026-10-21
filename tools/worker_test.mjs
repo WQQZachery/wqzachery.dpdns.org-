@@ -1,7 +1,7 @@
 // Request-level tests for worker/worker.js with stubbed fetch / Durable Object / bindings (no network, no secrets, no production).
 // Usage: node tools/worker_test.mjs
 // Covers: upload trust boundary (/api/up/init, /api/up/finish, /api/up/part), bounded JSON bodies (/api/chat + others),
-// assistant identity copy (F). Each test prints PASS/FAIL; exit code 1 on any failure.
+// assistant identity copy (F), chat analysis (H → tools/analyze_test.mjs). Each test prints PASS/FAIL; exit code 1 on any failure.
 import fs from 'fs'; import vm from 'vm'; import path from 'path'; import { fileURLToPath } from 'url';
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 let src = fs.readFileSync(path.join(root, 'worker/worker.js'), 'utf8')
@@ -235,6 +235,16 @@ const goodChat = { sid: 's1', messages: [{ role: 'user', content: '你好' }] };
   t('system prompt names no backend model', !/Llama|GPT-OSS|Qwen|DeepSeek|Gemini|Nemotron/i.test(SYS));
   t('AI page states Astra is the site\'s name, not an OpenAI product', ai.includes('非 OpenAI 产品') && ai.includes('可能自动切换'));
   t('llms.txt clarifies the name', LLMS.includes('不是 OpenAI 的产品'));
+}
+
+/* ===== H. chat analysis (/api/chat/analyze): tools/analyze_test.mjs, run as part of this suite ===== */
+{
+  const { spawnSync } = await import('child_process');
+  const r = spawnSync(process.execPath, [path.join(root, 'tools/analyze_test.mjs')], { encoding: 'utf8' });
+  const out = (r.stdout || '') + (r.stderr || '');
+  const m = out.match(/(\d+) passed, (\d+) failed\s*$/);
+  for (const l of out.split('\n')) if (l.startsWith('FAIL')) console.log('  [analyze] ' + l);
+  t(`chat analysis suite (tools/analyze_test.mjs: ${m ? m[1] + ' passed, ' + m[2] + ' failed' : 'no summary'})`, r.status === 0 && m && m[2] === '0', out.slice(-400));
 }
 
 console.log(`${ok} passed, ${bad} failed`); process.exit(bad ? 1 : 0);

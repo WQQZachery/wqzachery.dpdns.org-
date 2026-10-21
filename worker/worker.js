@@ -196,6 +196,7 @@ async function route(req, env, ctx) {
       }
       if (p === '/api/chat/msg' && m === 'DELETE') { if (!isAdmin(req)) return json({ error: '密钥错误' }, 403); return json(await store(env).chatDel(+u.searchParams.get('id') || 0)); }
       if (p === '/api/admin/chat') { if (!isAdmin(req)) return json({ error: '密钥错误' }, 403); return json(markMe(await store(env).chatAdmin(), await ownerSet(env))); }
+      if (p === '/api/chat/analyze' && m === 'POST') return chatAnalyze(req, env);
       if (p === '/api/chat' && m === 'POST') return chat(req, env, ctx);
       if (p === '/api/search' && m === 'GET') { if (!isAdmin(req)) return json({ error: '需要管理员密钥' }, 403); return json({ results: await webSearch(u.searchParams.get('q') || '', u.searchParams.get('e'), env) }); }
       if (p === '/api/models' && m === 'GET') return json({ models: MODELS.filter(x => x.via !== 'or' || env.OPENROUTER_KEY).map(({ id, cat, name, tag, desc }) => ({ id, cat, name, tag, desc })) });
@@ -255,7 +256,8 @@ export class Store extends DurableObject {
       CREATE INDEX IF NOT EXISTS upq_ip ON upq(ip, day);
       CREATE TABLE IF NOT EXISTS reports(id INTEGER PRIMARY KEY AUTOINCREMENT, path TEXT, name TEXT, reason TEXT, note TEXT, ip TEXT, ts INTEGER, status TEXT DEFAULT 'open');
       CREATE INDEX IF NOT EXISTS reports_st ON reports(status, id);
-      CREATE TABLE IF NOT EXISTS owner_ip(ip TEXT PRIMARY KEY, ts INTEGER);`);
+      CREATE TABLE IF NOT EXISTS owner_ip(ip TEXT PRIMARY KEY, ts INTEGER);
+      CREATE TABLE IF NOT EXISTS ana_use(k TEXT, day TEXT, n INTEGER DEFAULT 0, PRIMARY KEY(k, day));`);
     try { ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair('ping', 'pong')); } catch {}
     for (const c of ['think TEXT', 'mname TEXT', 'extra TEXT']) { try { this.sql.exec('ALTER TABLE msgs ADD COLUMN ' + c); } catch {} }
     try { this.sql.exec('ALTER TABLE upq ADD COLUMN plan TEXT'); } catch {}   // trusted HF upload plan saved at /api/up/init (finish + relay only use this, never client URLs)
@@ -478,6 +480,23 @@ export class Store extends DurableObject {
     }
     return true;
   }
+  /* ---------- chat analysis: one message (+ up to n earlier ones in the same channel), only if the caller may see it; daily caps ---------- */
+  anaMsg(id, uid, n) {
+    const r = this.sql.exec('SELECT id, uid, to_uid, dm, text, ts FROM chat WHERE id=?', id).toArray()[0];
+    if (!r || (r.dm && r.uid !== uid && r.to_uid !== uid)) return null;   // DMs: only the two people in it
+    const prev = this.sql.exec('SELECT id, uid, text FROM chat WHERE dm=? AND id<? ORDER BY id DESC LIMIT ?', r.dm, id, n).toArray().reverse();
+    return { id: r.id, uid: r.uid, text: r.text, dm: !!r.dm, prev };
+  }
+  anaBegin(k, day, ipCap, allCap) {   // k = hashed IP; '*' = whole site. Checked + counted in one DO turn, so concurrent requests cannot overshoot
+    const get = key => (this.sql.exec('SELECT n FROM ana_use WHERE k=? AND day=?', key, day).toArray()[0] || { n: 0 }).n;
+    if (allCap > 0 && get('*') >= allCap) return { ok: false, why: 'all' };
+    const n = get(k);
+    if (ipCap > 0 && n >= ipCap) return { ok: false, why: 'ip' };
+    for (const key of [k, '*']) this.sql.exec('INSERT INTO ana_use(k,day,n) VALUES(?,?,1) ON CONFLICT(k,day) DO UPDATE SET n=n+1', key, day);
+    if (Math.random() < .02) this.sql.exec('DELETE FROM ana_use WHERE day<?', cnDay(Date.now() - 3 * 864e5));
+    return { ok: true, left: ipCap > 0 ? ipCap - n - 1 : -1 };
+  }
+  anaRefund(k, day) { for (const key of [k, '*']) this.sql.exec('UPDATE ana_use SET n=MAX(n-1,0) WHERE k=? AND day=?', key, day); return true; }   // the model failed: not the visitor's fault
   messages(sid) { const a = this.sql.exec('SELECT data, n FROM ana WHERE sid=?', sid).toArray()[0]; return { messages: this.sql.exec('SELECT role, content, ts, model, think, mname, extra, ip, geo FROM msgs WHERE sid=? ORDER BY id', sid).toArray(), ana: a ? a.data : null, ana_n: a ? a.n : 0 }; }
 }
 
@@ -502,6 +521,176 @@ function cleanNick(n) {
 const NICK_A = ['快乐的', '安静的', '勇敢的', '慵懒的', '好奇的', '机智的', '温柔的', '闪亮的', '迷糊的', '酷酷的', '认真的', '飞翔的', '佛系的', '元气的', '神秘的', '爱笑的'];
 const NICK_B = ['熊猫', '海豚', '狐狸', '考拉', '企鹅', '柴犬', '橘猫', '仓鼠', '水獭', '刺猬', '鲸鱼', '小鹿', '松鼠', '羊驼', '猫头鹰', '树懒'];
 const randNick = () => { const r = crypto.getRandomValues(new Uint8Array(2)); return NICK_A[r[0] % NICK_A.length] + NICK_B[r[1] % NICK_B.length]; };
+
+/* ---------------- chat room: 「聊天分析」 one message → intent / tone (Clef-flash decision model) + reply ideas (the site's own AI wrapper) ----------------
+   Text comes only from the DO by message id (never from the client); DMs only for the two people in them (proved by the chat key).
+   Sent to the models: that message + up to ANA.ctx earlier ones from the same channel, each ≤ ANA.max chars, PII replaced by placeholders.
+   Nothing is stored except per-day counters (hashed IP). Nothing about the content, the IP or keys is logged. */
+const ANA = { model: '@cf/cloudflare/clef-flash', ctx: 3, max: 500, clefMs: 10000, genMs: 20000 };
+const capNum = (v, d) => v != null && v !== '' && Number.isFinite(+v) && +v >= 0 ? Math.floor(+v) : d;
+const anaCaps = env => ({ ip: capNum(env.CHAT_ANA_IP_DAILY, 20), all: capNum(env.CHAT_ANA_DAILY, 300) });   // 0 = unlimited
+// personal data → placeholders (applied before anything leaves the Worker)
+const TOKEN_KEY = /^(?:token|access_?token|refresh_?token|id_?token|auth|authorization|key|api_?key|apikey|secret|sig|signature|x-amz-signature|x-amz-credential|session|sessionid|sid|ticket|code|password|passwd|pwd|pass|jwt|bearer|credential|otp|state|nonce)$/i;
+function scrubUrl(u) {
+  const q = u.indexOf('?'), h = u.indexOf('#');
+  let base = q >= 0 ? u.slice(0, q) : h >= 0 ? u.slice(0, h) : u, rest = q >= 0 ? u.slice(q) : h >= 0 ? u.slice(h) : '';
+  base = base.replace(/\/([A-Za-z0-9_\-.~%]{24,})(?=\/|$)/g, (m, seg) => /[0-9]/.test(seg) && /[A-Za-z]/.test(seg) ? '/[令牌]' : m);   // long random-looking path segments
+  rest = rest.replace(/([?&#;])([^=&#;]+)=([^&#;]*)/g, (m, sep, k, v) => TOKEN_KEY.test(decodeURIComponentSafe(k)) || /^[A-Za-z0-9_\-.~%+/=]{20,}$/.test(v) ? `${sep}${k}=[令牌]` : m);
+  return base + rest;
+}
+const decodeURIComponentSafe = s => { try { return decodeURIComponent(s); } catch { return s; } };
+function scrubPII(t) {
+  return String(t || '')
+    .replace(/\b(?:https?:\/\/|www\.)[^\s<>"'，。！？、）)]+/gi, scrubUrl)
+    .replace(/\bbearer\s+[A-Za-z0-9._~+/-]{12,}=*/gi, 'Bearer [令牌]')
+    .replace(/\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g, '[令牌]')                 // JWT
+    .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/g, '[邮箱]')
+    .replace(/(?<![0-9A-Za-z])[1-9]\d{5}(?:19|20)\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])\d{3}[\dXx](?![0-9A-Za-z])/g, '[身份证号]')
+    .replace(/(?<![0-9A-Za-z])[1-9]\d{7}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])\d{3}(?![0-9A-Za-z])/g, '[身份证号]')   // old 15-digit
+    .replace(/(?<![0-9A-Za-z.])(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}(?![0-9A-Za-z]|\.\d)/g, '[IP]')
+    .replace(/(?<![0-9A-Fa-f:])(?:(?:[0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4}|(?:[0-9A-Fa-f]{1,4}:){1,7}:(?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4}){0,6})?|::(?:[0-9A-Fa-f]{1,4}:){0,6}[0-9A-Fa-f]{1,4})(?![0-9A-Fa-f:])/g, m => /[0-9A-Fa-f]/.test(m) && m.length >= 6 ? '[IP]' : m)
+    .replace(/(?<![0-9A-Za-z])(?:\+?86[\s-]?)?1[3-9]\d[\s-]?\d{4}[\s-]?\d{4}(?![0-9A-Za-z])/g, '[手机号]')
+    .replace(/(?<![0-9A-Za-z])0\d{2,3}[\s-]\d{7,8}(?![0-9A-Za-z])/g, '[电话]')
+    .replace(/(?<![0-9A-Za-z])\+\d{1,3}[\s-]?\d(?:[\s-]?\d){6,13}(?![0-9A-Za-z])/g, '[电话]')
+    .replace(/(?<![0-9A-Za-z])(?:sk|pk|rk|hf|ghp|gho|github_pat|xox[abp])[-_][A-Za-z0-9_-]{16,}/g, '[令牌]');
+}
+const cut = (t, n) => { const a = [...String(t || '')]; return a.length > n ? a.slice(0, n).join('') + '…' : a.join(''); };
+
+const INTENTS = { question: '提问', joke: '开玩笑', complaint: '表达不满', help: '寻求帮助', thanks: '表达感谢', unsure: '无法确定' };
+const SENTI = { positive: '积极', neutral: '中性', negative: '消极' };
+const STYLE = { direct: '直接', indirect: '委婉', teasing: '调侃', formal: '客气正式' };
+const FRIENDLY = ['很不友好', '不太友好', '中性', '比较友好', '非常友好'];
+const ANA_Q = {
+  intent: { type: 'choice', instructions: '「目标消息」的发送者最主要想做什么？只根据目标消息判断，上下文只用来理解。', criteria: {
+    question: '提问：想知道某个信息、答案或别人的看法', joke: '开玩笑：调侃、玩梗、逗乐，不是认真的', complaint: '表达不满：抱怨、批评、生气或失望',
+    help: '寻求帮助：请别人帮忙解决自己遇到的具体问题', thanks: '表达感谢：道谢、感激', unsure: '无法确定：信息太少、太短或意图不明确' } },
+  friendly: { type: 'score', instructions: '「目标消息」对聊天对象的友好程度如何？', criteria: FRIENDLY },
+  sentiment: { type: 'choice', instructions: '「目标消息」整体的情绪倾向是什么？', criteria: { positive: '积极：开心、感激、兴奋、肯定', neutral: '中性：平静陈述或普通提问', negative: '消极：不满、难过、焦虑、生气' } },
+  style: { type: 'choice', instructions: '「目标消息」的表达方式更接近哪一种？', criteria: { direct: '直接：开门见山，有话直说', indirect: '委婉：含蓄、绕弯、留余地', teasing: '调侃：开玩笑、反讽、打趣', formal: '客气正式：礼貌用语、书面化' } },
+  ambiguous: { type: 'noul', instructions: '只看这些文字，「目标消息」是否容易被理解成不同的意思（比如可能是玩笑也可能是认真的）？' },
+};
+class AnaErr extends Error { constructor(code, status, msg) { super(msg); this.code = code; this.status = status; } }
+const withTimeout = (p, ms, code) => { let t; return Promise.race([p, new Promise((_, rej) => { t = setTimeout(() => rej(new AnaErr(code, 504, 'timeout')), ms); })]).finally(() => clearTimeout(t)); };
+const prob = v => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 1;
+// strict check of the Clef response against the questions we asked; anything unexpected → null (handled as an error, never guessed)
+function checkClef(r, Q) {
+  if (!r || typeof r !== 'object' || Array.isArray(r)) return null;
+  const a = r.answers && typeof r.answers === 'object' && !Array.isArray(r.answers) ? r.answers : null;
+  if (!a) return null;
+  const out = {};
+  for (const [id, q] of Object.entries(Q)) {
+    const x = a[id];
+    if (!x || typeof x !== 'object' || x.type !== q.type) return null;
+    if (q.type === 'noul') { if (!prob(x.noul)) return null; out[id] = { p: x.noul }; continue; }
+    const keys = q.type === 'choice' ? Object.keys(q.criteria) : q.criteria.map((_, i) => String(i));
+    const P = x.probabilities;
+    if (!P || typeof P !== 'object' || Array.isArray(P)) return null;
+    const pk = Object.keys(P);
+    if (!pk.length || pk.some(k => !keys.includes(k)) || pk.some(k => !prob(P[k]))) return null;
+    const sum = pk.reduce((s, k) => s + P[k], 0);
+    if (Math.abs(sum - 1) > 0.1) return null;
+    if (x.confidence != null && !prob(x.confidence)) return null;
+    if (q.type === 'choice') {
+      if (typeof x.choice !== 'string' || !keys.includes(x.choice) || !prob(x.confidence)) return null;
+      out[id] = { choice: x.choice, p: P[x.choice] ?? 0, conf: x.confidence, P };
+    } else {
+      if (typeof x.score !== 'number' || !Number.isFinite(x.score) || x.score < -0.01 || x.score > keys.length - 1 + 0.01) return null;
+      const lv = Math.min(keys.length - 1, Math.max(0, Math.round(x.score)));
+      out[id] = { score: x.score, level: lv, p: P[String(lv)] ?? 0, conf: x.confidence ?? null, P };
+    }
+  }
+  return out;
+}
+// wording instead of numbers: the model only guesses
+const levelOf = (p, conf) => { const v = conf != null ? Math.min(p, Math.max(conf, p * .8)) : p; return v >= 0.65 ? '较可能' : v >= 0.4 ? '有可能' : '不确定'; };
+function readClef(c) {
+  const order = Object.entries(c.intent.P).sort((x, y) => y[1] - x[1]);
+  let ik = c.intent.choice, il = levelOf(c.intent.p, c.intent.conf);
+  if (il === '不确定') ik = 'unsure';
+  const intent = { key: ik, label: INTENTS[ik], level: ik === 'unsure' ? '不确定' : il,
+    alts: order.filter(([k, p]) => k !== c.intent.choice && k !== 'unsure' && p >= 0.2).slice(0, 2).map(([k]) => INTENTS[k]) };
+  const tone = {
+    friendly: { label: FRIENDLY[c.friendly.level], level: levelOf(c.friendly.p, c.friendly.conf) },
+    sentiment: { key: c.sentiment.choice, label: SENTI[c.sentiment.choice], level: levelOf(c.sentiment.p, c.sentiment.conf) },
+    style: { key: c.style.choice, label: STYLE[c.style.choice], level: levelOf(c.style.p, c.style.conf) },
+  };
+  const amb = c.ambiguous.p;
+  const unsure = [];
+  if (intent.level === '不确定') unsure.push('意图不明确');
+  else if (intent.alts.length) unsure.push('也可能是「' + intent.alts.join('」或「') + '」');
+  for (const [k, n] of [['friendly', '友好程度'], ['sentiment', '情绪倾向'], ['style', '表达方式']]) if (tone[k].level === '不确定') unsure.push(n + '拿不准');
+  if (amb >= 0.5) unsure.push('这句话容易有不同理解');
+  unsure.push('只看了这条消息和前面最多 ' + ANA.ctx + ' 条，不了解更多背景、语气和你们的关系');
+  return { intent, tone, ambiguous: amb >= 0.65 ? '较可能有歧义' : amb >= 0.4 ? '可能有歧义' : '歧义不大', uncertainty: unsure };
+}
+const REPLY_TONES = ['友好', '简洁', '礼貌澄清'];
+function parseSuggest(t) {
+  t = String(t || '').replace(/<think>[\s\S]*?<\/think>/g, '').replace(/^```(?:json)?\s*|\s*```\s*$/g, '');
+  const m = t.match(/\{[\s\S]*\}/); if (!m) return null;
+  let j; try { j = JSON.parse(m[0]); } catch { return null; }
+  if (!j || typeof j !== 'object' || !Array.isArray(j.replies)) return null;
+  const replies = j.replies.filter(r => r && typeof r === 'object' && typeof r.text === 'string' && r.text.trim()).slice(0, 3)
+    .map((r, i) => ({ tone: REPLY_TONES.includes(r.tone) ? r.tone : REPLY_TONES[i] || '其他', text: cut(r.text.trim(), 200) }));
+  if (replies.length < 2) return null;
+  const reason = typeof j.reason === 'string' ? cut(j.reason.trim(), 160) : '';
+  return { replies, reason };
+}
+async function chatAnalyze(req, env) {
+  const fail = (code, status, error, x = {}) => json({ ok: false, code, error, ...x }, status);
+  if (await limited(env.CHAT_RL, 'ana:' + ip(req))) return fail('rate', 429, '点得太快了，请稍等一会儿再试');
+  const b = await readJson(req, 4096);
+  const id = b.id;
+  if (id == null || id === '') return fail('empty', 400, '请先选一条消息');
+  if (!Number.isSafeInteger(id) || id <= 0) return fail('bad_id', 400, '消息编号无效');
+  if (b.key != null && (typeof b.key !== 'string' || !/^[A-Za-z0-9_-]{16,64}$/.test(b.key))) return fail('bad_key', 400, '身份无效，请刷新页面');
+  const uid = b.key ? await chatUid(b.key) : '';
+  const st = store(env);
+  const m = await st.anaMsg(id, uid, ANA.ctx);
+  if (!m) return fail('not_found', 404, '这条消息不存在、已被删除，或你没有权限查看');
+  const text = scrubPII(cut(m.text, ANA.max)).trim();
+  if (!text) return fail('empty', 400, '这条消息是空的，没法分析');
+  // daily caps (China calendar day): per IP (hashed) + whole site; the admin is exempt like /api/chat
+  const day = cnDay(Date.now()), caps = anaCaps(env), admin = isAdmin(req);
+  const k = [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('wqz-ana:' + ip(req))))].slice(0, 8).map(x => x.toString(16).padStart(2, '0')).join('');
+  let left = -1;
+  if (!admin) {
+    const g = await st.anaBegin(k, day, caps.ip, caps.all);
+    if (!g.ok) return g.why === 'all' ? fail('site_cap', 429, `今天全站的分析次数已用完（每天 ${caps.all} 次），北京时间 0 点后再来吧`) : fail('ip_cap', 429, `你今天的分析次数已用完（每天 ${caps.ip} 次），北京时间 0 点后再来吧`);
+    left = g.left;
+  }
+  // labels instead of nicknames: names never leave the Worker
+  const who = new Map([[m.uid, '目标发送者']]);
+  const lab = u => { if (!who.has(u)) who.set(u, '其他人' + who.size); return who.get(u); };
+  const ctxLines = m.prev.map(x => `${lab(x.uid)}：${scrubPII(cut(x.text, ANA.max))}`);
+  const state = `这是一个公开网页聊天室里的${m.dm ? '私信' : '对话'}片段（个人信息已替换为占位符）。\n` + (ctxLines.length ? `前面的消息（仅供理解）：\n${ctxLines.join('\n')}\n` : '') + `\n「目标消息」（目标发送者）：${text}`;
+  let c;
+  try {
+    const r = await withTimeout(Promise.resolve().then(() => env.AI.run(ANA.model, { model: 'clef-flash', state, questions: ANA_Q })), ANA.clefMs, 'clef_timeout');
+    c = checkClef(r && typeof r === 'object' && !r.answers && r.result ? r.result : r, ANA_Q);
+    if (!c) throw new AnaErr('clef_bad_format', 502, 'format');
+  } catch (e) {
+    if (!admin) try { await st.anaRefund(k, day); } catch {}
+    const code = e instanceof AnaErr ? e.code : 'clef_failed';
+    const msg = { clef_timeout: '分析超时了，请稍后再试', clef_bad_format: '分析服务返回了无法识别的结果，请稍后再试', clef_failed: '分析服务暂时不可用，请稍后再试' }[code];
+    return fail(code, code === 'clef_timeout' ? 504 : code === 'clef_bad_format' ? 502 : 503, msg);
+  }
+  const res = readClef(c);
+  // reply ideas + plain-language reason: the site's existing chat wrapper (workersAI → AI_MODELS, GPT-6 Astra system prompt)
+  let suggest = 'ok', replies = [], reason = '';
+  const prompt = `你在帮一位聊天室用户理解别人发来的一条消息，并想几种回复。下面是消息（个人信息已替换为占位符）和一个分类模型的推测结果。\n` +
+    (ctxLines.length ? `前面的消息：\n${ctxLines.join('\n')}\n` : '') + `目标消息：${text}\n\n分类模型的推测（不一定对）：意图${res.intent.level}是「${res.intent.label}」${res.intent.alts.length ? '，也可能是「' + res.intent.alts.join('」「') + '」' : ''}；友好程度：${res.tone.friendly.label}（${res.tone.friendly.level}）；情绪：${res.tone.sentiment.label}（${res.tone.sentiment.level}）；表达方式：${res.tone.style.label}（${res.tone.style.level}）；${res.ambiguous}。\n\n` +
+    `请只输出一个 JSON 对象，不要任何其他文字：{"reason":"不超过80字，用「可能」「看起来」这类说法解释为什么这样判断，并说出哪里不确定；不要断言对方喜欢或讨厌谁，不要评价人品","replies":[{"tone":"友好","text":"一条友好的回复"},{"tone":"简洁","text":"一条简短的回复"},{"tone":"礼貌澄清","text":"一条礼貌地确认对方意思的回复"}]}。回复用对方使用的语言，每条不超过60字，不要编造事实，不要包含占位符以外的个人信息。`;
+  try {
+    let out = '', stop = false;
+    const run = workersAI(env, [{ role: 'user', content: prompt }], t => { if (stop) throw new Error('stop'); out += t; if (out.length > 4000) throw new Error('long'); }, null, null, 'low');
+    await withTimeout(run, ANA.genMs, 'gen_timeout').finally(() => { stop = true; });
+    const s = parseSuggest(out);
+    if (!s) throw new Error('format');
+    replies = s.replies; reason = s.reason;
+  } catch { suggest = 'failed'; }
+  if (!reason) reason = `模型推测这条消息${res.intent.level === '不确定' ? '的意图不明确' : res.intent.level + '是「' + res.intent.label + '」'}，语气${res.tone.friendly.label}、${res.tone.sentiment.label}，表达方式偏${res.tone.style.label}。`;
+  return json({ ok: true, id: m.id, ...res, reason, replies, suggest, ...(suggest === 'failed' ? { suggestError: '建议生成失败' } : {}), note: '模型推测，仅供参考', left });
+}
 
 /* ---------------- admin: AI analysis of chat sessions ---------------- */
 async function analyzeOne(env, sid, force) {

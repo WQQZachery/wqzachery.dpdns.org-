@@ -145,6 +145,36 @@ html.embed.kb .pvn{display:none}
 #toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 70px);transform:translate(-50%,-8px);z-index:30;max-width:calc(100vw - 32px);padding:9px 15px;border-radius:999px;background:rgba(40,40,46,.92);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);color:var(--fg);font-size:13.5px;box-shadow:0 10px 30px -8px rgba(0,0,0,.7),inset 0 0 0 .5px rgba(255,255,255,.15);opacity:0;pointer-events:none;transition:opacity .2s,transform .3s cubic-bezier(.3,1.4,.5,1);text-align:center}
 #toast.on{opacity:1;transform:translate(-50%,0)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+/* chat analysis (tap a message → 分析): result panel lives in the existing #sheet */
+.bub{cursor:pointer}
+.bub:focus-visible{outline:2px solid var(--a1);outline-offset:2px}
+#sheet .pan.ana{width:min(420px,calc(100vw - 24px))}
+#pan[data-k=msg] .acts2 button,#pan[data-k=ana] .acts2 button{min-height:44px}
+#sheet h3 .an-x{width:44px;height:44px;margin:-8px -6px -8px 0;font-size:20px;line-height:1}
+.an-q{margin:0 6px 12px;padding:9px 12px;border-radius:14px;background:rgba(255,255,255,.06);font-size:14px;line-height:1.5;color:#d1d1d6;overflow-wrap:anywhere;white-space:pre-wrap;max-height:6.4em;overflow:hidden}
+.an-sec{margin:0 6px 14px}
+.an-sec h4{font-size:12.5px;color:var(--mut);font-weight:600;margin:0 0 7px}
+.an-chips{display:flex;flex-wrap:wrap;gap:6px}
+.an-chip{display:inline-flex;align-items:baseline;flex-wrap:wrap;gap:2px 7px;padding:7px 11px;border-radius:13px;background:rgba(255,255,255,.07);font-size:14px;max-width:100%}
+.an-chip small{font-size:11.5px;color:#a1a1a6}
+.an-chip.main{background:rgba(118,185,0,.15);box-shadow:inset 0 0 0 1px rgba(118,185,0,.5)}
+.an-lv{font-size:11.5px;color:#b5e061;white-space:nowrap}
+.an-lv.u{color:#fbbf24}
+.an-alt{font-size:12.5px;color:#a1a1a6;margin-top:6px}
+.an-rs{font-size:14px;line-height:1.6;color:#e5e5ea;overflow-wrap:anywhere}
+.an-un{list-style:none;font-size:13px;line-height:1.5;color:#c7c7cc;display:grid;gap:3px;margin-top:6px}
+.an-un li{position:relative;padding-left:12px;overflow-wrap:anywhere}
+.an-un li::before{content:"";position:absolute;left:2px;top:.6em;width:4px;height:4px;border-radius:50%;background:#fbbf24}
+.an-rp{padding:10px 12px;border-radius:16px;background:rgba(255,255,255,.06);margin-bottom:8px}
+.an-rp b{font-size:12px;color:var(--green);font-weight:600}
+.an-rp p{font-size:14.5px;line-height:1.55;margin:4px 0 8px;overflow-wrap:anywhere;white-space:pre-wrap}
+.an-rp .wz-btn{padding:0 16px;font-size:13.5px}
+.an-warn{font-size:13px;line-height:1.5;color:#fbbf24;margin-bottom:8px}
+.an-note{font-size:11.5px;line-height:1.5;color:#8e8e93;margin:2px 8px 6px}
+.an-sk{display:grid;gap:9px;margin:4px 6px 14px}
+.an-sk i{display:block;height:16px;border-radius:8px;background:linear-gradient(90deg,rgba(255,255,255,.06),rgba(255,255,255,.12),rgba(255,255,255,.06));background-size:200% 100%;animation:sh 1.3s linear infinite}
+.an-load{font-size:13.5px;color:var(--mut);margin:0 8px 10px}
+#anb .wz-state{padding:16px 8px}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -213,7 +243,7 @@ function rowEl(m,prev,anim){
   const mine=m.uid===me.uid,cont=prev&&!prev.sys&&prev.uid===m.uid&&m.ts-prev.ts<180000;
   const d=document.createElement('div');d.className='row'+(mine?' mine':'')+(cont?' cont':'')+(anim?' new':'')+(m.pend?' pend':'')+(m.fail?' fail':'');
   d.dataset.id=m.id||'';if(m.cid)d.dataset.cid=m.cid;
-  d.innerHTML=`<button class="av" type="button" style="${avc(m.uid)}" data-u="${esc(m.uid)}" data-n="${esc(m.nick)}" aria-label="${esc(m.nick)}">${esc(ini(m.nick))}</button><div class="col"><div class="meta">${mine?'':`<b data-u="${esc(m.uid)}" data-n="${esc(m.nick)}">${esc(m.nick)}</b>`}<time data-ts="${m.ts}">${rel(m.ts)}</time></div><div class="bub${mentionsMe(m)?' ment':''}">${md(m.text)}</div>${mine?`<div class="tick">${m.fail?'发送失败':m.pend?'发送中…':'已发送 ✓'}</div>`:''}</div>`;
+  d.innerHTML=`<button class="av" type="button" style="${avc(m.uid)}" data-u="${esc(m.uid)}" data-n="${esc(m.nick)}" aria-label="${esc(m.nick)}">${esc(ini(m.nick))}</button><div class="col"><div class="meta">${mine?'':`<b data-u="${esc(m.uid)}" data-n="${esc(m.nick)}">${esc(m.nick)}</b>`}<time data-ts="${m.ts}">${rel(m.ts)}</time></div><div class="bub${mentionsMe(m)?' ment':''}" tabindex="0">${md(m.text)}</div>${mine?`<div class="tick">${m.fail?'发送失败':m.pend?'发送中…':'已发送 ✓'}</div>`:''}</div>`;
   return d}
 const listFor=()=>view?(dms[view]?dms[view].msgs:[]):pub.filter(m=>m.sys?m.ts>clearTs:m.ts>clearTs);
 function render(){
@@ -271,7 +301,9 @@ function on(m){
     for(const d of m.dms){const other=d.uid===me.uid?d.to_uid:d.uid,nick=d.uid===me.uid?d.to_nick:d.nick;const c=dms[other]||(dms[other]={nick,msgs:[],loaded:false,unread:0});c.nick=nick;c.last=d;
       if(d.uid!==me.uid&&d.ts>(seen[other]||0)&&view!==other)c.unread=Math.max(c.unread,1)}
     if(view)ws.send(JSON.stringify({t:'dmhist',with:view}));
-    setStatus('ok');setOnline({n:m.n,users:m.users});render();badge();return}
+    setStatus('ok');setOnline({n:m.n,users:m.users});render();badge();
+    if(!LS.get('chatAnaTip','')&&pub.some(x=>!x.sys&&x.uid!==me.uid)){LS.set('chatAnaTip','1');setTimeout(()=>toast('小提示：点一下消息，可以用「聊天分析」看看意图和语气'),1200)}
+    return}
   if(m.t==='presence'){setOnline(m);return}
   if(m.t==='msg'){const x=m.m;
     if(m.cid&&pending.has(m.cid))pending.delete(m.cid);
@@ -359,6 +391,47 @@ $('#pan').addEventListener('click',e=>{const it=e.target.closest('.it[data-u]');
   if(k==='dm')openDM(it.dataset.u,it.dataset.n);else if(k==='on')userMenu(it.dataset.u,it.dataset.n)});
 inner.addEventListener('click',e=>{const a=e.target.closest('[data-u]');if(a&&!view)userMenu(a.dataset.u,a.dataset.n)});
 $('#clr').onclick=()=>{if(view){toast('清屏只作用于大厅');return}clearTs=Date.now();LS.set('chatClear',String(clearTs));render();toast('已清屏，只对你自己生效')};
+
+/* ---------- chat analysis: tap a message → 分析 (POST /api/chat/analyze; the server reads the text from its own store by id) ---------- */
+const cutT=(t,n)=>{const a=[...String(t??'')];return a.length>n?a.slice(0,n).join('')+'…':a.join('')};
+const XSVG='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+const anaFind=id=>(view?(dms[view]?dms[view].msgs:[]):pub).find(x=>x.id===id);
+let anaSeq=0,anaRes=null;
+function msgMenu(id){const m=anaFind(id);if(!m)return;
+  openSheet('msg',`<h3><span>${m.uid===me.uid?'我的消息':esc(m.nick)+' 的消息'}</span></h3><div class="an-q">${esc(cutT(m.text,140))}</div><div class="acts2"><button type="button" class="pri" data-a="ana">聊天分析</button><button type="button" data-a="x">取消</button></div><p class="an-note">用 AI 推测这条消息的意图和语气，并给出几种回复建议。模型推测，仅供参考。</p>`);
+  $('#pan').dataset.id=id}
+const LV=l=>`<span class="an-lv${l==='不确定'?' u':''}">${esc(l)}</span>`;
+function anaLoading(){return `<p class="an-load" role="status">正在分析…</p><div class="an-sk" aria-hidden="true"><i style="width:55%"></i><i style="width:88%"></i><i style="width:72%"></i><i style="width:80%"></i></div>`}
+function analyze(id){const m=anaFind(id);if(!m)return;const seq=++anaSeq;anaRes=null;
+  openSheet('ana',`<h3><span>聊天分析</span><button type="button" class="ib an-x" data-a="x" aria-label="关闭聊天分析">${XSVG}</button></h3><div class="an-q">${esc(cutT(m.text,140))}</div><div id="anb" aria-live="polite" aria-busy="true">${anaLoading()}</div><p class="an-note">模型推测，仅供参考，不代表任何人的真实想法。只发送这条消息和前面最多 3 条（手机号、邮箱等会先替换掉），不保存分析结果。</p>`);
+  const p=$('#pan');p.classList.add('ana');p.dataset.id=id;
+  let to=0;const ac=window.AbortController?new AbortController():null;if(ac)to=setTimeout(()=>ac.abort(),45000);
+  fetch('/api/chat/analyze',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({id,key}),signal:ac?ac.signal:undefined})
+    .then(async r=>{let j=null;try{j=await r.json()}catch(e){}return {r,j}})
+    .then(({r,j})=>{if(seq!==anaSeq)return;if(!r.ok||!j||j.ok!==true)return anaErr(id,(j&&j.error)||'分析失败，请稍后再试',j&&j.code);anaShow(j)})
+    .catch(e=>{if(seq!==anaSeq)return;anaErr(id,e&&e.name==='AbortError'?'等待太久了，请稍后再试':'网络出错了，请检查网络后重试','net')})
+    .finally(()=>clearTimeout(to))}
+function anaBody(){const b=$('#anb');if(!b||$('#pan').dataset.k!=='ana')return null;b.setAttribute('aria-busy','false');return b}
+function anaErr(id,msg,code){const b=anaBody();if(!b)return;
+  const retry=!/^(ip_cap|site_cap|not_found|empty|bad_id|bad_key)$/.test(code||'');
+  b.innerHTML=`<div class="wz-state err" role="alert"><span>${esc(msg)}</span>${retry?'<button type="button" class="wz-btn" data-a="retry">重试</button>':''}</div>`}
+function anaShow(j){const b=anaBody();if(!b)return;anaRes=j;const t=j.tone||{},it=j.intent||{};
+  const chip=(name,x,main)=>x&&x.label?`<span class="an-chip${main?' main':''}">${name?`<small>${name}</small>`:''}${esc(x.label)}${LV(x.level||'不确定')}</span>`:'';
+  const reps=(j.replies||[]).map((r,i)=>`<div class="an-rp"><b>${esc(r.tone)}</b><p>${esc(r.text)}</p><button type="button" class="wz-btn" data-a="cp" data-i="${i}" aria-label="复制${esc(r.tone)}回复">复制回复</button></div>`).join('');
+  b.innerHTML=`<section class="an-sec"><h4>意图</h4><div class="an-chips">${chip('',it,1)}</div>${it.alts&&it.alts.length?`<p class="an-alt">也可能是：${it.alts.map(esc).join('、')}</p>`:''}</section>`+
+    `<section class="an-sec"><h4>语气</h4><div class="an-chips">${chip('友好程度',t.friendly)}${chip('情绪',t.sentiment)}${chip('表达方式',t.style)}</div></section>`+
+    `<section class="an-sec"><h4>分析依据</h4><p class="an-rs">${esc(j.reason||'')}</p>${(j.uncertainty||[]).length?`<ul class="an-un" aria-label="不确定的地方">${j.uncertainty.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}</section>`+
+    `<section class="an-sec"><h4>回复建议</h4>${j.suggest==='ok'&&reps?reps:`<p class="an-warn">建议生成失败，上面的分类结果仍可参考。</p><button type="button" class="wz-btn" data-a="retry">重新分析</button>`}</section>`+
+    (j.left>=0?`<p class="an-note">今天还可以分析 ${j.left} 次</p>`:'')}
+$('#pan').addEventListener('click',async e=>{const b=e.target.closest('[data-a]');const p=$('#pan');if(!b||!/^(msg|ana)$/.test(p.dataset.k))return;const a=b.dataset.a,id=+p.dataset.id;
+  if(a==='x')return closeSheet();
+  if(a==='ana'||a==='retry')return analyze(id);
+  if(a==='cp'){const r=anaRes&&anaRes.replies&&anaRes.replies[+b.dataset.i];if(!r)return;const ok=window.wqzCopy?await window.wqzCopy(r.text):false;
+    b.textContent=ok?'已复制 ✓':'复制失败';clearTimeout(b._t);b._t=setTimeout(()=>{b.textContent='复制回复'},1600);if(!ok)toast('复制失败，请长按文字手动复制')}});
+const bubOpen=e=>{const bb=e.target.closest('.bub');if(!bb||e.target.closest('a'))return false;const row=bb.closest('.row'),id=+(row&&row.dataset.id);
+  if(!id){toast(row&&row.classList.contains('fail')?'这条消息没发出去，不能分析':'消息还在发送中，稍后再试');return true}msgMenu(id);return true};
+inner.addEventListener('click',e=>{if(!e.target.closest('[data-u]'))bubOpen(e)});
+inner.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.classList&&e.target.classList.contains('bub')){e.preventDefault();bubOpen(e)}});
 
 /* ---------- layout: keep the "new messages" pill above the input; keyboard on phones ---------- */
 function fh(){document.body.style.setProperty('--fh',f.offsetHeight+'px')}

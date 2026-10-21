@@ -11,6 +11,7 @@
 - **公共网盘**：浏览器算 SHA-256 → `/api/up/init` → 直传 Hugging Face S3（16 MB 分片 ×4 并发，失败走 Worker 中转）→ `/api/up/finish`。单文件 ≤ 2 GB；每个 IP 每天（北京时间）≤ 5 GB / 50 个；按扩展名 + 文件头（MZ、ELF、Mach-O、#!、deb/rpm、APK/JAR/IPA）拒绝可执行文件、安装包和脚本，服务端在 init、中转和 finish（读取已上传对象的前 64 KB）三处检查。举报、在线预览（图片/视频/音频/PDF/文本，HTML/SVG 一律按纯文本显示）、文件夹、分页（每页 60 个）、懒加载缩略图。多文件最多 3 个同时上传，单个失败可单独重试；上传按钮可用键盘操作；新建文件夹用站内对话框。
 - **AI 助手**：默认 GPT-6 Astra（Workers AI），可切换 OpenRouter 免费模型和 Workers AI 上的其他模型；SSE 流式输出；可联网搜索（Bing + 中文维基）；思考强度四档。服务端白名单校验模型和思考强度；每个 IP 同时只能生成一条；每 IP 每天默认 200 次。对话历史只保存在本机浏览器（最多 50 段，可在「历史」里删除，不跨设备）；回答可复制、失败可重试、最后一条可重新生成。
 - **聊天室**：WebSocket + Durable Object（Hibernation API）。大厅保留最近 100 条，每段私信最近 50 条；私信只推送给双方。
+- **聊天分析**（聊天室里点一条消息 →「聊天分析」）：Cloudflare 决策模型 Clef-flash 推测意图 / 友好程度 / 情绪 / 表达方式，再用站内现有的 AI 封装生成判断依据和 2–3 条回复建议，可一键复制。服务端按消息 id 从 DO 取原文（私信只有双方能分析），只发这条加前面最多 3 条、每条 ≤500 字，手机号 / 邮箱 / 身份证号 / IP / URL 令牌先替换成占位符；不保存结果。每 IP 每天 20 次、全站每天 300 次（北京时间计日），界面注明「模型推测，仅供参考」。
 - **更新公告 / 更新日志**：数据只有一个文件 `site/announcements.json`（Worker 以 `/announcements.json` 提供，`/api/announcements` 同内容）。外壳 `app.html` 在开场动画结束后弹出最新一条 `popup: true` 的公告，读过的 id 记在 localStorage `wqzAnnSeen`，同一条只弹一次，新 id 会再弹；主页底部「更新日志」查看全部历史（在外壳里打开时盖住整个窗口）。版本号从 1.0.0（2026-10-17）开始：大改动升第二位，小修复升第三位；之前的记录没有版本号，只按日期标注。发新公告：在 `entries` 最前面加一条（`id` 唯一、`date`、`version`、`title`、`items`、`popup: true`），推送即可；构建脚本会先校验 JSON。
 - **管理后台** `/admin`（noindex）：访问 / 上传统计、文件管理、AI 对话、聊天室、待处理举报（删除文件 / 忽略）。后台密钥常数时间比较；同一 IP 15 分钟内输错 5 个不同密钥即锁定 15 分钟。
 
@@ -34,19 +35,19 @@
 
 页面：`/` `/drive` `/ai` `/chat`（外壳）、`/p/home` `/p/drive` `/p/ai` `/p/chat`（单页）、`/privacy`、`/admin`、`/robots.txt`、`/sitemap.xml`、`/llms.txt`、`/og.png`、`/shared.css`、`/shared.js`、`/announcements.json`。
 
-公开 API：`GET /api/announcements`、`GET /api/models`、`GET /api/stats`、`GET /api/limits`、`POST /api/chat`、`GET /api/files`、`POST /api/folders`、`POST /api/up/init`、`PUT /api/up/part`、`POST /api/up/finish`、`GET /api/files/raw/<path>[?dl=1]`、`GET /api/files/url/<path>`、`POST /api/report`、`GET /api/chat/ws`（WebSocket）。
+公开 API：`GET /api/announcements`、`GET /api/models`、`GET /api/stats`、`GET /api/limits`、`POST /api/chat`、`GET /api/files`、`POST /api/folders`、`POST /api/up/init`、`PUT /api/up/part`、`POST /api/up/finish`、`GET /api/files/raw/<path>[?dl=1]`、`GET /api/files/url/<path>`、`POST /api/report`、`POST /api/chat/analyze`、`GET /api/chat/ws`（WebSocket）。
 
 管理 API（请求头 `x-admin-key`）：`/api/admin/check|stats|sessions|session|analyze|chat|reports`、`DELETE /api/files/dl/<path>`、`DELETE /api/folders`、`POST /api/move`、`POST /api/rename`、`DELETE /api/chat/msg`、`GET /api/search`。
 
 ## 数据存储
 
 - **Hugging Face 私有数据集**：网盘文件（`files/<文件夹>/<日期>-<随机>-<文件名>`，LFS）。
-- **Durable Object `Store`（SQLite）**表：`msgs`（AI 对话）、`ana`（对话分析）、`hits`（访问）、`ups`（上传者）、`chat` / `chat_leave`（聊天室）、`auth_fail`（后台密钥错误，15 分钟）、`ai_use`（AI 次数/并发，约 7 天清理）、`upq`（上传额度与上传会话，约 3 天清理）、`reports`（举报）。新表都用 `CREATE TABLE IF NOT EXISTS` 创建，不需要新的 DO 迁移。
+- **Durable Object `Store`（SQLite）**表：`msgs`（AI 对话）、`ana`（对话分析）、`hits`（访问）、`ups`（上传者）、`chat` / `chat_leave`（聊天室）、`auth_fail`（后台密钥错误，15 分钟）、`ai_use`（AI 次数/并发，约 7 天清理）、`upq`（上传额度与上传会话，约 3 天清理）、`reports`（举报）、`ana_use`（聊天分析每日次数，IP 只存哈希，约 3 天清理）。新表都用 `CREATE TABLE IF NOT EXISTS` 创建，不需要新的 DO 迁移。
 
 ## 环境变量与绑定（只列名称）
 
 - Secrets：`HF_TOKEN`、`ADMIN_KEY`、`OPENROUTER_KEY`（可选）、`GEMINI_KEY`（可选，目前未启用）。
-- Plain text：`HF_REPO`、`AI_MODELS`、`GEMINI_MODELS`、`CAP_LABEL`、`AI_DAILY_CAP`（默认 200，0 = 不限）、`UP_MAX_FILE`（字节，默认 2 GiB）、`UP_DAY_BYTES`（默认 5 GiB）、`UP_DAY_FILES`（默认 50）。
+- Plain text：`HF_REPO`、`AI_MODELS`、`GEMINI_MODELS`、`CAP_LABEL`、`AI_DAILY_CAP`（默认 200，0 = 不限）、`CHAT_ANA_IP_DAILY`（聊天分析每 IP 每天，默认 20，0 = 不限）、`CHAT_ANA_DAILY`（聊天分析全站每天，默认 300，0 = 不限）、`UP_MAX_FILE`（字节，默认 2 GiB）、`UP_DAY_BYTES`（默认 5 GiB）、`UP_DAY_FILES`（默认 50）。
 - 绑定：Workers AI `AI`、Durable Object `STORE`（类 `Store`）、rate limit `CHAT_RL`、`UP_RL`。
 
 ## 部署
@@ -75,6 +76,10 @@ HF_REPO=<hf用户>/<数据集> [AI_DAILY_CAP=200] [UP_DAY_FILES=50] deploy/deplo
 | `python3 tools/ui_check.py` | 网盘错误/重试、上传拒绝、举报、隐私弹窗、首页入口与统计 |
 | `python3 tools/link_check.py <base>` | 全站链接检查 |
 | `python3 tools/syntax_check.py` | 所有内联脚本与 worker.js 语法检查（node --check） |
+| `node tools/worker_test.mjs` | 请求级测试（stub fetch / DO / AI），末尾会跑 `tools/analyze_test.mjs` |
+| `node tools/analyze_test.mjs` | 聊天分析接口：真实 Store 跑在内存 SQLite 上 + 假 AI；正常、空输入 / 不存在 / 私信权限、Clef 异常格式、超时与失败、单 IP / 全站限流、个人信息过滤、日志 |
+| `python3 tools/analyze_ui_test.py` | 聊天分析面板（模拟 API + 页面内假 WebSocket）：加载 / 成功 / 失败、重试、复制、键盘、360–412 宽度无溢出、外壳内布局 |
+| `CHAT_ANA_IP_DAILY=5 CHAT_ANA_DAILY=7 bash tools/local_env.sh start && python3 tools/analyze_local_e2e.py` | 聊天分析在本地 workerd + SQLite DO 上的端到端检查（假 AI） |
 | `MPORT=8768 python3 tools/mock_api.py` + `PORT=8767 UP=http://127.0.0.1:8768 python3 tools/lproxy.py` | 本地模拟 API（不调用真实 AI / 存储），供下面的浏览器测试使用 |
 | `python3 tools/ai_persist_test.py` | AI 本地历史（关闭重开、多会话、删除）、复制、重试、重新生成、中断、保存失败提示、读屏 |
 | `python3 tools/drive_test.py [up\|mk]` | 网盘纯键盘上传、≤3 并发、单个失败与重试、拖放、新建文件夹对话框 |
