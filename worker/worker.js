@@ -45,10 +45,15 @@ const LLMS = `# 吴谦 · Zachery Wu
 `;
 // on every response: no MIME sniffing, trimmed referrers, no powerful browser features (the site uses none of these)
 const SEC = { 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=(), interest-cohort=()' };
-// pages: framing only by our own shell (same as X-Frame-Options), no <base> hijack, no plugins. Script/style rules deliberately not set yet:
-// every page relies on inline <script>/<style>, a strict CSP needs nonces/hashes and its own testing round.
-const PAGE_CSP = "frame-ancestors 'self'; base-uri 'self'; object-src 'none'";
-const page = (b, s = 200, x = {}) => new Response(b, { status: s, headers: { ...SEC, 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': PAGE_CSP, 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=120', ...x } });
+// pages: framing only by our own shell (same as X-Frame-Options), no <base> hijack, no plugins.
+// Scripts: only same-origin files and inline <script> tags carrying this response's nonce (no 'unsafe-inline', no inline on*= handlers).
+// Cloudflare's injected JavaScript Detections script picks the nonce up from this header. Styles stay 'unsafe-inline' for now
+// (style="" attributes can't carry a nonce); <style> tags get the nonce too so they can be tightened later.
+const PAGE_CSP_BASE = "frame-ancestors 'self'; base-uri 'self'; object-src 'none'";
+const pageCsp = n => `${PAGE_CSP_BASE}; script-src 'nonce-${n}' 'self'; style-src 'self' 'unsafe-inline'`;
+const newNonce = () => { const a = new Uint8Array(16); crypto.getRandomValues(a); return btoa(String.fromCharCode(...a)); };
+const withNonce = (b, n) => b.replace(/<(script|style)(?=[\s>])/gi, `<$1 nonce="${n}"`);
+const page = (b, s = 200, x = {}) => { const n = newNonce(); return new Response(withNonce(b, n), { status: s, headers: { ...SEC, 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': pageCsp(n), 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=120', ...x } }); };
 const NOIDX = { 'X-Robots-Tag': 'noindex, nofollow' };
 const json = (o, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { ...SEC, ...NOIDX, 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
 const ip = r => r.headers.get('cf-connecting-ip') || 'x';

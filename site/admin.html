@@ -437,9 +437,12 @@ const inDir=(f,d)=>f.dir===d||f.dir.startsWith(d+'/');
 const countIn=d=>F.files.filter(f=>inDir(f,d)).length;
 const sizeIn=d=>F.files.reduce((s,f)=>s+(inDir(f,d)?f.size||0:0),0);
 const parentOf=d=>d.includes('/')?d.slice(0,d.lastIndexOf('/')):'';
+// media load/error handled here instead of inline onload/onerror attributes (blocked by the nonce CSP); capture phase because these events don't bubble
+document.addEventListener('load',e=>{const t=e.target;if(t.tagName==='IMG'&&t.hasAttribute('data-ok'))t.classList.add('ok')},true);
+document.addEventListener('error',e=>{const t=e.target;if((t.tagName==='IMG'||t.tagName==='VIDEO')&&t.dataset&&t.dataset.gl!=null&&t.isConnected)t.outerHTML=t.dataset.gl},true);
 function thumb(f,list){const k=kindOf(f.name),u=esc(rawUrl(f.path));
-  if(k==='img')return `<img loading="lazy" decoding="async" src="${u}" alt="" onload="this.classList.add('ok')" onerror="this.outerHTML=this.dataset.gl" data-gl="${esc(glyph(f.name))}">`;
-  if(k==='vid')return `<video muted playsinline preload="none" data-src="${u}#t=0.1" onerror="this.outerHTML=this.dataset.gl" data-gl="${esc(glyph(f.name))}"></video>${list?'':`<span class="badge"><svg><use href="#i-play"/></svg>视频</span>`}`;
+  if(k==='img')return `<img loading="lazy" decoding="async" src="${u}" alt="" data-ok data-gl="${esc(glyph(f.name))}">`;
+  if(k==='vid')return `<video muted playsinline preload="none" data-src="${u}#t=0.1" data-gl="${esc(glyph(f.name))}"></video>${list?'':`<span class="badge"><svg><use href="#i-play"/></svg>视频</span>`}`;
   return glyph(f.name)}
 const CK='<button class="ck" tabindex="-1" aria-label="选择"><svg><use href="#i-check"/></svg></button>';
 function renderFiles(){if(cwd&&!F.folders.includes(cwd)&&!F.files.some(f=>inDir(f,cwd)))cwd='';
@@ -567,7 +570,7 @@ async function showLB(){const it=lbList[lbI];if(!it)return closeLB();const f=it.
   $('#lbt').textContent=f.name;$('#lbm').textContent=`${lbI+1} / ${lbList.length} · ${fmt(f.size)} · ${sd(f.date)}`;$('#lbo').href=u;$('#lbd').href=u+'?dl';
   $('#lbp').style.visibility=lbI>0?'':'hidden';$('#lbn').style.visibility=lbI<lbList.length-1?'':'hidden';
   const na=msg=>`<div class="na">${glyph(f.name)}<p>${msg}</p></div>`;
-  if(k==='img')st.innerHTML=`<img src="${esc(u)}" alt="${esc(f.name)}" onerror="this.outerHTML='<div class=na><p>图片无法显示（格式可能不受浏览器支持）</p></div>'">`;
+  if(k==='img')st.innerHTML=`<img src="${esc(u)}" alt="${esc(f.name)}" data-gl="<div class=na><p>图片无法显示（格式可能不受浏览器支持）</p></div>">`;
   else if(k==='vid')st.innerHTML=`<video src="${esc(u)}" controls playsinline autoplay></video>`;
   else if(k==='aud')st.innerHTML=`<div class="na">${glyph(f.name)}<audio src="${esc(u)}" controls autoplay></audio></div>`;
   else if(k==='pdf')st.innerHTML=`<iframe src="${esc(u)}" title="${esc(f.name)}"></iframe>`;
