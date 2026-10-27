@@ -43,8 +43,9 @@ const LLMS = `# 吴谦 · Zachery Wu
 - 网盘存储：Hugging Face 私有数据集，浏览器直传 S3 分片
 - 域名：wqzachery.dpdns.org
 `;
-// on every response: no MIME sniffing, trimmed referrers, no powerful browser features (the site uses none of these)
-const SEC = { 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=(), interest-cohort=()' };
+// on every response: no MIME sniffing, trimmed referrers, no powerful browser features (the site uses none of these),
+// HSTS stage 1: one day incl. subdomains (raise to 31536000 once every *.wqzachery.dpdns.org host is confirmed HTTPS-only)
+const SEC = { 'Strict-Transport-Security': 'max-age=86400; includeSubDomains', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=(), interest-cohort=()' };
 // pages: framing only by our own shell (same as X-Frame-Options), no <base> hijack, no plugins. Script/style rules deliberately not set yet:
 // every page relies on inline <script>/<style>, a strict CSP needs nonces/hashes and its own testing round.
 const PAGE_CSP = "frame-ancestors 'self'; base-uri 'self'; object-src 'none'";
