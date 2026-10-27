@@ -57,7 +57,8 @@
 **手动部署（备用）**：
 
 ```bash
-HF_REPO=<hf用户>/<数据集> [AI_DAILY_CAP=200] [UP_DAY_FILES=50] deploy/deploy_worker.sh <worker名>
+CF_ACCOUNT_ID=<Cloudflare 账户 ID> HF_REPO=<hf用户>/<数据集> [AI_DAILY_CAP=200] [UP_DAY_FILES=50] deploy/deploy_worker.sh <worker名>
+# CF_ACCOUNT_ID 不入库：写进 shell profile，或写进被 .gitignore 忽略的 .env 后 `set -a; . ./.env; set +a`
 ```
 
 首次部署（还没有 Durable Object 时）加 `MIGRATE=1`；已经部署过的 Worker **不要**再加。
