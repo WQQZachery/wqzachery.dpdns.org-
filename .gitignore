@@ -9,3 +9,4 @@ build/
 backup/
 *.admin_key
 .test_admin_key
+.env

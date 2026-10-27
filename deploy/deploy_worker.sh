@@ -1,8 +1,10 @@
 #!/bin/bash
-# Usage: [MIGRATE=1] [AI_DAILY_CAP=200] [UP_MAX_FILE=bytes] [UP_DAY_BYTES=bytes] [UP_DAY_FILES=50] HF_REPO=wqzachery/drive deploy_worker.sh <script-name>   (auth injected by the 'cloudflare' service)
+# Usage: CF_ACCOUNT_ID=<id> [MIGRATE=1] [AI_DAILY_CAP=200] [UP_MAX_FILE=bytes] [UP_DAY_BYTES=bytes] [UP_DAY_FILES=50] HF_REPO=wqzachery/drive deploy_worker.sh <script-name>   (auth injected by the 'cloudflare' service)
 set -e
+# CF_ACCOUNT_ID: Cloudflare dashboard → Workers & Pages → right sidebar "Account ID". Keep it out of the repo: export it in your
+# shell profile, or put `CF_ACCOUNT_ID=...` in a git-ignored .env and run `set -a; . ./.env; set +a` before this script.
 python3 -c "import json,sys;json.load(open(sys.argv[1]))" "$(cd "$(dirname "$0")/.." && pwd)/site/announcements.json"   # broken JSON must never ship
-N=${1:-wqzachery}; A=2bf233f73b71c343852e1bc2b2d1f190; D=$(cd "$(dirname "$0")/.." && pwd)
+N=${1:-wqzachery}; A=${CF_ACCOUNT_ID:?请设置环境变量 CF_ACCOUNT_ID（Cloudflare 账户 ID）}; D=$(cd "$(dirname "$0")/.." && pwd)
 MIG=""; [ "$MIGRATE" = "1" ] && MIG=',"migrations":{"new_tag":"v1","new_sqlite_classes":["Store"]}'
 META='{"main_module":"worker.js","compatibility_date":"2026-10-01","keep_bindings":["secret_text"]'"$MIG"',"bindings":[
 {"type":"ai","name":"AI"},
