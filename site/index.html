@@ -731,9 +731,14 @@ if(matchMedia('(hover:hover) and (pointer:fine)').matches){
     }
     g.putImageData(img,0,0);return c.toDataURL();
   }
+  // refraction re-samples the whole element every frame: above this area (px²) keep the frosted fallback instead (same cap as the VPN site)
+  const MAX_AREA=600000;
+  function drop(el){el.classList.remove('lens');el.style.removeProperty('--lens');
+    if(el.dataset.lid){const f=document.getElementById(el.dataset.lid);if(f)f.remove()}delete el.dataset.lk;delete el.dataset.lid}
   function build(el){
     const b=el.getBoundingClientRect(),w=Math.round(el.offsetWidth),h=Math.round(el.offsetHeight);
     if(w<8||h<8)return;
+    if(w*h>MAX_AREA){drop(el);return}
     const key=w+'x'+h;if(el.dataset.lk===key)return;el.dataset.lk=key;
     const cs=getComputedStyle(el),r=Math.min(parseFloat(cs.borderTopLeftRadius)||0,w/2,h/2);
     const bezel=Math.min(Math.max(h*.32,14),28,Math.min(w,h)/2);
