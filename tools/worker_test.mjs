@@ -5,6 +5,7 @@
 import fs from 'fs'; import vm from 'vm'; import path from 'path'; import { fileURLToPath } from 'url';
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 let src = fs.readFileSync(path.join(root, 'worker/worker.js'), 'utf8')
+  .replace(/^import (\w+) from '\.\/([\w-]+\.html)';?$/gm, (_, n, f) => `const ${n} = ${JSON.stringify(fs.readFileSync(path.join(root, 'site', f), 'utf8'))};`)   // real pages (CSP nonce tests)
   .replace(/^import (\w+) from .*$/gm, (_, n) => `const ${n} = '';`)
   .replace(/^import \{ DurableObject \} from .*$/m, 'class DurableObject { constructor(){} }')
   .replace('export default {', 'const __default = {').replace('export class Store', 'class Store');
@@ -170,7 +171,14 @@ const goodChat = { sid: 's1', messages: [{ role: 'user', content: '你好' }] };
   const has = (r, k, v) => (r.headers.get(k) || '').includes(v);
   for (const [n, r] of [['page', pg], ['api', api], ['404', nf]]) t(`${n}: nosniff + Referrer-Policy + Permissions-Policy`, has(r, 'x-content-type-options', 'nosniff') && has(r, 'referrer-policy', 'strict-origin') && has(r, 'permissions-policy', 'camera=()'));
   t('pages: frame-ancestors self + X-Frame-Options', has(pg, 'content-security-policy', "frame-ancestors 'self'") && has(pg, 'x-frame-options', 'SAMEORIGIN') && has(nf, 'content-security-policy', "frame-ancestors 'self'"));
-  t('pages: CSP does not restrict inline scripts (not yet tested for that)', !has(pg, 'content-security-policy', 'script-src'));
+  {
+    const csp = r => r.headers.get('content-security-policy') || '', nn = r => (csp(r).match(/'nonce-([A-Za-z0-9+/=]+)'/) || [])[1];
+    t('pages: CSP script-src uses a nonce, never unsafe-inline', [pg, nf].every(r => /script-src 'nonce-[A-Za-z0-9+/=]{20,}' 'self'/.test(csp(r)) && !/script-src[^;]*unsafe-inline/.test(csp(r))));
+    const [b1, b2] = [await pg.clone().text(), await (await call('/p/home')).text()];
+    const tags = b1.match(/<script\b[^>]*>/gi) || [];
+    t('pages: every <script>/<style> carries this response\'s nonce', tags.length > 0 && tags.every(x => x.includes(`nonce="${nn(pg)}"`)) && (b1.match(/<style\b[^>]*>/gi) || []).every(x => x.includes(`nonce="${nn(pg)}"`)));
+    t('pages: nonce differs per response', !!nn(pg) && b2.includes('nonce=') && !b2.includes(`nonce="${nn(pg)}"`));
+  }
 }
 
 /* ===== G. locked owner folder files/wq + owner IPs shown as 我 ===== */
