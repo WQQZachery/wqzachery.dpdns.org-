@@ -168,7 +168,7 @@ const goodChat = { sid: 's1', messages: [{ role: 'user', content: '你好' }] };
 {
   const pg = await call('/p/home'), api = await call('/api/nope'), nf = await call('/no-such-page');
   const has = (r, k, v) => (r.headers.get(k) || '').includes(v);
-  for (const [n, r] of [['page', pg], ['api', api], ['404', nf]]) t(`${n}: nosniff + Referrer-Policy + Permissions-Policy`, has(r, 'x-content-type-options', 'nosniff') && has(r, 'referrer-policy', 'strict-origin') && has(r, 'permissions-policy', 'camera=()'));
+  for (const [n, r] of [['page', pg], ['api', api], ['404', nf]]) t(`${n}: nosniff + Referrer-Policy + Permissions-Policy`, has(r, 'x-content-type-options', 'nosniff') && has(r, 'referrer-policy', 'strict-origin') && has(r, 'permissions-policy', 'camera=()') && !r.headers.get('permissions-policy').includes('bluetooth'));
   t('pages: frame-ancestors self + X-Frame-Options', has(pg, 'content-security-policy', "frame-ancestors 'self'") && has(pg, 'x-frame-options', 'SAMEORIGIN') && has(nf, 'content-security-policy', "frame-ancestors 'self'"));
   t('pages: CSP does not restrict inline scripts (not yet tested for that)', !has(pg, 'content-security-policy', 'script-src'));
 }
