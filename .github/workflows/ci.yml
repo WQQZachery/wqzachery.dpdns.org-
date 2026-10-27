@@ -22,6 +22,8 @@ jobs:
         with: { python-version: '3.12' }
       - name: Install wrangler (from package-lock)
         run: npm ci --no-audit --no-fund
+      - name: npm audit (fail on high or critical)
+        run: npm audit --audit-level=high
       - name: JSON / config validation
         run: |
           node -e "JSON.parse(require('fs').readFileSync('site/announcements.json','utf8'))"
