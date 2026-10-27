@@ -329,6 +329,11 @@ body{overflow-x:clip;max-width:100%}
   .tile:hover{transform:none}
   .lg-field>.blob{animation-duration:30s}
 }
+/* tablet portrait (600–820px, e.g. 768×1024 @2x): backdrop sampling of the glass panels blew the scroll frame budget,
+   so glass falls back to the same tinted panel as browsers without backdrop-filter. Phones and desktop keep the glass. */
+@media (min-width:600px) and (max-width:820px){
+  .lg,.lg.lens{-webkit-backdrop-filter:none!important;backdrop-filter:none!important;--lg-bg:rgba(28,28,32,.92)}
+}
 /* browsers without backdrop-filter: solid tinted panel */
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
   .lg{--lg-bg:rgba(28,28,32,.92)}
@@ -710,6 +715,7 @@ if(matchMedia('(hover:hover) and (pointer:fine)').matches){
   const ua=navigator.userAgent;
   const chromium=/Chrome\/|Chromium\/|Edg\//.test(ua)&&!/CriOS|EdgiOS|FxiOS/.test(ua)&&!/Firefox\//.test(ua);
   if(!chromium||!CSS.supports('backdrop-filter','url(#x)'))return;
+  if(matchMedia('(min-width:600px) and (max-width:820px)').matches)return;   // tablet portrait: tinted panels, no refraction (see CSS)
   const NS='http://www.w3.org/2000/svg',defs=document.querySelector('#lgdefs defs');
   let n=0;
   function mapURL(w,h,r,bezel){
